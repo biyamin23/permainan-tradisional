@@ -53,7 +53,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
       const over = checkGameOver(boardAfter, nextSide)
       if (over) {
         if (over.swept > 0) {
-          say(over.sweptBy === PLAYER ? `Kamu kutip baki ${over.swept} biji!` : `Lawan kutip baki ${over.swept} biji.`, 'info')
+          say(over.sweptBy === PLAYER ? `Kamu kutip baki ${over.swept} biji.` : `Aiman kutip baki ${over.swept} biji.`, 'info')
         }
         setPits(over.pits)
         later(() => {
@@ -65,7 +65,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
         return
       }
       setTurn(nextSide)
-      if (extraTurn) say(side === PLAYER ? 'Masuk rumah! Main lagi.' : 'Lawan masuk rumah, dia main lagi.', 'good')
+      if (extraTurn) say(side === PLAYER ? 'Masuk rumah. Kamu main lagi.' : 'Aiman masuk rumah, dia main lagi.', 'good')
     },
     [say],
   )
@@ -117,7 +117,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
             display[e.opposite] = 0
             display[e.store] += e.count
             setFlash({ pits: [e.pit, e.opposite, e.store], key: Math.random() })
-            say(side === PLAYER ? `Tembak! ${e.count} biji masuk rumah kamu.` : `Lawan tembak ${e.count} biji!`, side === PLAYER ? 'good' : 'bad')
+            say(side === PLAYER ? `Tembak. ${e.count} biji masuk rumah kamu.` : `Aiman tembak ${e.count} biji kamu.`, side === PLAYER ? 'good' : 'bad')
             sfx.capture()
             wait = 900
             break

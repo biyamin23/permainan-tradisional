@@ -13,7 +13,7 @@ Landing → Character creation → Enter kampung → walk to a game spot → Sol
 What's in the kampung:
 
 - **10 game spots**, one per game, each with kids playing it (Congkak at the wakaf, Gasing on the padang, Wau in the open field, Teng-Teng near the road…). Only Congkak is open for now; the others say *akan datang*.
-- **Congkak** (solo vs Aiman, three levels: Mudah, Biasa, Pakar): traditional rules with relay sowing (*main terus*), extra turn when the last seed lands in your rumah, and *tembak* captures. Seeds are sown one by one with sound; tap the board to skip, ⏩ for fast mode. Wins, losses and your best score are remembered. The board stands upright on portrait phones and lies flat on wider screens.
+- **Congkak** (solo vs Aiman, three levels: Mudah, Biasa, Pakar): traditional rules, sown clockwise with your rumah on your left, relay sowing (*main terus*), extra turn when the last seed lands in your rumah, and *tembak* captures. Seeds are sown one by one with sound; tap the board to skip, ⏩ for fast mode. Wins, losses and your best score are remembered. The board is drawn as a carved cengal board with cowrie shells on a mengkuang mat; it stands upright on portrait phones (your row on the right) and lies flat on wider screens (your row at the bottom).
 - **Villagers** you can talk to: Tok Wan on his stairs, Mak Cik Kiah sweeping, Pak Abu fishing by the stream. Pak Mat cycles up and down the road.
 - **Animals**: chickens, ducks in the pond, butterflies.
 - **Day and night**: a full day passes in 12 minutes (one in-game hour = 30 s). The visit starts at 5:36 petang; the sun sets, stars and the moon come out, windows, pelita and street lamps light up, birds roost and crickets take over. Tap the clock under your name to jump 3 hours ahead.
