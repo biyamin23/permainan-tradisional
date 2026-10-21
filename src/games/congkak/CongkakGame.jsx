@@ -6,9 +6,7 @@ import { OPPONENT, PLAYER, createBoard } from './engine'
 import { Hands } from './Hands'
 import { loadRecords, saveResult } from './records'
 import { useCongkakMatch } from './useCongkakMatch'
-import { SABAR_LINES } from './voices'
-
-const SABAR_URLS = SABAR_LINES.map((line) => line.src)
+import { SABAR_URLS } from './voices'
 import './congkak.css'
 
 /**
@@ -50,7 +48,6 @@ function Scene({ them, themSays, you, status, statusTone, statusKey, board, top,
               className="cg-speech"
               key={themSays.key}
               role="status"
-              style={{ animationDuration: `${(themSays.seconds ?? 2) + 0.6}s` }}
             >
               {themSays.text}
             </p>
@@ -176,7 +173,7 @@ const SLEEVES = { [GENDERS.LELAKI]: '#2b9aa0', [GENDERS.PEREMPUAN]: '#e9779a' }
 
 function Match({ level, playerName, onExit, onRecords }) {
   const [starter, setStarter] = useState(PLAYER)
-  const { pits, turn, animating, hand, flash, banner, speech, result, fast, setFast, playHouse, skip, restart, scores, say, rivalSays } =
+  const { pits, turn, animating, hand, flash, banner, speech, result, fast, setFast, playHouse, skip, restart, scores, say } =
     useCongkakMatch({ level, starter })
   const [saved, setSaved] = useState(null)
   const [hoverPit, setHoverPit] = useState(null)
@@ -196,12 +193,8 @@ function Match({ level, playerName, onExit, onRecords }) {
         if (Date.now() - lastSlap.current > 900) {
           lastSlap.current = Date.now()
           setSlap({ pit: index, key: lastSlap.current })
-          // she speaks right as her hand lands
-          setTimeout(() => {
-            const line = voice.playFromGroup('sabar', SABAR_URLS)
-            const spoken = SABAR_LINES[line >= 0 ? line : 0]
-            rivalSays(spoken.text, line >= 0 ? spoken.seconds : 2)
-          }, 280)
+          // she tells you off (recorded voice) right as her hand lands
+          setTimeout(() => voice.playFromGroup('sabar', SABAR_URLS), 280)
         }
       } else if (outcome === 'theirs') {
         event?.stopPropagation()
@@ -210,7 +203,7 @@ function Match({ level, playerName, onExit, onRecords }) {
         say('Lubang tu kosong. Pilih lubang yang ada biji.')
       }
     },
-    [playHouse, say, rivalSays],
+    [playHouse, say],
   )
 
   useEffect(() => {

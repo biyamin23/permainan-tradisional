@@ -48,7 +48,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
   const say = useCallback((text, tone = 'info') => setBanner({ text, tone, key: Math.random(), at: Date.now() }), [])
   // things Aisyah says out loud, shown as a speech bubble on her side
   const [speech, setSpeech] = useState(null)
-  const rivalSays = useCallback((text, seconds = 2) => setSpeech({ text, seconds, key: Math.random() }), [])
+  const rivalSays = useCallback((text) => setSpeech({ text, key: Math.random() }), [])
 
   /** After a move finishes: next turn or game over. */
   const advance = useCallback(
