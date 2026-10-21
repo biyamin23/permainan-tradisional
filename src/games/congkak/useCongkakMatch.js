@@ -2,17 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { sfx } from '../../audio/engine'
 import { OPPONENT, PLAYER, STORE, checkGameOver, chooseMove, createBoard, playMove } from './engine'
 
-const BASE_STEP = 380 // ms per seed at normal speed: slow enough to follow every guli
-const MIN_STEP = 170 // even very long relay chains never go faster than this (tap the board to skip)
-const MAX_TURN_MS = 24000 // a long relay chain speeds up a little so a turn stays under ~24 s
+// One steady pace for every move, however long the relay chain.
+// Holding the Laju button doubles it while held (tap the board to skip to the end).
+export const STEP_MS = 380
 const AI_THINK = 1100
-
-function stepDelay(eventCount, fast) {
-  const base = fast ? BASE_STEP / 2.5 : BASE_STEP
-  const floor = fast ? MIN_STEP / 2.5 : MIN_STEP
-  const budget = (fast ? MAX_TURN_MS / 2.5 : MAX_TURN_MS) / Math.max(1, eventCount)
-  return Math.max(floor, Math.min(base, budget))
-}
 
 /**
  * Runs one Congkak match: whose turn it is, the board shown on screen while
@@ -28,7 +21,6 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
   const [banner, setBanner] = useState(null) // { text, tone, key }
   const [result, setResult] = useState(null)
   const [fast, setFast] = useState(false)
-  const [stepMs, setStepMs] = useState(BASE_STEP) // pace of the move being animated
 
   const timers = useRef([])
   const pending = useRef(null) // { finalPits, finish }
@@ -86,8 +78,6 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
       const outcome = playMove(pits, side, house)
       const display = pits.slice()
       const { events } = outcome
-      const delay = stepDelay(events.length, fastRef.current)
-      setStepMs(delay)
       setAnimating(true)
       setMover(side)
       // keep a message the player has only just been shown
@@ -108,10 +98,13 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
       let drops = 0
       const step = () => {
         if (i >= events.length) {
-          later(finish, 250)
+          later(finish, fastRef.current ? 125 : 250)
           return
         }
         const e = events[i++]
+        // read every step, so pressing or releasing Laju takes effect mid-move
+        const speed = fastRef.current ? 2 : 1
+        const delay = STEP_MS
         let wait = delay
         switch (e.type) {
           case 'pickup':
@@ -148,7 +141,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
             wait = 200
         }
         setPits(display.slice())
-        later(step, wait)
+        later(step, wait / speed)
       }
       step()
     },
@@ -221,7 +214,6 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
     result,
     fast,
     setFast,
-    stepMs,
     playHouse,
     skip,
     restart,

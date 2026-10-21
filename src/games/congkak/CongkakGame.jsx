@@ -32,6 +32,41 @@ const RULES = [
 
 const START = createBoard()
 
+/** Laju 2×: works only while held down (finger, mouse, or Space/Enter). */
+function HoldFast({ fast, setFast }) {
+  const on = () => setFast(true)
+  const off = () => setFast(false)
+  useEffect(() => {
+    window.addEventListener('blur', off)
+    return () => window.removeEventListener('blur', off)
+  })
+  return (
+    <button
+      type="button"
+      className={`cg-text-btn cg-hold ${fast ? 'is-on' : ''}`}
+      aria-pressed={fast}
+      aria-label="Tekan dan tahan untuk laju 2 kali"
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture?.(e.pointerId)
+        on()
+      }}
+      onPointerUp={off}
+      onPointerCancel={off}
+      onLostPointerCapture={off}
+      onKeyDown={(e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault()
+          on()
+        }
+      }}
+      onKeyUp={off}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      {fast ? 'Laju 2×' : 'Tahan: laju 2×'}
+    </button>
+  )
+}
+
 function TurnMark({ on }) {
   return <span className={`cg-mark ${on ? 'is-on' : ''}`} aria-hidden="true" />
 }
@@ -173,7 +208,7 @@ const SLEEVES = { [GENDERS.LELAKI]: '#2b9aa0', [GENDERS.PEREMPUAN]: '#e9779a' }
 
 function Match({ level, playerName, onExit, onRecords }) {
   const [starter, setStarter] = useState(PLAYER)
-  const { pits, turn, animating, hand, flash, banner, speech, result, fast, setFast, stepMs, playHouse, skip, restart, scores, say } =
+  const { pits, turn, animating, hand, flash, banner, speech, result, fast, setFast, playHouse, skip, restart, scores, say } =
     useCongkakMatch({ level, starter })
   const [saved, setSaved] = useState(null)
   const [hoverPit, setHoverPit] = useState(null)
@@ -250,9 +285,7 @@ function Match({ level, playerName, onExit, onRecords }) {
           <button type="button" className="cg-text-btn" onClick={onExit}>
             Keluar
           </button>
-          <button type="button" className={`cg-text-btn ${fast ? 'is-on' : ''}`} onClick={() => setFast((v) => !v)} aria-pressed={fast}>
-            Laju
-          </button>
+          <HoldFast fast={fast} setFast={setFast} />
         </>
       }
       them={
@@ -297,7 +330,7 @@ function Match({ level, playerName, onExit, onRecords }) {
               hoverPit={yourTurn && !animating ? hoverPit : null}
               slap={slap}
               playerSleeve={SLEEVES[gender]}
-              moveMs={Math.round(Math.min(stepMs * 0.7, 280))}
+              moveMs={fast ? 135 : 265}
             />
           </CongkakBoard>
         </div>
