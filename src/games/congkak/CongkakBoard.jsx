@@ -56,8 +56,8 @@ function Pit({ index, count, playable, flashing, onPlay, onHover }) {
   const style = { '--h-col': place.h[0], '--h-row': place.h[1], '--v-col': place.v[0], '--v-row': place.v[1] }
   const Tag = store ? 'div' : 'button'
   const label = store
-    ? `Rumah ${mine ? 'kamu' : 'Aiman'}, ${count} biji`
-    : `${mine ? 'Lubang kamu' : 'Lubang Aiman'} ${mine ? index + 1 : index - 7}, ${count} biji`
+    ? `Rumah ${mine ? 'kamu' : 'Aisyah'}, ${count} biji`
+    : `${mine ? 'Lubang kamu' : 'Lubang Aisyah'} ${mine ? index + 1 : index - 7}, ${count} biji`
 
   return (
     <Tag

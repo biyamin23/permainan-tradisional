@@ -4,8 +4,8 @@ import { OPPONENT, PLAYER } from './engine'
 
 /**
  * Hands over the board, seen from above. Your arm reaches in from your side,
- * Aiman's from his. The sowing hand travels hole to hole and dips at every
- * seed. Tap a hole on Aiman's turn and his other hand slaps yours away.
+ * Aisyah's from hers. The sowing hand travels hole to hole and dips at every
+ * seed. Tap a hole on Aisyah's turn and her other hand slaps yours away.
  */
 
 const FLAT_QUERY = '(min-aspect-ratio: 1/1), (min-width: 700px)'
@@ -79,7 +79,8 @@ function ArmArt({ skin, sleeve, cuff, pose, seeds }) {
 
 const STYLE = {
   [PLAYER]: { sleeve: '#2b9aa0', cuff: '#23797e', skin: '#c98c5f' },
-  [OPPONENT]: { sleeve: '#3a6ea5', cuff: '#2d5682', skin: '#b97a4f' },
+  // Aisyah: lilac baju kurung with a lace cuff
+  [OPPONENT]: { sleeve: '#9b6ad0', cuff: '#f1e6f7', skin: '#c48558' },
 }
 
 function Arm({ point, angle, visible, pose, seeds, colors, moveMs, tick, recoil }) {
@@ -117,7 +118,7 @@ export function Hands({ boardRef, sowing, turn, animating, finished, hoverPit, s
     return () => ro.disconnect()
   }, [boardRef])
 
-  // the tepis: your hand reaches in, Aiman's other hand smacks it away
+  // the tepis: your hand reaches in, Aisyah's other hand smacks it away
   useEffect(() => {
     if (!slap) return undefined
     timers.current.forEach(clearTimeout)
@@ -160,7 +161,7 @@ export function Hands({ boardRef, sowing, turn, animating, finished, hoverPit, s
     you = hoverPit != null ? { point: pitPoint(hoverPit), visible: true, pose: 'flat' } : { point: edge(PLAYER, 0.35), visible: true, pose: 'flat' }
   }
 
-  // ---- Aiman's sowing arm
+  // ---- Aisyah's sowing arm
   let them = { point: edge(OPPONENT, 3.2), visible: false, pose: 'curl', seeds: 0, tick: null }
   if (sowing && sowing.side === OPPONENT) {
     them = { point: pitPoint(sowing.pit), visible: true, pose: 'curl', seeds: sowing.count, tick: sowing.tick }
@@ -168,7 +169,7 @@ export function Hands({ boardRef, sowing, turn, animating, finished, hoverPit, s
     them = { point: edge(OPPONENT, 0.35), visible: true, pose: 'flat' }
   }
 
-  // ---- Aiman's other hand, only for the tepis
+  // ---- Aisyah's other hand, only for the tepis
   let slapper = { point: edge(OPPONENT, 3.2), visible: false }
   if (slapPhase && (slapPhase.phase === 'hit' || slapPhase.phase === 'recoil')) {
     const p = pitPoint(slapPhase.pit)

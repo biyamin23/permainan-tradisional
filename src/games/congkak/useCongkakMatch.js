@@ -46,9 +46,9 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
   }
 
   const say = useCallback((text, tone = 'info') => setBanner({ text, tone, key: Math.random(), at: Date.now() }), [])
-  // things Aiman says out loud, shown as a speech bubble on his side
+  // things Aisyah says out loud, shown as a speech bubble on her side
   const [speech, setSpeech] = useState(null)
-  const aimanSays = useCallback((text) => setSpeech({ text, key: Math.random() }), [])
+  const rivalSays = useCallback((text, seconds = 2) => setSpeech({ text, seconds, key: Math.random() }), [])
 
   /** After a move finishes: next turn or game over. */
   const advance = useCallback(
@@ -58,7 +58,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
       if (over) {
         if (over.swept > 0) {
           if (over.sweptBy === PLAYER) say(`Kamu kutip baki ${over.swept} biji.`, 'info')
-          else aimanSays(`Aku kutip baki ${over.swept} biji, ya.`)
+          else rivalSays(`Aku kutip baki ${over.swept} biji, ya.`)
         }
         setPits(over.pits)
         later(() => {
@@ -72,10 +72,10 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
       setTurn(nextSide)
       if (extraTurn) {
         if (side === PLAYER) say('Masuk rumah. Kamu main lagi.', 'good')
-        else aimanSays('Masuk rumah! Aku main lagi.')
+        else rivalSays('Masuk rumah! Aku main lagi.')
       }
     },
-    [say, aimanSays],
+    [say, rivalSays],
   )
 
   /** Animate a move event by event. */
@@ -130,9 +130,9 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
             setFlash({ pits: [e.pit, e.opposite, e.store], key: Math.random() })
             if (side === PLAYER) {
               say(`Tembak. ${e.count} biji masuk rumah kamu.`, 'good')
-              aimanSays('Alamak, habis biji aku!')
+              rivalSays('Alamak, habis biji aku!')
             } else {
-              aimanSays(`Tembak! ${e.count} biji kamu aku ambil.`)
+              rivalSays(`Tembak! ${e.count} biji kamu aku ambil.`)
             }
             sfx.capture()
             wait = 900
@@ -149,14 +149,14 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
       }
       step()
     },
-    [pits, advance, say, aimanSays],
+    [pits, advance, say, rivalSays],
   )
 
   /** Player taps one of their houses. */
   /**
    * Player taps a house. Returns what happened so the screen can react:
-   * 'played' · 'wait' (Aiman's turn) · 'busy' (your own seeds still moving)
-   * · 'theirs' (Aiman's row) · 'empty' · 'over'
+   * 'played' · 'wait' (Aisyah's turn) · 'busy' (your own seeds still moving)
+   * · 'theirs' (Aisyah's row) · 'empty' · 'over'
    */
   const playHouse = useCallback(
     (house) => {
@@ -210,7 +210,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
     mover,
     say,
     speech,
-    aimanSays,
+    rivalSays,
     animating,
     hand,
     flash,

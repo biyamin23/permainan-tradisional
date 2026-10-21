@@ -218,7 +218,7 @@ export const sfx = {
       tone({ freq: 1600 + Math.random() * 900, at: 0.1 + i * 0.03, decay: 0.04, gain: 0.03 })
     }
   },
-  /** Aiman's hand smacking yours away. */
+  /** Aisyah's hand smacking yours away. */
   slap() {
     if (!ready()) return
     noise({ dur: 0.09, gain: 0.22, type: 'bandpass', freq: 1700, q: 0.9, attack: 0.002 })
@@ -252,6 +252,84 @@ export const sfx = {
     } else {
       noise({ dur: 0.07, gain: 0.05 * level, type: 'lowpass', freq: 700 + Math.random() * 300, q: 0.6 })
     }
+  },
+}
+
+// ------------------------------------------------------------------ recorded voices
+/**
+ * Short recorded voice lines (mp3 in /public/audio). They go through the same
+ * master volume as everything else, so the sound toggle mutes them too.
+ * Lines in a group play in shuffled order: every clip once before any repeats,
+ * never the same clip twice in a row.
+ */
+const voiceBuffers = new Map()
+const voiceBags = new Map()
+let voicePlaying = null
+
+function loadVoice(url) {
+  if (!ctx) return Promise.resolve(null)
+  if (!voiceBuffers.has(url)) {
+    const pending = fetch(url)
+      .then((res) => res.arrayBuffer())
+      .then((data) => ctx.decodeAudioData(data))
+      .catch(() => null)
+    voiceBuffers.set(url, pending)
+  }
+  return voiceBuffers.get(url)
+}
+
+function nextFromBag(group, count) {
+  let bag = voiceBags.get(group)
+  if (!bag || bag.order.length === 0) {
+    const order = Array.from({ length: count }, (_, i) => i)
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[order[i], order[j]] = [order[j], order[i]]
+    }
+    const last = bag?.last
+    if (order.length > 1 && order[0] === last) order.push(order.shift())
+    bag = { order, last }
+    voiceBags.set(group, bag)
+  }
+  const index = bag.order.shift()
+  bag.last = index
+  return index
+}
+
+export const voice = {
+  /** Fetch and decode a set of clips ahead of time. */
+  preload(urls) {
+    urls.forEach((url) => loadVoice(url))
+  },
+  /**
+   * Play the next clip of a group. Returns the chosen index (so the caller can
+   * show matching text), or -1 when a line is still playing or audio is locked.
+   */
+  playFromGroup(group, urls) {
+    if (!ready() || voicePlaying) return -1
+    const index = nextFromBag(group, urls.length)
+    voicePlaying = true
+    loadVoice(urls[index]).then((buffer) => {
+      if (!buffer || !ctx) {
+        voicePlaying = null
+        return
+      }
+      const src = ctx.createBufferSource()
+      src.buffer = buffer
+      const g = ctx.createGain()
+      g.gain.value = 1
+      src.connect(g).connect(master)
+      // let the voice sit on top of the music
+      const t = ctx.currentTime
+      const musicLevel = musicBus.gain.value
+      musicBus.gain.setTargetAtTime(musicLevel * 0.35, t, 0.08)
+      src.onended = () => {
+        voicePlaying = null
+        if (audioStore.getState().mode === 'all') musicBus.gain.setTargetAtTime(MUSIC_LEVEL[musicScene], ctx.currentTime, 0.3)
+      }
+      src.start()
+    })
+    return index
   },
 }
 

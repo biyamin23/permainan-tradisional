@@ -66,7 +66,8 @@ export function CongkakScene({ game }) {
   const [x, z] = game.spot.position
   return (
     <Wakaf position={[x, 0, z]} rotationY={game.spot.rotationY} extras={CONGKAK_EXTRAS}>
-      <Kid seed={1} pose="toss" position={[0, 0.65, -0.62]} />
+      {/* Aisyah, who challenges you to a game */}
+      <Kid seed={1} girl pose="toss" position={[0, 0.65, -0.62]} />
       <Kid seed={2} girl pose="sit" position={[0, 0.65, 1.02]} rotationY={Math.PI} phase={0.8} />
       <KidBubble game={game} position={[0, 2.1, -0.62]} />
     </Wakaf>

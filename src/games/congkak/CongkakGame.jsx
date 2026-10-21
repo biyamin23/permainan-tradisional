@@ -1,28 +1,31 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { sfx } from '../../audio/engine'
+import { sfx, voice } from '../../audio/engine'
 import { GENDERS, usePlayerState } from '../../state/playerState'
 import { CongkakBoard } from './CongkakBoard'
 import { OPPONENT, PLAYER, createBoard } from './engine'
 import { Hands } from './Hands'
 import { loadRecords, saveResult } from './records'
 import { useCongkakMatch } from './useCongkakMatch'
+import { SABAR_LINES } from './voices'
+
+const SABAR_URLS = SABAR_LINES.map((line) => line.src)
 import './congkak.css'
 
 /**
- * Congkak at the wakaf: the board lies on a mengkuang mat, Aiman sits across
+ * Congkak at the wakaf: the board lies on a mengkuang mat, Aisyah sits across
  * from you. The same scene is used to choose a level, to play and to show the
  * result, so nothing pulls you out of the moment.
  */
 
 const LEVELS = [
-  { id: 'mudah', label: 'Mudah', note: 'Aiman baru belajar main.' },
-  { id: 'biasa', label: 'Biasa', note: 'Aiman main bersungguh-sungguh.' },
-  { id: 'pakar', label: 'Pakar', note: 'Aiman juara congkak kampung ni.' },
+  { id: 'mudah', label: 'Mudah', note: 'Aisyah baru belajar main.' },
+  { id: 'biasa', label: 'Biasa', note: 'Aisyah main bersungguh-sungguh.' },
+  { id: 'pakar', label: 'Pakar', note: 'Aisyah juara congkak kampung ni.' },
 ]
 
 const RULES = [
   'Setiap lubang kecil ada 7 biji. Rumah (lubang besar) bermula kosong. Rumah kamu di sebelah kiri kamu.',
-  'Pilih satu lubang di barisan kamu. Agihkan biji satu demi satu ikut arah jam: ke kiri sepanjang barisan kamu, masuk rumah kamu, kemudian ke barisan Aiman. Rumah Aiman dilangkau.',
+  'Pilih satu lubang di barisan kamu. Agihkan biji satu demi satu ikut arah jam: ke kiri sepanjang barisan kamu, masuk rumah kamu, kemudian ke barisan Aisyah. Rumah Aisyah dilangkau.',
   'Biji terakhir masuk rumah kamu: main lagi.',
   'Biji terakhir jatuh dalam lubang yang berisi: kaut semua dan terus agihkan.',
   'Biji terakhir jatuh dalam lubang kosong di barisan kamu: tembak. Biji itu dan semua biji di lubang bertentangan masuk rumah kamu.',
@@ -43,7 +46,12 @@ function Scene({ them, themSays, you, status, statusTone, statusKey, board, top,
         <div className="cg-side cg-side--them">
           {them}
           {themSays && (
-            <p className="cg-speech" key={themSays.key} role="status">
+            <p
+              className="cg-speech"
+              key={themSays.key}
+              role="status"
+              style={{ animationDuration: `${(themSays.seconds ?? 2) + 0.6}s` }}
+            >
               {themSays.text}
             </p>
           )}
@@ -94,14 +102,14 @@ function Intro({ level, setLevel, records, playerName, onStart, onExit }) {
           </button>
         </>
       }
-      them={<span className="cg-name">Aiman</span>}
+      them={<span className="cg-name">Aisyah</span>}
       you={<span className="cg-name">{playerName}</span>}
       board={<CongkakBoard pits={START} />}
     >
       <div className="cg-sheet">
         <div className="cg-plaque">
-          <h2 className="cg-plaque__title">Aiman ajak kamu main congkak.</h2>
-          <div className="cg-levels" role="radiogroup" aria-label="Tahap Aiman">
+          <h2 className="cg-plaque__title">Aisyah ajak kamu main congkak.</h2>
+          <div className="cg-levels" role="radiogroup" aria-label="Tahap Aisyah">
             {LEVELS.map((l) => (
               <button
                 key={l.id}
@@ -137,10 +145,10 @@ function Intro({ level, setLevel, records, playerName, onStart, onExit }) {
 
 function Result({ result, saved, onAgain, onExit }) {
   const [you, them] = result.scores
-  const title = result.winner === PLAYER ? 'Kamu menang.' : result.winner === OPPONENT ? 'Aiman menang.' : 'Seri.'
+  const title = result.winner === PLAYER ? 'Kamu menang.' : result.winner === OPPONENT ? 'Aisyah menang.' : 'Seri.'
   const line =
     result.winner === PLAYER
-      ? 'Aiman garu kepala. Dia nak lawan lagi.'
+      ? 'Aisyah tersenyum kelat. Dia nak lawan lagi.'
       : result.winner === OPPONENT
         ? 'Kalah menang adat bermain. Cuba sekali lagi.'
         : 'Sama kuat. Satu pusingan lagi?'
@@ -168,7 +176,7 @@ const SLEEVES = { [GENDERS.LELAKI]: '#2b9aa0', [GENDERS.PEREMPUAN]: '#e9779a' }
 
 function Match({ level, playerName, onExit, onRecords }) {
   const [starter, setStarter] = useState(PLAYER)
-  const { pits, turn, animating, hand, flash, banner, speech, result, fast, setFast, playHouse, skip, restart, scores, say, aimanSays } =
+  const { pits, turn, animating, hand, flash, banner, speech, result, fast, setFast, playHouse, skip, restart, scores, say, rivalSays } =
     useCongkakMatch({ level, starter })
   const [saved, setSaved] = useState(null)
   const [hoverPit, setHoverPit] = useState(null)
@@ -177,7 +185,9 @@ function Match({ level, playerName, onExit, onRecords }) {
   const boardRef = useRef(null)
   const gender = usePlayerState((s) => s.playerGender)
 
-  /** Every tap on a hole: play it, or explain why not (with a tepis on Aiman's turn). */
+  useEffect(() => voice.preload(SABAR_URLS), [])
+
+  /** Every tap on a hole: play it, or explain why not (with a tepis on Aisyah's turn). */
   const onPitTap = useCallback(
     (index, event) => {
       const outcome = playHouse(index)
@@ -186,16 +196,21 @@ function Match({ level, playerName, onExit, onRecords }) {
         if (Date.now() - lastSlap.current > 900) {
           lastSlap.current = Date.now()
           setSlap({ pit: index, key: lastSlap.current })
-          aimanSays('Sabar la, tunggu giliran awak!')
+          // she speaks right as her hand lands
+          setTimeout(() => {
+            const line = voice.playFromGroup('sabar', SABAR_URLS)
+            const spoken = SABAR_LINES[line >= 0 ? line : 0]
+            rivalSays(spoken.text, line >= 0 ? spoken.seconds : 2)
+          }, 280)
         }
       } else if (outcome === 'theirs') {
         event?.stopPropagation()
-        say('Itu lubang Aiman. Pilih lubang di barisan kamu.')
+        say('Itu lubang Aisyah. Pilih lubang di barisan kamu.')
       } else if (outcome === 'empty') {
         say('Lubang tu kosong. Pilih lubang yang ada biji.')
       }
     },
-    [playHouse, say, aimanSays],
+    [playHouse, say, rivalSays],
   )
 
   useEffect(() => {
@@ -211,10 +226,10 @@ function Match({ level, playerName, onExit, onRecords }) {
     : animating
       ? turn === PLAYER
         ? 'Ketik papan untuk habiskan agihan.'
-        : 'Aiman sedang mengagih.'
+        : 'Aisyah sedang mengagih.'
       : yourTurn
         ? null
-        : 'Aiman sedang berfikir.'
+        : 'Aisyah sedang berfikir.'
   const status =
     banner?.text ??
     defaultStatus ?? (
@@ -250,9 +265,9 @@ function Match({ level, playerName, onExit, onRecords }) {
       them={
         <>
           <TurnMark on={turn === OPPONENT && !result} />
-          <span className="cg-name">Aiman</span>
+          <span className="cg-name">Aisyah</span>
           <span className="cg-name__meta">tahap {levelLabel.toLowerCase()}</span>
-          <span className="cg-tally" aria-label={`Aiman ${scores[1]} biji`}>
+          <span className="cg-tally" aria-label={`Aisyah ${scores[1]} biji`}>
             {scores[1]}
           </span>
         </>
