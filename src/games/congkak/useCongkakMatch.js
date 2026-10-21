@@ -51,7 +51,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
       const over = checkGameOver(boardAfter, nextSide)
       if (over) {
         if (over.swept > 0) {
-          if (over.sweptBy === PLAYER) say(`Kamu kutip baki ${over.swept} biji.`, 'info')
+          if (over.sweptBy === PLAYER) say(`Kamu kutip baki ${over.swept} guli!`, 'good')
           else rivalSays(`Aku kutip baki ${over.swept} biji, ya.`)
         }
         setPits(over.pits)
@@ -65,8 +65,11 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
       }
       setTurn(nextSide)
       if (extraTurn) {
-        if (side === PLAYER) say('Masuk rumah. Kamu main lagi.', 'good')
-        else rivalSays('Masuk rumah! Aku main lagi.')
+        if (side === PLAYER) say('Masuk rumah! Kamu main lagi.', 'good')
+        else {
+          say('Aisyah masuk rumah, dia main lagi.', 'them')
+          rivalSays('Masuk rumah! Aku main lagi.')
+        }
       }
     },
     [say, rivalSays],
@@ -125,9 +128,10 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
             display[e.store] += e.count
             setFlash({ pits: [e.pit, e.opposite, e.store], key: Math.random() })
             if (side === PLAYER) {
-              say(`Tembak. ${e.count} biji masuk rumah kamu.`, 'good')
+              say(`Tembak! +${e.count} guli untuk kamu`, 'good')
               rivalSays('Alamak, habis biji aku!')
             } else {
+              say(`Aisyah tembak! ${e.count} guli masuk rumah dia`, 'bad')
               rivalSays(`Tembak! ${e.count} biji kamu aku ambil.`)
             }
             sfx.capture()
