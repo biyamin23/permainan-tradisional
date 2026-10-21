@@ -68,21 +68,18 @@ function HoldFast({ fast, setFast, active }) {
 }
 
 /** A player's card in the top bar: who, whose turn, and the score in big type. */
-function PlayerCard({ side, name, color, score, active, status, children }) {
+function PlayerCard({ side, name, color, score, active, children }) {
   return (
-    <div className={`cg-card cg-card--${side} ${active ? 'is-active' : ''}`}>
+    <div className={`cg-card cg-card--${side} ${active ? 'is-active' : ''}`} aria-label={`${name}, ${score} guli${active ? ', sedang bermain' : ''}`}>
       <span className="cg-avatar" style={{ '--c': color }} aria-hidden="true">
         {name.slice(0, 1).toUpperCase()}
       </span>
-      <span className="cg-card__text">
+      <span className="cg-card__text" aria-hidden="true">
         <span className="cg-card__name">{name}</span>
-        <span className="cg-card__status">
-          {active && <span className="cg-dot" aria-hidden="true" />}
-          {status}
+        <span className="cg-card__row">
+          <span className={`cg-dot ${active ? 'is-on' : ''}`} />
+          <span className="cg-card__score">{score}</span>
         </span>
-      </span>
-      <span className="cg-card__score" aria-label={`${name} ${score} biji`}>
-        {score}
       </span>
       {children}
     </div>
@@ -175,8 +172,8 @@ function Intro({ level, setLevel, records, playerName, playerColor, onStart, onE
           <RulesButton onOpen={() => setShowRules(true)} />
         </>
       }
-      them={<PlayerCard side="them" name="Aisyah" color={AISYAH_COLOR} score={0} status={`tahap ${current.label.toLowerCase()}`} />}
-      you={<PlayerCard side="you" name={playerName} color={playerColor} score={0} status="kamu" />}
+      them={<PlayerCard side="them" name="Aisyah" color={AISYAH_COLOR} score={0} />}
+      you={<PlayerCard side="you" name={playerName} color={playerColor} score={0} />}
       board={<CongkakBoard pits={START} />}
     >
       <div className="cg-sheet">
@@ -263,7 +260,6 @@ function Match({ level, playerName, playerColor, onExit, onRecords }) {
   const [saved, setSaved] = useState(null)
   const [hoverPit, setHoverPit] = useState(null)
   const [slap, setSlap] = useState(null)
-  const [showRules, setShowRules] = useState(false)
   const [toast, setToast] = useState(null)
   const lastSlap = useRef(0)
   const boardRef = useRef(null)
@@ -329,7 +325,6 @@ function Match({ level, playerName, playerColor, onExit, onRecords }) {
     restart(nextStarter)
   }
 
-  const levelLabel = LEVELS.find((l) => l.id === level)?.label.toLowerCase()
   const theirTurn = turn === OPPONENT && !result
 
   return (
@@ -337,7 +332,7 @@ function Match({ level, playerName, playerColor, onExit, onRecords }) {
       top={
         <>
           <ExitButton onExit={onExit} />
-          <RulesButton onOpen={() => setShowRules(true)} />
+          {!result && <HoldFast fast={fast} setFast={setFast} active={animating} />}
         </>
       }
       them={
@@ -347,12 +342,11 @@ function Match({ level, playerName, playerColor, onExit, onRecords }) {
           color={AISYAH_COLOR}
           score={scores[1]}
           active={theirTurn}
-          status={theirTurn ? 'Giliran!' : `tahap ${levelLabel}`}
         >
           <Speech says={speech} />
         </PlayerCard>
       }
-      you={<PlayerCard side="you" name={playerName} color={playerColor} score={scores[0]} active={yourTurn} status={yourTurn ? 'Giliran!' : 'Tunggu'} />}
+      you={<PlayerCard side="you" name={playerName} color={playerColor} score={scores[0]} active={yourTurn} />}
       toast={toast}
       board={
         <div className={`cg-board-hit ${animating ? 'is-skippable' : ''}`} onClick={animating ? skip : undefined}>
@@ -387,13 +381,11 @@ function Match({ level, playerName, playerColor, onExit, onRecords }) {
               </span>
               {next.text}
             </p>
-            <HoldFast fast={fast} setFast={setFast} active={animating} />
           </>
         )
       }
     >
       {result && <Result result={result} saved={saved} playerName={playerName} onAgain={again} onExit={onExit} />}
-      {showRules && <Rules onClose={() => setShowRules(false)} />}
     </Scene>
   )
 }
