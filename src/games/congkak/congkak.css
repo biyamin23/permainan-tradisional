@@ -5,9 +5,10 @@
    ========================================================================== */
 
 .cg {
-  --wood: #8b4a26;
-  --wood-dark: #5e2d14;
-  --hole: #2a1309;
+  --wood: #5a1812;
+  --wood-dark: #2a0806;
+  --hole: #1a0605;
+  --etch: rgba(232, 200, 150, 0.78);
   --shell: #f3ead8;
   --shell-shade: #c9b38f;
   --mat: #cdb27a;
@@ -23,6 +24,7 @@
   flex-direction: column;
   padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom))
     max(10px, env(safe-area-inset-left));
+  overflow: hidden;
   font-family: var(--font-display);
   color: var(--ink);
   /* plank floor of the wakaf */
@@ -79,20 +81,24 @@
   border: 6px solid #6b2a1d;
   border-radius: 6px;
   outline: 1px solid rgba(0, 0, 0, 0.35);
-  /* woven mengkuang: natural strips with dyed bands */
+  /* woven mengkuang: red and cream stripes */
   background:
-    repeating-linear-gradient(90deg, rgba(90, 60, 20, 0.18) 0 1px, transparent 1px 9px),
-    repeating-linear-gradient(0deg, rgba(90, 60, 20, 0.14) 0 1px, transparent 1px 9px),
-    linear-gradient(0deg, transparent 0 7px, var(--mat-red) 7px 14px, transparent 14px calc(100% - 14px), var(--mat-red) calc(100% - 14px) calc(100% - 7px), transparent calc(100% - 7px)),
-    linear-gradient(90deg, transparent 0 18px, var(--mat-green) 18px 23px, transparent 23px calc(100% - 23px), var(--mat-green) calc(100% - 23px) calc(100% - 18px), transparent calc(100% - 18px)),
-    var(--mat);
+    repeating-linear-gradient(0deg, rgba(60, 20, 10, 0.12) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(90deg, rgba(60, 20, 10, 0.1) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(90deg, #a7392b 0 34px, #b84a37 34px 40px, #efe3cb 40px 62px, #e2d3b4 62px 66px);
   box-shadow: 0 18px 40px -14px rgba(0, 0, 0, 0.7);
 }
 
 .cg-side {
+  position: relative;
+  z-index: 3;
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 3px;
+  background: rgba(244, 235, 216, 0.95);
+  box-shadow: 0 2px 6px rgba(60, 20, 10, 0.25);
   color: #3b2414;
 }
 
@@ -116,8 +122,8 @@
 
 .cg-mark {
   align-self: center;
-  width: 12px;
-  height: 9px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   background: transparent;
   box-shadow: inset 0 0 0 1px rgba(59, 36, 20, 0.35);
@@ -125,14 +131,24 @@
 }
 
 .cg-mark.is-on {
-  background: var(--shell);
-  box-shadow:
-    inset 0 -2px 0 var(--shell-shade),
-    0 1px 2px rgba(0, 0, 0, 0.45);
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.95) 0 12%, rgba(255, 255, 255, 0) 30%),
+    radial-gradient(circle at 60% 70%, #6fd39a 0, #1f9a5a 45%, #0e4f2e 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.cg-status:empty {
+  visibility: hidden;
 }
 
 .cg-status {
+  position: relative;
+  z-index: 3;
   margin: 0;
+  padding: 0.35rem 0.8rem;
+  border-radius: 3px;
+  background: rgba(244, 235, 216, 0.95);
+  box-shadow: 0 2px 6px rgba(60, 20, 10, 0.25);
   min-height: 2.6em;
   max-width: 34ch;
   text-align: center;
@@ -158,6 +174,8 @@
 }
 
 .cg-board-wrap {
+  position: relative;
+  z-index: 2;
   min-height: 0;
   display: grid;
   place-items: center;
@@ -193,25 +211,55 @@
 }
 
 .cg-hull__wood {
-  fill: var(--wood);
   stroke: var(--wood-dark);
-  stroke-width: 3;
-  vector-effect: non-scaling-stroke;
-}
-
-.cg-hull__inlay {
-  fill: none;
-  stroke: rgba(255, 214, 160, 0.28);
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
-}
-
-.cg-hull__carving {
-  fill: none;
-  stroke: rgba(40, 18, 6, 0.55);
   stroke-width: 2.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.cg-hull--h .cg-hull__wood {
+  fill: url(#cg-lacquer-h);
+}
+
+.cg-hull--v .cg-hull__wood {
+  fill: url(#cg-lacquer-v);
+}
+
+/* the lacquer's raised edge catching the light */
+.cg-hull__bevel {
+  fill: none;
+  stroke: rgba(255, 170, 140, 0.22);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* scratched-in fern sprigs */
+.cg-hull__etch {
+  fill: none;
+  stroke: var(--etch);
+  stroke-width: 1.3;
   stroke-linecap: round;
   vector-effect: non-scaling-stroke;
+}
+
+.cg-star {
+  position: absolute;
+  /* upright board: stars run down the middle */
+  left: 50%;
+  top: var(--pos);
+  width: calc(var(--s) * 0.62);
+  height: calc(var(--s) * 0.62);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.cg-star path {
+  fill: none;
+  stroke: var(--etch);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .cg-pit {
@@ -231,34 +279,32 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 30%, #1c0c04, var(--hole) 55%, #3a1d0c);
+  background: radial-gradient(circle at 50% 30%, #0f0302, var(--hole) 50%, #3e120c);
+  /* deep bowl with the red-lacquered rim of the old boards */
   box-shadow:
-    inset 0 calc(var(--s) * 0.09) calc(var(--s) * 0.1) rgba(0, 0, 0, 0.7),
-    0 1px 0 rgba(255, 214, 160, 0.3);
+    inset 0 calc(var(--s) * 0.1) calc(var(--s) * 0.12) rgba(0, 0, 0, 0.85),
+    inset 0 calc(var(--s) * -0.03) calc(var(--s) * 0.05) rgba(200, 70, 50, 0.25),
+    0 0 0 calc(var(--s) * 0.035) #7e2216,
+    0 1px 0 calc(var(--s) * 0.035) rgba(255, 170, 140, 0.18);
 }
 
 .cg-pit--store .cg-pit__hole {
   border-radius: calc(var(--s) * 0.75);
 }
 
-/* cowrie shells */
-.cg-shell {
+/* glass guli */
+.cg-guli {
   position: absolute;
   width: calc(var(--s) * 0.2);
-  height: calc(var(--s) * 0.14);
+  height: calc(var(--s) * 0.2);
   border-radius: 50%;
-  background: radial-gradient(ellipse at 40% 30%, #fffaf0, var(--shell) 45%, var(--shell-shade));
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.55);
-}
-
-.cg-shell::after {
-  content: '';
-  position: absolute;
-  left: 18%;
-  right: 18%;
-  top: 46%;
-  height: 1px;
-  background: rgba(110, 80, 50, 0.7);
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.95) 0 9%, rgba(255, 255, 255, 0) 24%),
+    radial-gradient(circle at 62% 70%, color-mix(in srgb, var(--g) 55%, white) 0, var(--g) 42%, color-mix(in srgb, var(--g) 50%, black) 100%);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.7),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 /* the number of seeds, painted on the wood beside each hole */
@@ -354,37 +400,99 @@
   }
 }
 
-/* seeds in the hand, hovering over the hole being sown */
-.cg-hand {
+/* hands over the board */
+.cg-hands {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  transform: translate(-50%, -118%);
+  inset: 0;
+  z-index: 3;
   pointer-events: none;
-  filter: drop-shadow(0 6px 4px rgba(0, 0, 0, 0.55));
 }
 
-.cg-hand__shells {
-  position: relative;
-  width: calc(var(--s) * 0.42);
-  height: calc(var(--s) * 0.3);
+.cg-hands.is-measuring {
+  visibility: hidden;
 }
 
-.cg-hand__shells .cg-shell {
-  left: 22%;
-  top: 22%;
-  transform-origin: 70% 70%;
+.cg-arm {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--arm-w);
+  aspect-ratio: 100 / 250;
+  transform-origin: 50% 12%;
+  transition-property: transform, opacity;
+  transition-timing-function: cubic-bezier(0.3, 0.7, 0.3, 1);
+  filter: drop-shadow(0 calc(var(--s) * 0.18) calc(var(--s) * 0.1) rgba(25, 10, 4, 0.45));
 }
 
-.cg-hand__count {
-  font-size: max(12px, calc(var(--s) * 0.3));
+.cg-arm__dip {
+  width: 100%;
+  height: 100%;
+}
+
+.cg-arm__dip.is-dipping {
+  animation: cg-dip 0.16s ease-out;
+}
+
+@keyframes cg-dip {
+  50% {
+    transform: scale(0.93) translateY(3%);
+  }
+}
+
+.cg-arm.is-recoil .cg-arm__dip {
+  animation: cg-ouch 0.38s ease-out;
+}
+
+@keyframes cg-ouch {
+  20% {
+    transform: rotate(-14deg);
+  }
+  45% {
+    transform: rotate(10deg);
+  }
+  70% {
+    transform: rotate(-5deg);
+  }
+}
+
+.cg-arm__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.cg-arm__shade {
+  stroke: rgba(70, 35, 15, 0.35);
+  stroke-width: 1.2;
+}
+
+.cg-arm__line {
+  stroke: rgba(70, 35, 15, 0.3);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.cg-arm__seed {
+  fill: var(--shell);
+  stroke: rgba(110, 80, 50, 0.6);
+  stroke-width: 0.8;
+}
+
+.cg-hand-count {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  padding: 0 0.3em;
+  font-size: max(13px, calc(var(--s) * 0.34));
   font-weight: 800;
+  line-height: 1.2;
   color: var(--shell);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.9),
+    0 0 6px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
 }
 
 /* ---------------------------------------------------------------- plaques (intro, rules, result) */
@@ -550,6 +658,11 @@
 
   .cg-hint--upright {
     display: none;
+  }
+
+  .cg-star {
+    left: var(--pos);
+    top: 50%;
   }
 
   .cg-hull--h {

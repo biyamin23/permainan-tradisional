@@ -21,7 +21,8 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
   const [pits, setPits] = useState(createBoard)
   const [turn, setTurn] = useState(starter)
   const [animating, setAnimating] = useState(false)
-  const [hand, setHand] = useState(null) // { pit, count }
+  const [hand, setHand] = useState(null) // { pit, count, side, tick }
+  const [mover, setMover] = useState(null) // side whose move is animating
   const [flash, setFlash] = useState(null) // { pits: [], key }
   const [banner, setBanner] = useState(null) // { text, tone, key }
   const [result, setResult] = useState(null)
@@ -44,7 +45,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
     return id
   }
 
-  const say = useCallback((text, tone = 'info') => setBanner({ text, tone, key: Math.random() }), [])
+  const say = useCallback((text, tone = 'info') => setBanner({ text, tone, key: Math.random(), at: Date.now() }), [])
 
   /** After a move finishes: next turn or game over. */
   const advance = useCallback(
@@ -78,7 +79,9 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
       const { events } = outcome
       const delay = stepDelay(events.length, fastRef.current)
       setAnimating(true)
-      setBanner(null)
+      setMover(side)
+      // keep a message the player has only just been shown
+      setBanner((b) => (b && Date.now() - b.at < 1800 ? b : null))
 
       const finish = () => {
         clearTimers()
@@ -86,6 +89,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
         setHand(null)
         setPits(outcome.pits)
         setAnimating(false)
+        setMover(null)
         advance(outcome.pits, side, outcome.extraTurn)
       }
       pending.current = { finish }
@@ -103,13 +107,13 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
           case 'pickup':
           case 'relay':
             display[e.pit] = 0
-            setHand({ pit: e.pit, count: e.count })
+            setHand({ pit: e.pit, count: e.count, side, tick: i })
             sfx.seedPickup()
             wait = delay * 1.6
             break
           case 'drop':
             display[e.pit] += 1
-            setHand(e.hand > 0 ? { pit: e.pit, count: e.hand } : { pit: e.pit, count: 0 })
+            setHand({ pit: e.pit, count: e.hand, side, tick: i })
             sfx.seedDrop(drops++)
             break
           case 'capture':
@@ -137,13 +141,23 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
   )
 
   /** Player taps one of their houses. */
+  /**
+   * Player taps a house. Returns what happened so the screen can react:
+   * 'played' · 'wait' (Aiman's turn) · 'busy' (your own seeds still moving)
+   * · 'theirs' (Aiman's row) · 'empty' · 'over'
+   */
   const playHouse = useCallback(
     (house) => {
-      if (result || animating || turn !== PLAYER || house > 6 || pits[house] === 0) return
+      if (result) return 'over'
+      if (turn !== PLAYER || (animating && mover === OPPONENT)) return 'wait'
+      if (animating) return 'busy'
+      if (house > 6) return 'theirs'
+      if (pits[house] === 0) return 'empty'
       sfx.tap()
       runMove(PLAYER, house)
+      return 'played'
     },
-    [result, animating, turn, pits, runMove],
+    [result, animating, mover, turn, pits, runMove],
   )
 
   /** Tap during an animation to jump to the end of the move. */
@@ -169,6 +183,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
       setTurn(nextStarter)
       setAnimating(false)
       setHand(null)
+      setMover(null)
       setFlash(null)
       setBanner(null)
       setResult(null)
@@ -179,6 +194,8 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
   return {
     pits,
     turn,
+    mover,
+    say,
     animating,
     hand,
     flash,

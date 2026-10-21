@@ -13,7 +13,7 @@ Landing → Character creation → Enter kampung → walk to a game spot → Sol
 What's in the kampung:
 
 - **10 game spots**, one per game, each with kids playing it (Congkak at the wakaf, Gasing on the padang, Wau in the open field, Teng-Teng near the road…). Only Congkak is open for now; the others say *akan datang*.
-- **Congkak** (solo vs Aiman, three levels: Mudah, Biasa, Pakar): traditional rules, sown clockwise with your rumah on your left, relay sowing (*main terus*), extra turn when the last seed lands in your rumah, and *tembak* captures. Seeds are sown one by one with sound; tap the board to skip, ⏩ for fast mode. Wins, losses and your best score are remembered. The board is drawn as a carved cengal board with cowrie shells on a mengkuang mat; it stands upright on portrait phones (your row on the right) and lies flat on wider screens (your row at the bottom).
+- **Congkak** (solo vs Aiman, three levels: Mudah, Biasa, Pakar): traditional rules, sown clockwise with your rumah on your left, relay sowing (*main terus*), extra turn when the last seed lands in your rumah, and *tembak* captures. Hands reach over the board and sow the guli one by one with sound; try to play on Aiman's turn and his hand slaps yours away (*Sabar la, tunggu giliran awak!*). Tap the board to skip, Laju for fast mode. Wins, losses and your best score are remembered. The board is the classic maroon lacquered congkak with chamfered ends, red-rimmed holes and etched stars and ferns, played with glass guli on a red-and-white mengkuang mat; it stands upright on portrait phones (your row on the right) and lies flat on wider screens (your row at the bottom).
 - **Villagers** you can talk to: Tok Wan on his stairs, Mak Cik Kiah sweeping, Pak Abu fishing by the stream. Pak Mat cycles up and down the road.
 - **Animals**: chickens, ducks in the pond, butterflies.
 - **Day and night**: a full day passes in 12 minutes (one in-game hour = 30 s). The visit starts at 5:36 petang; the sun sets, stars and the moon come out, windows, pelita and street lamps light up, birds roost and crickets take over. Tap the clock under your name to jump 3 hours ahead.
@@ -65,7 +65,8 @@ src/
       engine.js                 Rules (pure JS): sowing, relay, tembak, extra turns, end + AI (mudah/biasa/pakar)
       useCongkakMatch.js        Match state + seed-by-seed animation
       CongkakGame.jsx           Intro, match screen, results
-      CongkakBoard.jsx          The carved board (portrait/landscape)
+      CongkakBoard.jsx          The lacquered board (portrait/landscape)
+      Hands.jsx                 Arms that sow, and Aiman's tepis
       records.js                Solo records in localStorage
       congkak.css
 

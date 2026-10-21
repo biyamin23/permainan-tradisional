@@ -218,6 +218,12 @@ export const sfx = {
       tone({ freq: 1600 + Math.random() * 900, at: 0.1 + i * 0.03, decay: 0.04, gain: 0.03 })
     }
   },
+  /** Aiman's hand smacking yours away. */
+  slap() {
+    if (!ready()) return
+    noise({ dur: 0.09, gain: 0.22, type: 'bandpass', freq: 1700, q: 0.9, attack: 0.002 })
+    tone({ freq: 190, freqEnd: 80, decay: 0.09, gain: 0.12 })
+  },
   extraTurn() {
     if (!ready()) return
     tone({ freq: 880, decay: 0.15, gain: 0.06 })

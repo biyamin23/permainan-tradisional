@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { sfx } from '../../audio/engine'
-import { usePlayerState } from '../../state/playerState'
+import { GENDERS, usePlayerState } from '../../state/playerState'
 import { CongkakBoard } from './CongkakBoard'
 import { OPPONENT, PLAYER, createBoard } from './engine'
+import { Hands } from './Hands'
 import { loadRecords, saveResult } from './records'
 import { useCongkakMatch } from './useCongkakMatch'
 import './congkak.css'
@@ -156,11 +157,39 @@ function Result({ result, saved, onAgain, onExit }) {
   )
 }
 
+const SLEEVES = { [GENDERS.LELAKI]: '#2b9aa0', [GENDERS.PEREMPUAN]: '#e9779a' }
+
 function Match({ level, playerName, onExit, onRecords }) {
   const [starter, setStarter] = useState(PLAYER)
-  const { pits, turn, animating, hand, flash, banner, result, fast, setFast, playHouse, skip, restart, scores } =
+  const { pits, turn, animating, hand, flash, banner, result, fast, setFast, playHouse, skip, restart, scores, say } =
     useCongkakMatch({ level, starter })
   const [saved, setSaved] = useState(null)
+  const [hoverPit, setHoverPit] = useState(null)
+  const [slap, setSlap] = useState(null)
+  const lastSlap = useRef(0)
+  const boardRef = useRef(null)
+  const gender = usePlayerState((s) => s.playerGender)
+
+  /** Every tap on a hole: play it, or explain why not (with a tepis on Aiman's turn). */
+  const onPitTap = useCallback(
+    (index, event) => {
+      const outcome = playHouse(index)
+      if (outcome === 'wait') {
+        event?.stopPropagation()
+        if (Date.now() - lastSlap.current > 900) {
+          lastSlap.current = Date.now()
+          setSlap({ pit: index, key: lastSlap.current })
+          say('Sabar la, tunggu giliran awak!', 'bad')
+        }
+      } else if (outcome === 'theirs') {
+        event?.stopPropagation()
+        say('Itu lubang Aiman. Pilih lubang di barisan kamu.')
+      } else if (outcome === 'empty') {
+        say('Lubang tu kosong. Pilih lubang yang ada biji.')
+      }
+    },
+    [playHouse, say],
+  )
 
   useEffect(() => {
     if (!result) return
@@ -235,7 +264,26 @@ function Match({ level, playerName, onExit, onRecords }) {
       statusKey={banner?.key ?? 'default'}
       board={
         <div className={`cg-board-hit ${animating ? 'is-skippable' : ''}`} onClick={animating ? skip : undefined}>
-          <CongkakBoard pits={pits} canPlay={yourTurn && !animating} hand={hand} flash={flash} onPlay={playHouse} />
+          <CongkakBoard
+            pits={pits}
+            canPlay={yourTurn && !animating}
+            flash={flash}
+            onPlay={onPitTap}
+            onHover={(i) => setHoverPit(i !== null && i < 7 && pits[i] > 0 ? i : null)}
+            boardRef={boardRef}
+          >
+            <Hands
+              boardRef={boardRef}
+              sowing={hand}
+              turn={turn}
+              animating={animating}
+              finished={Boolean(result)}
+              hoverPit={yourTurn && !animating ? hoverPit : null}
+              slap={slap}
+              playerSleeve={SLEEVES[gender]}
+              moveMs={fast ? 80 : 150}
+            />
+          </CongkakBoard>
         </div>
       }
     >
