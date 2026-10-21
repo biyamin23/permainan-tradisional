@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+import { sfx } from '../../audio/engine'
 import { SCREENS, usePlayerState } from '../../state/playerState'
 import { useInteractionState } from '../../state/uiState'
 import { getZoneById, interactWithActiveZone } from './InteractionSystem'
@@ -11,6 +13,11 @@ export function InteractionPrompt({ isTouch }) {
   const activeZoneId = useInteractionState((s) => s.activeZoneId)
   const screen = usePlayerState((s) => s.currentScreen)
   const zone = activeZoneId ? getZoneById(activeZoneId) : null
+  const visible = Boolean(zone) && screen === SCREENS.KAMPUNG
+
+  useEffect(() => {
+    if (visible) sfx.prompt()
+  }, [visible, activeZoneId])
 
   if (!zone || screen !== SCREENS.KAMPUNG) return null
 

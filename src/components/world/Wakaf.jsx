@@ -31,7 +31,7 @@ export function buildWakafParts({ roof = '#8f3b26', wood = '#7a5232', size = 3.4
   return { box, cylinder, pyramid }
 }
 
-export function Wakaf({ position, rotationY = 0, roof, extras }) {
+export function Wakaf({ position, rotationY = 0, roof, extras, children }) {
   const bundle = useMemo(() => {
     const base = buildWakafParts({ roof })
     return extras ? mergeBundles(base, extras) : base
@@ -41,6 +41,7 @@ export function Wakaf({ position, rotationY = 0, roof, extras }) {
     <RigidBody type="fixed" colliders={false} position={position} rotation={[0, rotationY, 0]}>
       <CuboidCollider args={[1.8, 0.6, 1.8]} position={[0, 0.6, 0]} />
       <PartsBundle bundle={bundle} />
+      {children}
     </RigidBody>
   )
 }

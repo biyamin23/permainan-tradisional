@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { sfx } from '../../audio/engine'
 import { GENDERS, SCREENS, playerActions, usePlayerState } from '../../state/playerState'
 import { LandingScenery } from '../landing/LandingScenery'
 import { CharacterPreview } from './CharacterPreview'
@@ -26,6 +27,7 @@ export function CharacterCreation() {
   }
 
   const chooseGender = (value) => {
+    sfx.tap()
     setGender(value)
     if (attempted) setErrors(validate(name, value))
   }
@@ -41,7 +43,11 @@ export function CharacterCreation() {
     setAttempted(true)
     const nextErrors = validate(name, gender)
     setErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) return
+    if (Object.keys(nextErrors).length > 0) {
+      sfx.locked()
+      return
+    }
+    sfx.select()
     playerActions.setProfile({ name, gender })
     playerActions.goTo(SCREENS.KAMPUNG)
   }
@@ -54,7 +60,14 @@ export function CharacterCreation() {
 
       <div className="character__layout">
         <form className="character__card" onSubmit={submit} noValidate>
-          <button type="button" className="text-button character__back" onClick={() => playerActions.goTo(SCREENS.LANDING)}>
+          <button
+            type="button"
+            className="text-button character__back"
+            onClick={() => {
+              sfx.close()
+              playerActions.goTo(SCREENS.LANDING)
+            }}
+          >
             ← Kembali
           </button>
 

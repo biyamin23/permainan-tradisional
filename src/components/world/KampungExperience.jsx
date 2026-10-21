@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { SCREENS, usePlayerState } from '../../state/playerState'
 import { GameModeSelection } from '../game/GameModeSelection'
-import { GameSelection } from '../game/GameSelection'
+import { GameScreen } from '../game/GameScreen'
 import { InteractionPrompt } from '../interaction/InteractionPrompt'
 import { useInteractionKey } from '../interaction/InteractionSystem'
 import { EntryOverlay } from '../ui/EntryOverlay'
@@ -14,7 +14,7 @@ const detectTouch = () =>
   typeof window !== 'undefined' &&
   ('ontouchstart' in window || window.matchMedia?.('(pointer: coarse)').matches)
 
-/** The kampung screen: 3D world + HUD + overlays (mode and game menus). */
+/** The kampung screen: 3D world + HUD + overlays (mode menu and the game itself). */
 export function KampungExperience() {
   const screen = usePlayerState((s) => s.currentScreen)
   const gender = usePlayerState((s) => s.playerGender)
@@ -24,7 +24,7 @@ export function KampungExperience() {
   useInteractionKey()
 
   return (
-    <div className="kampung screen-fade-in">
+    <div className={`kampung screen-fade-in ${exploring ? '' : 'is-paused'}`}>
       <KampungWorld gender={gender} controlsEnabled={exploring} />
 
       <div className={`kampung__ui ${exploring ? '' : 'is-dimmed'}`}>
@@ -35,7 +35,7 @@ export function KampungExperience() {
       </div>
 
       {screen === SCREENS.GAME_MODE && <GameModeSelection />}
-      {screen === SCREENS.GAME_SELECTION && <GameSelection />}
+      {screen === SCREENS.GAME && <GameScreen />}
 
       <EntryOverlay />
     </div>

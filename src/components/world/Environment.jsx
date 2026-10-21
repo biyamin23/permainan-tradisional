@@ -129,6 +129,11 @@ export function KampungEnvironment() {
       />
 
       <mesh geometry={groundGeometry} material={MAT.ground} receiveShadow />
+      {/* the padang: a lighter, well-trodden field */}
+      <mesh position={[FIELD.center[0], 0.005, FIELD.center[1]]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <circleGeometry args={[FIELD.radius, 40]} />
+        <meshStandardMaterial color="#9fc463" roughness={1} polygonOffset polygonOffsetFactor={-1} />
+      </mesh>
       <PartsBundle bundle={roads} castShadow={false} />
       <PartsBundle bundle={hills} castShadow={false} receiveShadow={false} />
       <Clouds />

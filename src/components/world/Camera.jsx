@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { MathUtils, Vector3 } from 'three'
-import { FIELD } from '../../data/kampungLayout'
+import { OBJECTIVE_GAME } from '../../data/games'
 import { worldRuntime } from '../../state/worldRuntime'
 
 const MIN_DISTANCE = 5.5
@@ -13,7 +13,7 @@ const INTRO_SECONDS = 2.8
  * Third-person follow camera: slightly above and behind the player, smoothly
  * damped. Drag (mouse or touch) to orbit around the player, wheel to zoom.
  * Pitch is derived from distance so the camera never takes extreme angles.
- * Also keeps the HUD's "go to the padang" arrow pointed the right way.
+ * Also keeps the HUD's objective arrow pointed at the first playable game.
  */
 export function CameraRig() {
   const { camera, gl } = useThree()
@@ -94,14 +94,15 @@ export function CameraRig() {
     // Objective arrow in the HUD (screen-space direction to the padang)
     const { arrow, distance: distanceEl } = worldRuntime.hud
     if (arrow || distanceEl) {
-      const vx = FIELD.center[0] - p.x
-      const vz = FIELD.center[1] - p.z
+      const [tx, tz] = OBJECTIVE_GAME.spot.position
+      const vx = tx - p.x
+      const vz = tz - p.z
       const sx = vx * Math.cos(yaw) - vz * Math.sin(yaw)
       const sy = -vx * Math.sin(yaw) - vz * Math.cos(yaw)
       if (arrow) arrow.style.transform = `rotate(${Math.atan2(sx, sy)}rad)`
       if (distanceEl) {
-        const meters = Math.max(0, Math.round(Math.hypot(vx, vz) - FIELD.radius * 0.5))
-        const text = meters < 3 ? 'Dah sampai!' : `${meters} m`
+        const meters = Math.max(0, Math.round(Math.hypot(vx, vz) - OBJECTIVE_GAME.spot.radius))
+        const text = meters < 1 ? 'Dah sampai!' : `${meters} m`
         if (text !== lastDistanceText.current) {
           distanceEl.textContent = text
           lastDistanceText.current = text

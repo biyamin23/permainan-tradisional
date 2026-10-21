@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { initAudio, sfx } from '../../audio/engine'
 import { SCREENS, playerActions } from '../../state/playerState'
 import { LandingScenery } from './LandingScenery'
 
@@ -12,6 +13,8 @@ export function LandingPage() {
 
   const start = () => {
     if (leaving) return
+    initAudio()
+    sfx.select()
     setLeaving(true)
     timer.current = setTimeout(() => playerActions.goTo(SCREENS.CHARACTER), LEAVE_DURATION)
   }

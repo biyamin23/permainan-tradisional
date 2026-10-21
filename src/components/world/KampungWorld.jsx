@@ -5,14 +5,17 @@ import { HOUSE, NEIGHBOUR_HOUSES, YARD_FENCE } from '../../data/kampungLayout'
 import { attachKeyboardInput } from '../../state/input'
 import { resetWorldRuntime } from '../../state/worldRuntime'
 import { InteractionTracker } from '../interaction/InteractionSystem'
+import { AudioDriver } from './AudioDriver'
 import { CameraRig } from './Camera'
 import { KampungEnvironment } from './Environment'
 import { Fence } from './Fence'
 import { Fields } from './Fields'
+import { GameSpots } from './GameSpots'
 import { House } from './House'
 import { Life } from './Life'
 import { Lighting } from './Lighting'
-import { PlayArea } from './PlayArea'
+import { Animals } from './npc/Animals'
+import { Npcs } from './npc/Npcs'
 import { Player } from './Player'
 import { Trees } from './Trees'
 import { Water } from './Water'
@@ -49,7 +52,9 @@ export function KampungWorld({ gender, controlsEnabled }) {
           <Fence segments={YARD_FENCE} />
           <Trees />
           <Fields />
-          <PlayArea />
+          <GameSpots />
+          <Npcs />
+          <Animals />
           <Life />
           <Player gender={gender} enabled={controlsEnabled} />
         </Physics>
@@ -57,6 +62,7 @@ export function KampungWorld({ gender, controlsEnabled }) {
 
       <CameraRig />
       <InteractionTracker />
+      <AudioDriver />
     </Canvas>
   )
 }

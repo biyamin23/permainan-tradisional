@@ -1,41 +1,54 @@
-import { BRIDGE, FIELD, HOUSE, POND, SAWAH, SCARECROW } from './kampungLayout'
+import { games, isGameAvailable } from './games'
+import { BRIDGE, POND, SAWAH, SCARECROW } from './kampungLayout'
+import { NPCS } from './npcs'
 
 /**
  * Interaction zones in the kampung. The interaction system picks the closest
- * zone the player is inside and shows its prompt; pressing E runs `action`.
+ * zone the player is inside and shows its prompt; pressing E (or the action
+ * button on touch screens) runs `action`.
  *
- * To add a future game spot: add a zone here with a new action type and
- * register a handler for it (see components/interaction/InteractionSystem.jsx).
+ * Game zones and NPC zones are generated from data/games.js and data/npcs.js.
+ * To add a new kind of behaviour, add an action type here and register a
+ * handler for it (see components/interaction/InteractionSystem.jsx).
  *
  * position: [x, z] centre on the ground, radius in metres.
- * actionLabel / actionIcon: text and emoji on the touch action button (default 'Lihat' / ✋).
+ * actionLabel / actionIcon: text and emoji on the touch action button.
  */
 export const INTERACTION_ACTIONS = {
-  OPEN_GAME_MODE: 'openGameMode',
+  OPEN_GAME: 'openGame',
+  TALK: 'talk',
   MESSAGE: 'message',
 }
 
-export const interactables = [
-  {
-    id: 'padang',
-    label: 'Tempat bermain',
-    prompt: 'Tekan E untuk melihat permainan',
-    position: FIELD.center,
-    radius: 8.5,
-    action: INTERACTION_ACTIONS.OPEN_GAME_MODE,
-    actionLabel: 'Main',
-    actionIcon: '🪀',
-    isObjective: true,
-  },
-  {
-    id: 'rumah-tok-wan',
-    label: 'Rumah Tok Wan',
-    prompt: 'Tekan E untuk berinteraksi',
-    position: [HOUSE.position[0], HOUSE.position[2] + 10.3],
-    radius: 3.4,
-    action: INTERACTION_ACTIONS.MESSAGE,
-    message: 'Tok Wan tengah goreng cucur udang. Lepas main nanti, singgah makan ya!',
-  },
+const gameZones = games.map((game) => {
+  const available = isGameAvailable(game)
+  return {
+    id: `game-${game.id}`,
+    gameId: game.id,
+    label: game.name,
+    prompt: available ? `Tekan E untuk main ${game.name}` : `Tekan E — ${game.name} akan datang`,
+    position: game.spot.position,
+    radius: game.spot.radius,
+    action: INTERACTION_ACTIONS.OPEN_GAME,
+    actionLabel: available ? 'Main' : 'Lihat',
+    actionIcon: available ? game.emoji : '🔒',
+    isObjective: available,
+  }
+})
+
+const npcZones = NPCS.map((npc) => ({
+  id: `npc-${npc.id}`,
+  npcId: npc.id,
+  label: npc.name,
+  prompt: 'Tekan E untuk bersembang',
+  position: npc.zone.position,
+  radius: npc.zone.radius,
+  action: INTERACTION_ACTIONS.TALK,
+  actionLabel: 'Sembang',
+  actionIcon: '💬',
+}))
+
+const placeZones = [
   {
     id: 'kolam',
     label: 'Kolam',
@@ -43,7 +56,7 @@ export const interactables = [
     position: POND.center,
     radius: POND.radius + 2.6,
     action: INTERACTION_ACTIONS.MESSAGE,
-    message: 'Airnya tenang. Nampak anak ikan puyu berenang di celah teratai.',
+    message: 'Airnya tenang. Itik berenang di celah teratai.',
   },
   {
     id: 'jambatan',
@@ -73,3 +86,5 @@ export const interactables = [
     message: 'Pak Mat dah lama berdiri di sini. Burung pipit pun dah tak takut.',
   },
 ]
+
+export const interactables = [...gameZones, ...npcZones, ...placeZones]

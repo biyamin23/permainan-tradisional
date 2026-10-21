@@ -4,11 +4,18 @@
 
 A web-based 3D experience where the player returns to a nostalgic Malaysian kampung, becomes a child again, and discovers traditional games.
 
-**Phase 1 (this version):** the full core flow. You can walk around the kampung and open the game menus, but the games themselves aren't built yet.
+**Phase 1 (this version):** the full core flow. You can walk around a living kampung, find each traditional game at its own spot, and open it. The games' gameplay isn't built yet.
 
 ```
-Landing → Character creation → Enter kampung → Kampung hub → Solo / Multiplayer → Game selection
+Landing → Character creation → Enter kampung → walk to a game spot → Solo / Multiplayer → straight into that game
 ```
+
+What's in the kampung:
+
+- **10 game spots**, one per game, each with kids playing it (Congkak at the wakaf, Gasing on the padang, Wau in the open field, Teng-Teng near the road…). Only Congkak is open for now; the others say *akan datang*.
+- **Villagers** you can talk to: Tok Wan on his stairs, Mak Cik Kiah sweeping, Pak Abu fishing by the stream. Pak Mat cycles up and down the road.
+- **Animals**: chickens, ducks in the pond, butterflies.
+- **Sound**, all synthesised in the browser (no audio files): wind, birds, crickets, frogs, the stream, chickens, bicycle bell, footsteps, UI sounds and a gentle kampung tune. Use the 🔊 button to switch between sound + music, sound only and silent.
 
 ## Run it
 
@@ -30,7 +37,7 @@ Then open the URL Vite prints (usually http://localhost:5173).
 | Zoom | Mouse wheel | — |
 | Close menu | `Esc` | ✕ button |
 
-Head for the **padang** (follow the arrow at the top right) and press `E` to open *"Petang ni nak main apa?"*.
+Follow the arrow at the top right to Congkak and press `E` (or tap **MAIN** on a phone).
 
 ## Tech
 
@@ -46,7 +53,15 @@ src/
   main.jsx
   styles/global.css             Visual system (palette, typography, UI)
 
+  audio/
+    engine.js                   Web Audio synth: sfx, ambience, music
+
+  games/
+    registry.js                 Game id → component that runs the game
+    congkak/CongkakGame.jsx
+
   state/
+    audioState.js               Sound mode (all / sfx / off), remembered per browser
     createStore.js              Tiny store on useSyncExternalStore (works inside and outside <Canvas>)
     playerState.js              playerName, playerGender, selectedGameMode, currentScreen (+ actions)
     uiState.js                  Active interaction zone, toast messages
@@ -54,24 +69,29 @@ src/
     worldRuntime.js             Per-frame values (player position, camera yaw), outside React
 
   data/
-    games.js                    Game registry: drives the game selection UI
-    interactables.js            Interaction zones: drive the "Tekan E" system
+    games.js                    Game registry: spots, zones, signs and kids are generated from it
+    npcs.js                     Villagers you can talk to, and the cyclist
+    interactables.js            Interaction zones (generated from games + npcs, plus places)
     kampungLayout.js            Where everything in the kampung is placed
 
   components/
     landing/                    LandingPage, LandingScenery (SVG/CSS golden-hour kampung)
-    character/                  CharacterCreation, CharacterPreview, ChildModel (shared kid model)
+    character/                  CharacterCreation, CharacterPreview, PersonModel (kids + adults, poses), ChildModel
     world/                      KampungWorld (Canvas + Physics), Environment, House, Trees, Water,
-                                Fence, Fields (sawah), PlayArea (padang), Wakaf, Life, Lighting,
-                                Player, Camera, kit.js + InstancedParts (primitive "kit of parts")
+                                Fence, Fields (sawah), GameSpots, Wakaf, Life, Lighting, Player,
+                                Camera, AudioDriver, kit.js + InstancedParts (primitive "kit of parts")
+      spots/                    One scene per game (SpotScenes) and shared props (SpotProps)
+      npc/                      Npcs (villagers, cyclist), Animals, ProximityBubble, kid outfits
     interaction/                InteractionSystem (zones, E key, handlers), InteractionPrompt
-    game/                       GameModeSelection, GameSelection, GameCard, GameIcon
-    ui/                         HUD, Toast, Modal, TouchJoystick, EntryOverlay
+    game/                       GameModeSelection, GameScreen, GamePlaceholder, GameIcon
+    ui/                         HUD, Toast, Modal, TouchJoystick, SoundToggle, EntryOverlay
 ```
 
 ## Extending
 
-**Add or unlock a game:** edit `src/data/games.js`. The cards are generated from that data. Set `status: 'available'` to unlock a game.
+**Add or unlock a game:** edit `src/data/games.js`. Its spot, interaction zone and sign are generated from that data. Set `status: 'available'` to unlock it, add a scene for its spot in `components/world/spots/SpotScenes.jsx`, and register the component that runs it in `src/games/registry.js`.
+
+**Add a villager:** add an entry to `src/data/npcs.js` (look, pose, position, lines). Talking to them works automatically.
 
 **Add an interaction spot:** add a zone to `src/data/interactables.js`:
 

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { OBJECTIVE_GAME } from '../../data/games'
 import { usePlayerState } from '../../state/playerState'
 import { worldRuntime } from '../../state/worldRuntime'
+import { SoundToggle } from './SoundToggle'
 
 function ControlsHelp({ isTouch }) {
   if (isTouch) {
@@ -13,7 +15,10 @@ function ControlsHelp({ isTouch }) {
           <span className="hud__help-icon">👆</span> Seret skrin untuk pusing kamera
         </li>
         <li>
-          <span className="hud__help-icon">✋</span> Butang kanan untuk berinteraksi
+          <span className="hud__help-icon">✋</span> Butang kanan untuk main atau bersembang
+        </li>
+        <li>
+          <span className="hud__help-icon">📍</span> Setiap permainan ada tempatnya sendiri
         </li>
       </ul>
     )
@@ -24,7 +29,7 @@ function ControlsHelp({ isTouch }) {
       <kbd className="keycap keycap--sm">A</kbd>
       <kbd className="keycap keycap--sm">S</kbd>
       <kbd className="keycap keycap--sm">D</kbd> bergerak · <kbd className="keycap keycap--sm">Shift</kbd> lari ·{' '}
-      <kbd className="keycap keycap--sm">E</kbd> berinteraksi · seret tetikus untuk pusing kamera
+      <kbd className="keycap keycap--sm">E</kbd> main / sembang · seret tetikus untuk pusing kamera
     </span>
   )
 }
@@ -71,10 +76,12 @@ export function HUD({ isTouch }) {
             </span>
           </span>
           <span className="hud__objective-text">
-            <span className="hud__objective-label">Pergi ke padang</span>
+            <span className="hud__objective-label">Jom main {OBJECTIVE_GAME.name}</span>
             <small ref={distanceRef}>…</small>
           </span>
         </div>
+
+        <SoundToggle className="hud__icon-btn" announce />
 
         {isTouch && (
           <button

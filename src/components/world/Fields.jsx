@@ -1,6 +1,15 @@
 import { useMemo } from 'react'
 import { CylinderCollider, RigidBody } from '@react-three/rapier'
-import { BOUNDS, FIELD, PONDOK_SAWAH, SAWAH, SCARECROW, isOnRoad, isReserved } from '../../data/kampungLayout'
+import {
+  BOUNDS,
+  FIELD,
+  PONDOK_SAWAH,
+  SAWAH,
+  SCARECROW,
+  isNearGameSpot,
+  isOnRoad,
+  isReserved,
+} from '../../data/kampungLayout'
 import { PartsBundle } from './InstancedParts'
 import { createRandom, part, pick, randomBetween } from './kit'
 import { Wakaf } from './Wakaf'
@@ -18,8 +27,7 @@ function buildGrassTufts() {
     const x = randomBetween(random, BOUNDS.xMin, BOUNDS.xMax)
     const z = randomBetween(random, BOUNDS.zMin, BOUNDS.zMax)
     const inField = (x - FIELD.center[0]) ** 2 + (z - FIELD.center[1]) ** 2 < (FIELD.radius - 1) ** 2
-    if (!inField && isReserved(x, z, 0.3)) continue
-    if (inField && (x - FIELD.center[0]) ** 2 + (z - FIELD.center[1]) ** 2 < 36) continue
+    if (inField ? isNearGameSpot(x, z, -0.5) : isReserved(x, z, 0.3)) continue
     const h = randomBetween(random, 0.25, 0.55)
     blade.push(part([x, 0, z], [0.16, h, 0.16], [randomBetween(random, -0.3, 0.3), random() * 3, randomBetween(random, -0.3, 0.3)], pick(random, GRASS)))
     placed++

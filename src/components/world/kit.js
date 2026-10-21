@@ -96,12 +96,6 @@ export const part = (position, scale, rotation = [0, 0, 0], color = '#ffffff', o
   color,
 })
 
-/** Move/rotate a list of parts as a whole (e.g. place a house in the world). */
-export function placeParts(parts, position, rotationY = 0, uniformScale = 1) {
-  const parent = makeMatrix(position, [0, rotationY, 0], [uniformScale, uniformScale, uniformScale])
-  return parts.map((p) => ({ ...p, matrix: parent.clone().multiply(p.matrix) }))
-}
-
 /** Merge several { geometryKey: parts[] } bundles into one. */
 export function mergeBundles(...bundles) {
   const merged = {}

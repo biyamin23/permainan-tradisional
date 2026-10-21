@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { CapsuleCollider, RigidBody } from '@react-three/rapier'
-import { SPAWN } from '../../data/kampungLayout'
+import { sfx } from '../../audio/engine'
+import { BRIDGE, SPAWN, isOnRoad } from '../../data/kampungLayout'
 import { getMoveInput } from '../../state/input'
 import { worldRuntime } from '../../state/worldRuntime'
 import { ChildModel } from '../character/ChildModel'
@@ -10,6 +11,12 @@ const WALK_SPEED = 4.2
 const RUN_SPEED = 7.2
 const ACCELERATION = 12
 const TURN_SPEED = 12
+
+function surfaceAt(x, z) {
+  if (Math.abs(x - BRIDGE.x) < BRIDGE.width / 2 && Math.abs(z - BRIDGE.z) < BRIDGE.length / 2) return 'wood'
+  if (isOnRoad(x, z)) return 'dirt'
+  return 'grass'
+}
 
 /** Shortest-path angle damping. */
 function dampAngle(current, target, lambda, dt) {
@@ -29,6 +36,7 @@ export function Player({ gender, enabled }) {
   const visual = useRef()
   const motion = useRef({ speed: 0 })
   const facing = useRef(Math.PI) // start facing into the kampung (-z)
+  const stride = useRef(0)
 
   useEffect(() => {
     if (visual.current) visual.current.rotation.y = facing.current
@@ -64,6 +72,17 @@ export function Player({ gender, enabled }) {
     motion.current.speed = Math.min(horizontal / RUN_SPEED, 1) * (horizontal > 0.2 ? 1 : 0)
 
     const p = rb.translation()
+    // footsteps: one sound per stride, louder when running
+    if (horizontal > 0.6) {
+      stride.current += horizontal * dt
+      const strideLength = input.run ? 0.95 : 0.68
+      if (stride.current > strideLength) {
+        stride.current = 0
+        sfx.footstep(surfaceAt(p.x, p.z), input.run)
+      }
+    } else {
+      stride.current = 0.5
+    }
     // safety net: if we ever fall out of the world, come back to the road
     if (p.y < -10) {
       rb.setTranslation({ x: SPAWN[0], y: SPAWN[1] + 1, z: SPAWN[2] }, true)

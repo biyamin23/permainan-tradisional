@@ -15,6 +15,12 @@ export const worldRuntime = {
     arrow: null,
     distance: null,
   },
+  /** Positions of moving NPCs/animals, read by the audio driver. */
+  npc: {
+    bike: new Vector3(0, 0, 999),
+    bikeMoving: false,
+    chickens: [],
+  },
 }
 
 export function resetWorldRuntime() {

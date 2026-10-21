@@ -1,3 +1,5 @@
+import { games } from './games'
+
 /**
  * Single source of truth for where things are in the kampung.
  * World units are metres. +z points "south" (towards the spawn point),
@@ -37,8 +39,6 @@ export const YARD = { xMin: -23, xMax: -5, zMin: -11, zMax: 9 }
 
 export const FIELD = { center: [16, -6], radius: 12 }
 
-export const WAKAF = { position: [25, 0, -13] }
-
 export const POND = { center: [-15, 18], radius: 4.2 }
 
 export const STREAM = { z: -26, width: 5 }
@@ -60,13 +60,17 @@ export const isOnRoad = (x, z, margin = 0) => ROADS.some((road) => inRect(x, z, 
 
 const near = (x, z, cx, cz, r) => (x - cx) ** 2 + (z - cz) ** 2 < r * r
 
+/** True when (x, z) is on or next to one of the game spots. */
+export const isNearGameSpot = (x, z, margin = 1) =>
+  games.some(({ spot }) => near(x, z, spot.position[0], spot.position[1], spot.radius + margin))
+
 /** Areas where scattered trees/props should not be placed. */
 export function isReserved(x, z, margin = 1) {
   if (isOnRoad(x, z, margin + 0.5)) return true
   if (Math.abs(z - STREAM.z) < STREAM.width / 2 + margin + 1) return true
   if (near(x, z, FIELD.center[0], FIELD.center[1], FIELD.radius + margin)) return true
   if (near(x, z, POND.center[0], POND.center[1], POND.radius + margin + 1)) return true
-  if (near(x, z, WAKAF.position[0], WAKAF.position[2], 4 + margin)) return true
+  if (isNearGameSpot(x, z, margin + 0.5)) return true
   if (near(x, z, SPAWN[0], SPAWN[2], 5 + margin)) return true
   if (
     x > YARD.xMin - margin &&

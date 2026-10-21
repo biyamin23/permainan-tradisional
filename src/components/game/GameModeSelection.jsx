@@ -1,27 +1,55 @@
 import { useCallback, useState } from 'react'
-import { GAME_MODES, SCREENS, playerActions } from '../../state/playerState'
+import { sfx } from '../../audio/engine'
+import { getGameById } from '../../data/games'
+import { GAME_MODES, playerActions, usePlayerState } from '../../state/playerState'
 import { Modal } from '../ui/Modal'
+import { GameIcon } from './GameIcon'
 
-/** "Petang ni nak main apa?" — choose Solo or Multiplayer. */
+/** Opened from a game spot: Solo or Multiplayer, then straight into that game. */
 export function GameModeSelection() {
+  const gameId = usePlayerState((s) => s.selectedGameId)
+  const game = getGameById(gameId)
   const [comingSoonPulse, setComingSoonPulse] = useState(0)
 
-  const close = useCallback(() => playerActions.goTo(SCREENS.KAMPUNG), [])
+  const close = useCallback(() => {
+    sfx.close()
+    playerActions.backToKampung()
+  }, [])
+
+  if (!game) return null
+
+  const soloAvailable = game.modes.includes(GAME_MODES.SOLO)
 
   const chooseSolo = () => {
-    playerActions.selectGameMode(GAME_MODES.SOLO)
-    playerActions.goTo(SCREENS.GAME_SELECTION)
+    if (!soloAvailable) {
+      sfx.locked()
+      return
+    }
+    sfx.select()
+    playerActions.startGame(GAME_MODES.SOLO)
+  }
+
+  const chooseMultiplayer = () => {
+    sfx.locked()
+    setComingSoonPulse((n) => n + 1)
   }
 
   return (
-    <Modal onClose={close} labelledBy="mode-title" className="mode-panel">
+    <Modal onClose={close} labelledBy="mode-title" className="mode-panel" style={{ '--accent': game.accent }}>
       <button type="button" className="modal__close" onClick={close} aria-label="Tutup">
         ✕
       </button>
-      <p className="modal__kicker">Padang Kampung</p>
-      <h2 id="mode-title" className="modal__title">
-        Petang ni nak main apa?
-      </h2>
+      <div className="mode-panel__game">
+        <span className="mode-panel__icon">
+          <GameIcon id={game.id} size={52} />
+        </span>
+        <span>
+          <p className="modal__kicker">{game.name}</p>
+          <h2 id="mode-title" className="modal__title">
+            Petang ni nak main macam mana?
+          </h2>
+        </span>
+      </div>
 
       <div className="mode-grid">
         <button type="button" className="mode-card mode-card--solo" onClick={chooseSolo}>
@@ -30,15 +58,10 @@ export function GameModeSelection() {
           </span>
           <span className="mode-card__name">SOLO</span>
           <span className="mode-card__desc">Main seorang diri dan cuba pecahkan rekod.</span>
-          <span className="mode-card__cta">Pilih →</span>
+          <span className="mode-card__cta">Jom main →</span>
         </button>
 
-        <button
-          type="button"
-          className="mode-card mode-card--multi"
-          onClick={() => setComingSoonPulse((n) => n + 1)}
-          aria-disabled="true"
-        >
+        <button type="button" className="mode-card mode-card--multi" onClick={chooseMultiplayer} aria-disabled="true">
           <span className="mode-card__soon" key={comingSoonPulse} data-pulse={comingSoonPulse > 0 ? 'true' : undefined}>
             Coming Soon
           </span>

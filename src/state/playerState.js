@@ -5,7 +5,7 @@ export const SCREENS = {
   CHARACTER: 'character',
   KAMPUNG: 'kampung',
   GAME_MODE: 'gameMode',
-  GAME_SELECTION: 'gameSelection',
+  GAME: 'game',
 }
 
 export const GENDERS = {
@@ -19,7 +19,7 @@ export const GAME_MODES = {
 }
 
 /** Screens that keep the 3D kampung mounted underneath the UI. */
-const WORLD_SCREENS = [SCREENS.KAMPUNG, SCREENS.GAME_MODE, SCREENS.GAME_SELECTION]
+const WORLD_SCREENS = [SCREENS.KAMPUNG, SCREENS.GAME_MODE, SCREENS.GAME]
 
 export const isWorldScreen = (screen) => WORLD_SCREENS.includes(screen)
 
@@ -45,12 +45,18 @@ export const playerActions = {
     playerStore.setState({ playerName: name.trim(), playerGender: gender })
   },
 
-  selectGameMode(mode) {
-    playerStore.setState({ selectedGameMode: mode })
+  /** Walked up to a game spot: ask Solo or Multiplayer for that game. */
+  openGame(gameId) {
+    playerStore.setState({ selectedGameId: gameId, selectedGameMode: null, currentScreen: SCREENS.GAME_MODE })
   },
 
-  selectGame(gameId) {
-    playerStore.setState({ selectedGameId: gameId })
+  /** Mode chosen: go straight into the selected game. */
+  startGame(mode) {
+    playerStore.setState({ selectedGameMode: mode, currentScreen: SCREENS.GAME })
+  },
+
+  backToKampung() {
+    playerStore.setState({ currentScreen: SCREENS.KAMPUNG })
   },
 
   reset() {
