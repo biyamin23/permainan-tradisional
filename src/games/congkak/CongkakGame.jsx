@@ -35,12 +35,19 @@ function TurnMark({ on }) {
   return <span className={`cg-mark ${on ? 'is-on' : ''}`} aria-hidden="true" />
 }
 
-function Scene({ them, you, status, statusTone, statusKey, board, top, children }) {
+function Scene({ them, themSays, you, status, statusTone, statusKey, board, top, children }) {
   return (
     <div className="cg">
       <div className="cg-top">{top}</div>
       <div className="cg-mat">
-        <div className="cg-side cg-side--them">{them}</div>
+        <div className="cg-side cg-side--them">
+          {them}
+          {themSays && (
+            <p className="cg-speech" key={themSays.key} role="status">
+              {themSays.text}
+            </p>
+          )}
+        </div>
         <div className="cg-board-wrap">{board}</div>
         <div className="cg-side cg-side--you">{you}</div>
         <p className={`cg-status ${statusTone ? `is-${statusTone}` : ''}`} key={statusKey} aria-live="polite">
@@ -161,7 +168,7 @@ const SLEEVES = { [GENDERS.LELAKI]: '#2b9aa0', [GENDERS.PEREMPUAN]: '#e9779a' }
 
 function Match({ level, playerName, onExit, onRecords }) {
   const [starter, setStarter] = useState(PLAYER)
-  const { pits, turn, animating, hand, flash, banner, result, fast, setFast, playHouse, skip, restart, scores, say } =
+  const { pits, turn, animating, hand, flash, banner, speech, result, fast, setFast, playHouse, skip, restart, scores, say, aimanSays } =
     useCongkakMatch({ level, starter })
   const [saved, setSaved] = useState(null)
   const [hoverPit, setHoverPit] = useState(null)
@@ -179,7 +186,7 @@ function Match({ level, playerName, onExit, onRecords }) {
         if (Date.now() - lastSlap.current > 900) {
           lastSlap.current = Date.now()
           setSlap({ pit: index, key: lastSlap.current })
-          say('Sabar la, tunggu giliran awak!', 'bad')
+          aimanSays('Sabar la, tunggu giliran awak!')
         }
       } else if (outcome === 'theirs') {
         event?.stopPropagation()
@@ -188,7 +195,7 @@ function Match({ level, playerName, onExit, onRecords }) {
         say('Lubang tu kosong. Pilih lubang yang ada biji.')
       }
     },
-    [playHouse, say],
+    [playHouse, say, aimanSays],
   )
 
   useEffect(() => {
@@ -260,6 +267,7 @@ function Match({ level, playerName, onExit, onRecords }) {
         </>
       }
       status={status}
+      themSays={speech}
       statusTone={banner?.tone}
       statusKey={banner?.key ?? 'default'}
       board={

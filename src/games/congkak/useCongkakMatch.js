@@ -46,6 +46,9 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
   }
 
   const say = useCallback((text, tone = 'info') => setBanner({ text, tone, key: Math.random(), at: Date.now() }), [])
+  // things Aiman says out loud, shown as a speech bubble on his side
+  const [speech, setSpeech] = useState(null)
+  const aimanSays = useCallback((text) => setSpeech({ text, key: Math.random() }), [])
 
   /** After a move finishes: next turn or game over. */
   const advance = useCallback(
@@ -54,7 +57,8 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
       const over = checkGameOver(boardAfter, nextSide)
       if (over) {
         if (over.swept > 0) {
-          say(over.sweptBy === PLAYER ? `Kamu kutip baki ${over.swept} biji.` : `Aiman kutip baki ${over.swept} biji.`, 'info')
+          if (over.sweptBy === PLAYER) say(`Kamu kutip baki ${over.swept} biji.`, 'info')
+          else aimanSays(`Aku kutip baki ${over.swept} biji, ya.`)
         }
         setPits(over.pits)
         later(() => {
@@ -66,9 +70,12 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
         return
       }
       setTurn(nextSide)
-      if (extraTurn) say(side === PLAYER ? 'Masuk rumah. Kamu main lagi.' : 'Aiman masuk rumah, dia main lagi.', 'good')
+      if (extraTurn) {
+        if (side === PLAYER) say('Masuk rumah. Kamu main lagi.', 'good')
+        else aimanSays('Masuk rumah! Aku main lagi.')
+      }
     },
-    [say],
+    [say, aimanSays],
   )
 
   /** Animate a move event by event. */
@@ -121,7 +128,12 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
             display[e.opposite] = 0
             display[e.store] += e.count
             setFlash({ pits: [e.pit, e.opposite, e.store], key: Math.random() })
-            say(side === PLAYER ? `Tembak. ${e.count} biji masuk rumah kamu.` : `Aiman tembak ${e.count} biji kamu.`, side === PLAYER ? 'good' : 'bad')
+            if (side === PLAYER) {
+              say(`Tembak. ${e.count} biji masuk rumah kamu.`, 'good')
+              aimanSays('Alamak, habis biji aku!')
+            } else {
+              aimanSays(`Tembak! ${e.count} biji kamu aku ambil.`)
+            }
             sfx.capture()
             wait = 900
             break
@@ -137,7 +149,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
       }
       step()
     },
-    [pits, advance, say],
+    [pits, advance, say, aimanSays],
   )
 
   /** Player taps one of their houses. */
@@ -186,6 +198,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
       setMover(null)
       setFlash(null)
       setBanner(null)
+      setSpeech(null)
       setResult(null)
     },
     [],
@@ -196,6 +209,8 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
     turn,
     mover,
     say,
+    speech,
+    aimanSays,
     animating,
     hand,
     flash,
