@@ -198,6 +198,43 @@ export const sfx = {
       tone({ freq: 420 + Math.random() * 380, type: 'triangle', at: i * 0.07, decay: 0.05, gain: 0.04 })
     }
   },
+  // ---- congkak
+  seedDrop(step = 0) {
+    if (!ready()) return
+    const f = 1500 + ((step * 137) % 600)
+    tone({ freq: f, freqEnd: f * 0.8, type: 'sine', decay: 0.05, gain: 0.05 })
+    noise({ dur: 0.025, gain: 0.025, type: 'bandpass', freq: 3000, q: 2 })
+  },
+  seedPickup() {
+    if (!ready()) return
+    for (let i = 0; i < 4; i++) {
+      noise({ at: i * 0.025, dur: 0.03, gain: 0.03, type: 'bandpass', freq: 2200 + Math.random() * 1200, q: 3 })
+    }
+  },
+  capture() {
+    if (!ready()) return
+    ;[659, 784, 988, 1319].forEach((f, i) => tone({ freq: f, at: i * 0.06, decay: 0.25, gain: 0.06 }))
+    for (let i = 0; i < 8; i++) {
+      tone({ freq: 1600 + Math.random() * 900, at: 0.1 + i * 0.03, decay: 0.04, gain: 0.03 })
+    }
+  },
+  extraTurn() {
+    if (!ready()) return
+    tone({ freq: 880, decay: 0.15, gain: 0.06 })
+    tone({ freq: 1320, at: 0.1, decay: 0.3, gain: 0.06 })
+  },
+  win() {
+    if (!ready()) return
+    ;[523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone({ freq: f, type: 'triangle', at: i * 0.12, decay: 0.35, gain: 0.08 }))
+  },
+  lose() {
+    if (!ready()) return
+    ;[523, 466, 392, 349].forEach((f, i) => tone({ freq: f, type: 'triangle', at: i * 0.18, decay: 0.4, gain: 0.07 }))
+  },
+  draw() {
+    if (!ready()) return
+    ;[523, 659, 523].forEach((f, i) => tone({ freq: f, type: 'triangle', at: i * 0.15, decay: 0.3, gain: 0.07 }))
+  },
   footstep(surface = 'grass', running = false) {
     if (!ready()) return
     const level = running ? 1.25 : 1

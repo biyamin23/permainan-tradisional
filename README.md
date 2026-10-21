@@ -4,7 +4,7 @@
 
 A web-based 3D experience where the player returns to a nostalgic Malaysian kampung, becomes a child again, and discovers traditional games.
 
-**Phase 1 (this version):** the full core flow. You can walk around a living kampung, find each traditional game at its own spot, and open it. The games' gameplay isn't built yet.
+**Phase 1 (this version):** the full core flow. You can walk around a living kampung and find each traditional game at its own spot. **Congkak is fully playable**; the other games are coming.
 
 ```
 Landing → Character creation → Enter kampung → walk to a game spot → Solo / Multiplayer → straight into that game
@@ -13,6 +13,7 @@ Landing → Character creation → Enter kampung → walk to a game spot → Sol
 What's in the kampung:
 
 - **10 game spots**, one per game, each with kids playing it (Congkak at the wakaf, Gasing on the padang, Wau in the open field, Teng-Teng near the road…). Only Congkak is open for now; the others say *akan datang*.
+- **Congkak** (solo vs Aiman, three levels: Mudah, Biasa, Pakar): traditional rules with relay sowing (*main terus*), extra turn when the last seed lands in your rumah, and *tembak* captures. Seeds are sown one by one with sound; tap the board to skip, ⏩ for fast mode. Wins, losses and your best score are remembered. The board stands upright on portrait phones and lies flat on wider screens.
 - **Villagers** you can talk to: Tok Wan on his stairs, Mak Cik Kiah sweeping, Pak Abu fishing by the stream. Pak Mat cycles up and down the road.
 - **Animals**: chickens, ducks in the pond, butterflies.
 - **Day and night**: a full day passes in 12 minutes (one in-game hour = 30 s). The visit starts at 5:36 petang; the sun sets, stars and the moon come out, windows, pelita and street lamps light up, birds roost and crickets take over. Tap the clock under your name to jump 3 hours ahead.
@@ -60,7 +61,13 @@ src/
 
   games/
     registry.js                 Game id → component that runs the game
-    congkak/CongkakGame.jsx
+    congkak/
+      engine.js                 Rules (pure JS): sowing, relay, tembak, extra turns, end + AI (mudah/biasa/pakar)
+      useCongkakMatch.js        Match state + seed-by-seed animation
+      CongkakGame.jsx           Intro, match screen, results
+      CongkakBoard.jsx          The carved board (portrait/landscape)
+      records.js                Solo records in localStorage
+      congkak.css
 
   state/
     audioState.js               Sound mode (all / sfx / off), remembered per browser
