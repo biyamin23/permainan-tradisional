@@ -2,15 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { sfx } from '../../audio/engine'
 import { OPPONENT, PLAYER, STORE, checkGameOver, chooseMove, createBoard, playMove } from './engine'
 
-const BASE_STEP = 190 // ms per seed at normal speed
-const MIN_STEP = 25
-const MAX_TURN_MS = 6500 // long relay chains speed up so no turn takes longer than this
-const AI_THINK = 850
+const BASE_STEP = 380 // ms per seed at normal speed: slow enough to follow every guli
+const MIN_STEP = 170 // even very long relay chains never go faster than this (tap the board to skip)
+const MAX_TURN_MS = 24000 // a long relay chain speeds up a little so a turn stays under ~24 s
+const AI_THINK = 1100
 
 function stepDelay(eventCount, fast) {
-  const base = fast ? BASE_STEP / 2.2 : BASE_STEP
-  const budget = (fast ? MAX_TURN_MS / 2 : MAX_TURN_MS) / Math.max(1, eventCount)
-  return Math.max(MIN_STEP, Math.min(base, budget))
+  const base = fast ? BASE_STEP / 2.5 : BASE_STEP
+  const floor = fast ? MIN_STEP / 2.5 : MIN_STEP
+  const budget = (fast ? MAX_TURN_MS / 2.5 : MAX_TURN_MS) / Math.max(1, eventCount)
+  return Math.max(floor, Math.min(base, budget))
 }
 
 /**
@@ -27,6 +28,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
   const [banner, setBanner] = useState(null) // { text, tone, key }
   const [result, setResult] = useState(null)
   const [fast, setFast] = useState(false)
+  const [stepMs, setStepMs] = useState(BASE_STEP) // pace of the move being animated
 
   const timers = useRef([])
   const pending = useRef(null) // { finalPits, finish }
@@ -85,6 +87,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
       const display = pits.slice()
       const { events } = outcome
       const delay = stepDelay(events.length, fastRef.current)
+      setStepMs(delay)
       setAnimating(true)
       setMover(side)
       // keep a message the player has only just been shown
@@ -218,6 +221,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
     result,
     fast,
     setFast,
+    stepMs,
     playHouse,
     skip,
     restart,

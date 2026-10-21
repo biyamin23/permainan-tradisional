@@ -89,6 +89,7 @@ function Arm({ point, angle, visible, pose, seeds, colors, moveMs, tick, recoil 
     transitionDuration: `${moveMs}ms, 250ms`,
     opacity: visible ? 1 : 0,
   }
+  style['--dip-ms'] = `${Math.max(140, Math.min(moveMs * 1.2, 320))}ms`
   return (
     <div className={`cg-arm ${recoil ? 'is-recoil' : ''}`} style={style}>
       <div className={`cg-arm__dip ${tick != null ? 'is-dipping' : ''}`} key={tick ?? 'still'}>

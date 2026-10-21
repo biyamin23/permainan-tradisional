@@ -479,7 +479,7 @@
 }
 
 .cg-arm__dip.is-dipping {
-  animation: cg-dip 0.16s ease-out;
+  animation: cg-dip var(--dip-ms, 0.2s) ease-out;
 }
 
 @keyframes cg-dip {

@@ -173,7 +173,7 @@ const SLEEVES = { [GENDERS.LELAKI]: '#2b9aa0', [GENDERS.PEREMPUAN]: '#e9779a' }
 
 function Match({ level, playerName, onExit, onRecords }) {
   const [starter, setStarter] = useState(PLAYER)
-  const { pits, turn, animating, hand, flash, banner, speech, result, fast, setFast, playHouse, skip, restart, scores, say } =
+  const { pits, turn, animating, hand, flash, banner, speech, result, fast, setFast, stepMs, playHouse, skip, restart, scores, say } =
     useCongkakMatch({ level, starter })
   const [saved, setSaved] = useState(null)
   const [hoverPit, setHoverPit] = useState(null)
@@ -297,7 +297,7 @@ function Match({ level, playerName, onExit, onRecords }) {
               hoverPit={yourTurn && !animating ? hoverPit : null}
               slap={slap}
               playerSleeve={SLEEVES[gender]}
-              moveMs={fast ? 80 : 150}
+              moveMs={Math.round(Math.min(stepMs * 0.7, 280))}
             />
           </CongkakBoard>
         </div>
