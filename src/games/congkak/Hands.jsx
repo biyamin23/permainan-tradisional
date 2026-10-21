@@ -8,17 +8,12 @@ import { OPPONENT, PLAYER } from './engine'
  * seed. Tap a hole on Aisyah's turn and her other hand slaps yours away.
  */
 
-const FLAT_QUERY = '(min-aspect-ratio: 1/1), (min-width: 700px)'
-
+/**
+ * The board always lies flat now (on an upright phone the whole game is
+ * turned sideways in CSS), so arms always come in from top and bottom.
+ */
 export function useFlatBoard() {
-  const [flat, setFlat] = useState(() => typeof window !== 'undefined' && window.matchMedia(FLAT_QUERY).matches)
-  useEffect(() => {
-    const mq = window.matchMedia(FLAT_QUERY)
-    const onChange = () => setFlat(mq.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
-  return flat
+  return true
 }
 
 /** Arm drawn pointing up; fingertips near the top. */
