@@ -1,11 +1,14 @@
 import {
+  AdditiveBlending,
   BoxGeometry,
+  Color,
   ConeGeometry,
   CylinderGeometry,
   Euler,
   ExtrudeGeometry,
   IcosahedronGeometry,
   Matrix4,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   Quaternion,
   Shape,
@@ -65,6 +68,27 @@ export const MAT = {
     opacity: 0.9,
   }),
   glass: new MeshStandardMaterial({ color: '#ffffff', roughness: 0.08, metalness: 0.15 }),
+  /** Recoloured through the day by the day–night cycle (Lighting.jsx). */
+  cloud: new MeshStandardMaterial({
+    color: '#fff3e2',
+    emissive: '#ffb27a',
+    emissiveIntensity: 0.35,
+    roughness: 1,
+    flatShading: true,
+    fog: false,
+  }),
+  /** Windows and lamp flames: dark by day, warm and glowing by night. */
+  glow: new MeshBasicMaterial({ color: '#2c1d13' }),
+  glowOff: new Color('#2c1d13'),
+  glowOn: new Color('#ffc46a'),
+  /** Soft pool of lamplight on the ground at night. */
+  lampHalo: new MeshBasicMaterial({
+    color: '#ffb257',
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    blending: AdditiveBlending,
+  }),
 }
 
 const _position = new Vector3()

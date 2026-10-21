@@ -1,12 +1,11 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Sky, Sparkles } from '@react-three/drei'
+import { Sparkles } from '@react-three/drei'
 import { CuboidCollider, RigidBody } from '@react-three/rapier'
-import { BufferAttribute, Color, MeshStandardMaterial, PlaneGeometry } from 'three'
+import { BufferAttribute, Color, PlaneGeometry } from 'three'
 import { BOUNDS, FIELD, POND, ROADS, SAWAH } from '../../data/kampungLayout'
 import { PartsBundle } from './InstancedParts'
 import { MAT, createRandom, part, randomBetween } from './kit'
-import { SUN_POSITION } from './Lighting'
 
 const GROUND_SIZE = 340
 
@@ -72,15 +71,6 @@ function buildHills() {
   return { blob }
 }
 
-const cloudMaterial = new MeshStandardMaterial({
-  color: '#fff3e2',
-  emissive: '#ffb27a',
-  emissiveIntensity: 0.35,
-  roughness: 1,
-  flatShading: true,
-  fog: false,
-})
-
 function buildClouds() {
   const random = createRandom(303)
   const blob = []
@@ -107,7 +97,7 @@ function Clouds() {
   })
   return (
     <group ref={group}>
-      <PartsBundle bundle={bundle} material={cloudMaterial} castShadow={false} receiveShadow={false} />
+      <PartsBundle bundle={bundle} material={MAT.cloud} castShadow={false} receiveShadow={false} />
     </group>
   )
 }
@@ -119,15 +109,6 @@ export function KampungEnvironment() {
 
   return (
     <group>
-      <Sky
-        distance={450000}
-        sunPosition={SUN_POSITION}
-        turbidity={7}
-        rayleigh={2.2}
-        mieCoefficient={0.006}
-        mieDirectionalG={0.88}
-      />
-
       <mesh geometry={groundGeometry} material={MAT.ground} receiveShadow />
       {/* the padang: a lighter, well-trodden field */}
       <mesh position={[FIELD.center[0], 0.005, FIELD.center[1]]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>

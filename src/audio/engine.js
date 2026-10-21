@@ -218,7 +218,7 @@ const ambience = {
   timers: [],
   sources: [],
   streamGain: null,
-  near: { stream: 99, pond: 99, chickens: 99, bike: 99, bikeMoving: false },
+  near: { stream: 99, pond: 99, chickens: 99, bike: 99, bikeMoving: false, night: 0 },
   lastBell: -99,
 }
 
@@ -248,7 +248,7 @@ function schedule(fn, min, max) {
 }
 
 function birdChirp() {
-  if (!ready()) return
+  if (!ready() || Math.random() < ambience.near.night) return
   const pan = Math.random() * 1.6 - 0.8
   const notes = 2 + Math.floor(Math.random() * 4)
   const base = 2300 + Math.random() * 1800
@@ -260,6 +260,8 @@ function birdChirp() {
 
 function crickets() {
   if (!ready()) return
+  // crickets sing mostly after dusk
+  if (Math.random() > 0.35 + ambience.near.night * 0.65) return
   const pan = Math.random() * 1.8 - 0.9
   const f = 4200 + Math.random() * 500
   for (let i = 0; i < 3; i++) {
@@ -268,8 +270,8 @@ function crickets() {
 }
 
 function frog() {
-  if (!ready() || ambience.near.pond > 14) return
-  const level = Math.max(0, 1 - ambience.near.pond / 14)
+  if (!ready() || ambience.near.pond > 16) return
+  const level = Math.max(0, 1 - ambience.near.pond / 16) * (0.35 + ambience.near.night * 0.65)
   const pan = Math.random() * 1.2 - 0.6
   for (let i = 0; i < 2; i++) {
     tone({ freq: 190, freqEnd: 150, type: 'square', at: i * 0.16, decay: 0.09, gain: 0.03 * level, bus: ambBus, pan, filter: { freq: 900 } })

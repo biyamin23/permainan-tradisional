@@ -1,9 +1,9 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { CylinderCollider, RigidBody } from '@react-three/rapier'
 import { MathUtils } from 'three'
 import { BRIDGE } from '../../../data/kampungLayout'
 import { CYCLIST, NPCS } from '../../../data/npcs'
+import { useNpcBody } from '../../../state/npcBodies'
 import { worldRuntime } from '../../../state/worldRuntime'
 import { PersonModel } from '../../character/PersonModel'
 import { Broom, FishingRod } from '../spots/SpotProps'
@@ -45,8 +45,10 @@ function Villager({ npc }) {
   const sitting = SITTING.has(npc.pose)
   const seatY = npc.stool ? 0.36 : 0
   const headY = (sitting ? 1.55 : 2.35) + seatY
+  const body = useRef(null)
+  useNpcBody(body, { radius: npc.stool ? 0.45 : 0.32, halfHeight: sitting ? 0.35 : 0.6 })
   return (
-    <group position={npc.position} rotation={[0, npc.rotationY ?? 0, 0]}>
+    <group ref={body} position={npc.position} rotation={[0, npc.rotationY ?? 0, 0]}>
       {npc.stool && <Stool />}
       <group position={[0, seatY, 0]}>
         <PersonModel
@@ -132,6 +134,7 @@ function Cyclist() {
   const frontWheel = useRef()
   const rearWheel = useRef()
   const motion = useRef({ speed: 0.6 })
+  useNpcBody(rig, { radius: 0.45, halfHeight: 0.5 })
   const state = useRef({ z: CYCLIST.road.zFrom, dir: -1, pause: 0, heading: Math.PI, x: -CYCLIST.road.x })
 
   useFrame((_, delta) => {
@@ -192,11 +195,6 @@ export function Npcs() {
       {NPCS.map((npc) => (
         <Villager key={npc.id} npc={npc} />
       ))}
-      <RigidBody type="fixed" colliders={false}>
-        {NPCS.filter((npc) => npc.collider).map((npc) => (
-          <CylinderCollider key={npc.id} args={[0.9, 0.35]} position={[npc.position[0], 0.9, npc.position[2]]} />
-        ))}
-      </RigidBody>
       <Cyclist />
     </>
   )

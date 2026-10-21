@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { OBJECTIVE_GAME } from '../../data/games'
 import { usePlayerState } from '../../state/playerState'
+import { describeTime, skipClock, timeStore, useTimeState } from '../../state/timeOfDay'
+import { showToast } from '../../state/uiState'
 import { worldRuntime } from '../../state/worldRuntime'
 import { SoundToggle } from './SoundToggle'
 
@@ -20,6 +22,9 @@ function ControlsHelp({ isTouch }) {
         <li>
           <span className="hud__help-icon">📍</span> Setiap permainan ada tempatnya sendiri
         </li>
+        <li>
+          <span className="hud__help-icon">⏩</span> Ketik jam untuk cepatkan masa
+        </li>
       </ul>
     )
   }
@@ -29,9 +34,31 @@ function ControlsHelp({ isTouch }) {
       <kbd className="keycap keycap--sm">A</kbd>
       <kbd className="keycap keycap--sm">S</kbd>
       <kbd className="keycap keycap--sm">D</kbd> bergerak · <kbd className="keycap keycap--sm">Shift</kbd> lari ·{' '}
-      <kbd className="keycap keycap--sm">E</kbd> main / sembang · seret tetikus untuk pusing kamera
+      <kbd className="keycap keycap--sm">E</kbd> main / sembang · seret tetikus untuk pusing kamera · klik jam untuk
+      cepatkan masa
     </span>
   )
+}
+
+/** Kampung clock, e.g. "🌇 Petang · 5:42". Re-renders once per in-game minute. */
+function ClockLabel() {
+  const minute = useTimeState((s) => s.minute)
+  const time = describeTime(minute)
+  return (
+    <p className="hud__subtitle hud__clock">
+      <span aria-hidden="true">{time.icon}</span> {time.name} · {time.label}
+      <span className="hud__clock-skip" aria-hidden="true">
+        ⏩
+      </span>
+    </p>
+  )
+}
+
+/** Tap the clock to jump three hours ahead. */
+function fastForward() {
+  skipClock(3)
+  const time = describeTime(timeStore.getState().minute)
+  showToast(`⏩ ${time.icon} ${time.name} · ${time.label}`)
 }
 
 /**
@@ -62,12 +89,12 @@ export function HUD({ isTouch }) {
   return (
     <div className={`hud ${isTouch ? 'hud--touch' : ''}`}>
       <div className="hud__top">
-        <div className="hud__greeting">
+        <button type="button" className="hud__greeting" onClick={fastForward} title="Ketik untuk cepatkan masa">
           <p className="hud__title">
             Selamat kembali, <span>{playerName}</span>
           </p>
-          <p className="hud__subtitle">Jom tengok apa yang ada di kampung.</p>
-        </div>
+          <ClockLabel />
+        </button>
 
         <div className="hud__objective" aria-live="polite">
           <span className="hud__compass">

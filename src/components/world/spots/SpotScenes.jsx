@@ -1,6 +1,7 @@
-import { useMemo, useRef } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { MathUtils } from 'three'
+import { useNpcBody } from '../../../state/npcBodies'
 import { PersonModel } from '../../character/PersonModel'
 import { kidLook } from '../npc/kidLooks'
 import { ProximityBubble } from '../npc/ProximityBubble'
@@ -27,11 +28,20 @@ import {
 
 const faceTowards = (dx, dz) => Math.atan2(dx, dz)
 
-/** A kid NPC. Looks are deterministic per seed. */
+/** A kid NPC with a physical body. Looks are deterministic per seed. */
 function Kid({ seed, girl = false, pose = 'idle', position = [0, 0, 0], rotationY = 0, groupRef, ...rest }) {
   const look = useMemo(() => kidLook(seed, girl), [seed, girl])
+  const body = useRef(null)
+  const setRef = useCallback(
+    (el) => {
+      body.current = el
+      if (groupRef) groupRef.current = el
+    },
+    [groupRef],
+  )
+  useNpcBody(body, { radius: 0.28, halfHeight: 0.42 })
   return (
-    <group ref={groupRef} position={position} rotation={[0, rotationY, 0]}>
+    <group ref={setRef} position={position} rotation={[0, rotationY, 0]}>
       <PersonModel build="kid" look={look} pose={pose} detail={false} {...rest} />
     </group>
   )

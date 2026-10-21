@@ -54,7 +54,6 @@ export const NPCS = [
     hand: 'broom',
     position: [-7.4, 0, 7.4],
     rotationY: -0.6,
-    collider: true,
     zone: { position: [-7.4, 7.4], radius: 2.6 },
     lines: [
       'Nak ke mana tu? Main elok-elok, jangan bergaduh.',
@@ -81,7 +80,6 @@ export const NPCS = [
     stool: true,
     position: [-20, 0, -22.6],
     rotationY: Math.PI,
-    collider: true,
     zone: { position: [-20, -21.6], radius: 2.8 },
     lines: [
       'Syhh… nanti ikan lari.',

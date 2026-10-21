@@ -15,6 +15,8 @@ What's in the kampung:
 - **10 game spots**, one per game, each with kids playing it (Congkak at the wakaf, Gasing on the padang, Wau in the open field, Teng-Teng near the road…). Only Congkak is open for now; the others say *akan datang*.
 - **Villagers** you can talk to: Tok Wan on his stairs, Mak Cik Kiah sweeping, Pak Abu fishing by the stream. Pak Mat cycles up and down the road.
 - **Animals**: chickens, ducks in the pond, butterflies.
+- **Day and night**: a full day passes in 12 minutes (one in-game hour = 30 s). The visit starts at 5:36 petang; the sun sets, stars and the moon come out, windows, pelita and street lamps light up, birds roost and crickets take over. Tap the clock under your name to jump 3 hours ahead.
+- **Collisions** with everything solid: houses, fences, trees, water, lamp posts, and every kid and villager (Pak Mat's bicycle will nudge you aside).
 - **Sound**, all synthesised in the browser (no audio files): wind, birds, crickets, frogs, the stream, chickens, bicycle bell, footsteps, UI sounds and a gentle kampung tune. Use the 🔊 button to switch between sound + music, sound only and silent.
 
 ## Run it
@@ -67,6 +69,8 @@ src/
     uiState.js                  Active interaction zone, toast messages
     input.js                    Keyboard + joystick input
     worldRuntime.js             Per-frame values (player position, camera yaw), outside React
+    timeOfDay.js                Kampung clock, sky colour keyframes, daylight factor
+    npcBodies.js                Registry that gives NPCs physical bodies
 
   data/
     games.js                    Game registry: spots, zones, signs and kids are generated from it
@@ -79,9 +83,10 @@ src/
     character/                  CharacterCreation, CharacterPreview, PersonModel (kids + adults, poses), ChildModel
     world/                      KampungWorld (Canvas + Physics), Environment, House, Trees, Water,
                                 Fence, Fields (sawah), GameSpots, Wakaf, Life, Lighting, Player,
-                                Camera, AudioDriver, kit.js + InstancedParts (primitive "kit of parts")
+                                Camera, AudioDriver, NightLights, Lighting (day–night cycle),
+                                kit.js + InstancedParts (primitive "kit of parts")
       spots/                    One scene per game (SpotScenes) and shared props (SpotProps)
-      npc/                      Npcs (villagers, cyclist), Animals, ProximityBubble, kid outfits
+      npc/                      Npcs (villagers, cyclist), Animals, NpcColliders, ProximityBubble, kid outfits
     interaction/                InteractionSystem (zones, E key, handlers), InteractionPrompt
     game/                       GameModeSelection, GameScreen, GamePlaceholder, GameIcon
     ui/                         HUD, Toast, Modal, TouchJoystick, SoundToggle, EntryOverlay

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { CuboidCollider, RigidBody } from '@react-three/rapier'
 import { PartsBundle } from './InstancedParts'
-import { part } from './kit'
+import { MAT, part } from './kit'
 
 /**
  * A traditional Malay kampung house on stilts: raised floor, plank walls,
@@ -257,6 +257,18 @@ export function House({ position, rotationY = 0, variant = 'tokwan' }) {
     <RigidBody type="fixed" colliders={false} position={position} rotation={[0, rotationY, 0]}>
       <CuboidCollider args={HOUSE_COLLIDER.halfExtents} position={HOUSE_COLLIDER.center} />
       <PartsBundle bundle={bundle} />
+      {/* interior seen through doors and windows: lamplit at night */}
+      <mesh position={[0, WALL_MID, FRONT_Z - 0.37]} material={MAT.glow}>
+        <planeGeometry args={[W - 0.5, WALL_H - 0.1]} />
+      </mesh>
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[side * (W / 2 + 0.045), 2.7, 0]} rotation={[0, side * (Math.PI / 2), 0]} material={MAT.glow}>
+          <planeGeometry args={[1.18, 1.08]} />
+        </mesh>
+      ))}
+      <mesh position={[0, WALL_TOP + 1.05, FRONT_Z + 0.16]} rotation={[0, 0, Math.PI / 4]} material={MAT.glow}>
+        <planeGeometry args={[0.43, 0.43]} />
+      </mesh>
     </RigidBody>
   )
 }

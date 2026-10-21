@@ -967,6 +967,14 @@ kbd {
 .hud__greeting {
   flex: 1 1 auto;
   min-width: 0;
+  display: block;
+  font: inherit;
+  text-align: left;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   padding: 0.55rem 0.8rem 0.6rem 0.75rem;
   border-radius: var(--radius-sm);
   background: linear-gradient(135deg, rgba(42, 20, 32, 0.66), rgba(42, 20, 32, 0.38));
@@ -1487,6 +1495,35 @@ kbd {
   .toast {
     bottom: clamp(160px, 27vh, 240px);
   }
+}
+
+.hud__clock {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.hud__clock-skip {
+  margin-left: auto;
+  padding-left: 0.4rem;
+  font-size: 0.7rem;
+  opacity: 0.55;
+}
+
+.hud__greeting:active {
+  transform: scale(0.98);
+}
+
+/* keep dark HUD controls readable against the night sky */
+.sound-toggle,
+.hud__help-toggle {
+  border: 1px solid rgba(255, 243, 223, 0.22);
+}
+
+.hud__greeting {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 243, 223, 0.12),
+    var(--shadow-soft);
 }
 
 /* speech bubbles and spot signs (drei <Html> in the 3D world) */

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { startAmbience, stopAmbience, updateAmbience } from '../../audio/engine'
 import { POND, STREAM } from '../../data/kampungLayout'
+import { clock } from '../../state/timeOfDay'
 import { worldRuntime } from '../../state/worldRuntime'
 
 /** Inside <Canvas>: starts kampung ambience and feeds it distances from the player. */
@@ -30,6 +31,7 @@ export function AudioDriver() {
       chickens: nearestChicken,
       bike: Math.hypot(bike.x - p.x, bike.z - p.z),
       bikeMoving,
+      night: clock.night,
     })
   })
 

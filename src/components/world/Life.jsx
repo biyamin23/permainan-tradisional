@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { DoubleSide, Object3D } from 'three'
 import { CLOTHESLINE } from '../../data/kampungLayout'
+import { clock } from '../../state/timeOfDay'
 import { GEO } from './kit'
 
 const CLOTHS = [
@@ -65,6 +66,9 @@ function Birds() {
   useFrame((state) => {
     const mesh = ref.current
     if (!mesh) return
+    // birds roost at night
+    mesh.visible = clock.daylight > 0.3
+    if (!mesh.visible) return
     const t = state.clock.elapsedTime
     birds.forEach((b, i) => {
       const a = t * 0.12 + b.offset

@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { HOUSE, NEIGHBOUR_HOUSES, YARD_FENCE } from '../../data/kampungLayout'
 import { attachKeyboardInput } from '../../state/input'
+import { resetClock } from '../../state/timeOfDay'
 import { resetWorldRuntime } from '../../state/worldRuntime'
 import { InteractionTracker } from '../interaction/InteractionSystem'
 import { AudioDriver } from './AudioDriver'
@@ -14,7 +15,9 @@ import { GameSpots } from './GameSpots'
 import { House } from './House'
 import { Life } from './Life'
 import { Lighting } from './Lighting'
+import { NightLights } from './NightLights'
 import { Animals } from './npc/Animals'
+import { NpcColliders } from './npc/NpcColliders'
 import { Npcs } from './npc/Npcs'
 import { Player } from './Player'
 import { Trees } from './Trees'
@@ -27,6 +30,7 @@ import { Water } from './Water'
 export function KampungWorld({ gender, controlsEnabled }) {
   useEffect(() => {
     resetWorldRuntime()
+    resetClock()
     return attachKeyboardInput()
   }, [])
 
@@ -55,7 +59,9 @@ export function KampungWorld({ gender, controlsEnabled }) {
           <GameSpots />
           <Npcs />
           <Animals />
+          <NpcColliders />
           <Life />
+          <NightLights />
           <Player gender={gender} enabled={controlsEnabled} />
         </Physics>
       </Suspense>
