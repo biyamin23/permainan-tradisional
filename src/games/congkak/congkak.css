@@ -17,7 +17,7 @@
   --floor: #4e3423;
   --ink: #f3ead8;
   --ink-soft: rgba(243, 234, 216, 0.62);
-  /* the screen this game lays itself out on (swapped when it is turned sideways) */
+  /* the screen this game lays itself out on */
   --vw: 100vw;
   --vh: 100dvh;
 
@@ -688,25 +688,6 @@
   margin-bottom: 0.5rem;
 }
 
-/* ---------------------------------------------------------------- portrait phone: turn the whole game 90° clockwise
-   The board always lies flat (long side across). On a phone held upright the
-   game is drawn sideways, so you turn the phone and play it in landscape. */
-@media (max-aspect-ratio: 1/1) and (max-width: 699px) {
-  .cg {
-    --vw: 100dvh;
-    --vh: 100vw;
-    inset: auto;
-    top: 0;
-    left: 100%;
-    width: 100dvh;
-    height: 100vw;
-    transform-origin: 0 0;
-    transform: rotate(90deg);
-    padding: max(6px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left))
-      max(10px, env(safe-area-inset-top));
-  }
-}
-
 /* ---------------------------------------------------------------- the board lies flat in front of you (every screen) */
 @media all {
   .cg-board {
@@ -792,4 +773,25 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+}
+
+/* ---------------------------------------------------------------- narrow phone held upright
+   The board still lies across the screen; trim the margins so the holes stay as big as possible. */
+@media (max-width: 560px) {
+  .cg {
+    padding-left: max(4px, env(safe-area-inset-left));
+    padding-right: max(4px, env(safe-area-inset-right));
+  }
+
+  .cg-mat {
+    padding-left: 0.15rem;
+    padding-right: 0.15rem;
+    border-width: 4px;
+  }
+
+  .cg-board {
+    --s: min(calc((var(--vw) - 26px) / 12.1), 34px);
+    padding: calc(var(--s) * 0.9) calc(var(--s) * 0.55);
+    gap: calc(var(--s) * 0.55) calc(var(--s) * 0.12);
+  }
 }
