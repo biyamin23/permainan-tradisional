@@ -29,7 +29,7 @@ export function KampungExperience() {
 
       <div className={`kampung__ui ${exploring ? '' : 'is-dimmed'}`}>
         <HUD isTouch={isTouch} />
-        <InteractionPrompt />
+        <InteractionPrompt isTouch={isTouch} />
         <Toast />
         {isTouch && exploring && <TouchJoystick />}
       </div>

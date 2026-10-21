@@ -2,7 +2,38 @@ import { useEffect, useRef, useState } from 'react'
 import { usePlayerState } from '../../state/playerState'
 import { worldRuntime } from '../../state/worldRuntime'
 
-/** Subtle in-world HUD: greeting, objective pointer and a fading controls hint. */
+function ControlsHelp({ isTouch }) {
+  if (isTouch) {
+    return (
+      <ul className="hud__help-list">
+        <li>
+          <span className="hud__help-icon">🕹️</span> Joystick kiri untuk bergerak
+        </li>
+        <li>
+          <span className="hud__help-icon">👆</span> Seret skrin untuk pusing kamera
+        </li>
+        <li>
+          <span className="hud__help-icon">✋</span> Butang kanan untuk berinteraksi
+        </li>
+      </ul>
+    )
+  }
+  return (
+    <span>
+      <kbd className="keycap keycap--sm">W</kbd>
+      <kbd className="keycap keycap--sm">A</kbd>
+      <kbd className="keycap keycap--sm">S</kbd>
+      <kbd className="keycap keycap--sm">D</kbd> bergerak · <kbd className="keycap keycap--sm">Shift</kbd> lari ·{' '}
+      <kbd className="keycap keycap--sm">E</kbd> berinteraksi · seret tetikus untuk pusing kamera
+    </span>
+  )
+}
+
+/**
+ * Subtle in-world HUD. Mobile-first: greeting, objective compass and help sit in
+ * one top row that never overlaps, leaving the bottom corners for the joystick
+ * and the action button.
+ */
 export function HUD({ isTouch }) {
   const playerName = usePlayerState((s) => s.playerName)
   const arrowRef = useRef(null)
@@ -19,53 +50,61 @@ export function HUD({ isTouch }) {
   }, [])
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowHelp(false), 14000)
+    const timer = setTimeout(() => setShowHelp(false), isTouch ? 9000 : 14000)
     return () => clearTimeout(timer)
-  }, [])
+  }, [isTouch])
 
   return (
-    <div className="hud">
-      <div className="hud__greeting">
-        <p className="hud__title">
-          Selamat kembali, <span>{playerName}</span>
-        </p>
-        <p className="hud__subtitle">Jom tengok apa yang ada di kampung.</p>
-      </div>
+    <div className={`hud ${isTouch ? 'hud--touch' : ''}`}>
+      <div className="hud__top">
+        <div className="hud__greeting">
+          <p className="hud__title">
+            Selamat kembali, <span>{playerName}</span>
+          </p>
+          <p className="hud__subtitle">Jom tengok apa yang ada di kampung.</p>
+        </div>
 
-      <div className="hud__objective" aria-live="polite">
-        <span className="hud__compass">
-          <span ref={arrowRef} className="hud__arrow" aria-hidden="true">
-            ▲
-          </span>
-        </span>
-        <span className="hud__objective-text">
-          Pergi ke padang
-          <small ref={distanceRef}>…</small>
-        </span>
-      </div>
-
-      <button
-        type="button"
-        className={`hud__help ${showHelp ? 'is-open' : ''}`}
-        onClick={() => setShowHelp((open) => !open)}
-        aria-expanded={showHelp}
-      >
-        {showHelp ? (
-          isTouch ? (
-            <span>Guna joystick untuk bergerak · Seret skrin untuk pusing kamera · Ketik butang untuk berinteraksi</span>
-          ) : (
-            <span>
-              <kbd className="keycap keycap--sm">W</kbd>
-              <kbd className="keycap keycap--sm">A</kbd>
-              <kbd className="keycap keycap--sm">S</kbd>
-              <kbd className="keycap keycap--sm">D</kbd> bergerak · <kbd className="keycap keycap--sm">Shift</kbd> lari ·{' '}
-              <kbd className="keycap keycap--sm">E</kbd> berinteraksi · seret tetikus untuk pusing kamera
+        <div className="hud__objective" aria-live="polite">
+          <span className="hud__compass">
+            <span ref={arrowRef} className="hud__arrow" aria-hidden="true">
+              ▲
             </span>
-          )
-        ) : (
-          <span>? Kawalan</span>
+          </span>
+          <span className="hud__objective-text">
+            <span className="hud__objective-label">Pergi ke padang</span>
+            <small ref={distanceRef}>…</small>
+          </span>
+        </div>
+
+        {isTouch && (
+          <button
+            type="button"
+            className={`hud__help-toggle ${showHelp ? 'is-open' : ''}`}
+            onClick={() => setShowHelp((open) => !open)}
+            aria-expanded={showHelp}
+            aria-label="Kawalan"
+          >
+            {showHelp ? '✕' : '?'}
+          </button>
         )}
-      </button>
+      </div>
+
+      {isTouch ? (
+        showHelp && (
+          <div className="hud__help-panel">
+            <ControlsHelp isTouch />
+          </div>
+        )
+      ) : (
+        <button
+          type="button"
+          className={`hud__help ${showHelp ? 'is-open' : ''}`}
+          onClick={() => setShowHelp((open) => !open)}
+          aria-expanded={showHelp}
+        >
+          {showHelp ? <ControlsHelp isTouch={false} /> : <span>? Kawalan</span>}
+        </button>
+      )}
     </div>
   )
 }

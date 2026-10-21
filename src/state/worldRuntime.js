@@ -20,5 +20,7 @@ export const worldRuntime = {
 export function resetWorldRuntime() {
   worldRuntime.playerPosition.set(SPAWN[0], 0, SPAWN[2])
   worldRuntime.cameraYaw = 0
-  worldRuntime.cameraDistance = 9
+  // Portrait phones see less to the sides, so pull the camera back a little.
+  const portrait = typeof window !== 'undefined' && window.innerHeight > window.innerWidth
+  worldRuntime.cameraDistance = portrait ? 10.5 : 9
 }

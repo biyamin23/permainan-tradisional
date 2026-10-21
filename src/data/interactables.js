@@ -8,6 +8,7 @@ import { BRIDGE, FIELD, HOUSE, POND, SAWAH, SCARECROW } from './kampungLayout'
  * register a handler for it (see components/interaction/InteractionSystem.jsx).
  *
  * position: [x, z] centre on the ground, radius in metres.
+ * actionLabel / actionIcon: text and emoji on the touch action button (default 'Lihat' / ✋).
  */
 export const INTERACTION_ACTIONS = {
   OPEN_GAME_MODE: 'openGameMode',
@@ -22,6 +23,8 @@ export const interactables = [
     position: FIELD.center,
     radius: 8.5,
     action: INTERACTION_ACTIONS.OPEN_GAME_MODE,
+    actionLabel: 'Main',
+    actionIcon: '🪀',
     isObjective: true,
   },
   {
