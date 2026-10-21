@@ -34,7 +34,7 @@ Then open the URL Vite prints (usually http://localhost:5173).
 | Action | Keyboard / mouse | Tablet |
 | --- | --- | --- |
 | Move | `W` `A` `S` `D` or arrow keys | On-screen joystick |
-| Run | `Shift` | Push joystick to the edge |
+| Run | `Shift` | — (the joystick walks) |
 | Interact | `E` | Tap the prompt |
 | Rotate camera | Drag | Drag the screen |
 | Zoom | Mouse wheel | — |

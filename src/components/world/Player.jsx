@@ -7,8 +7,9 @@ import { getMoveInput } from '../../state/input'
 import { worldRuntime } from '../../state/worldRuntime'
 import { ChildModel } from '../character/ChildModel'
 
-const WALK_SPEED = 4.2
-const RUN_SPEED = 7.2
+// a child's walk, and an unhurried jog with Shift
+const WALK_SPEED = 2.8
+const RUN_SPEED = 4.8
 const ACCELERATION = 12
 const TURN_SPEED = 12
 
@@ -75,7 +76,7 @@ export function Player({ gender, enabled }) {
     // footsteps: one sound per stride, louder when running
     if (horizontal > 0.6) {
       stride.current += horizontal * dt
-      const strideLength = input.run ? 0.95 : 0.68
+      const strideLength = input.run ? 1.15 : 0.95
       if (stride.current > strideLength) {
         stride.current = 0
         sfx.footstep(surfaceAt(p.x, p.z), input.run)

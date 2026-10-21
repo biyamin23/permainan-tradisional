@@ -75,6 +75,6 @@ export function getMoveInput() {
     y /= length
   }
 
-  const joystickStrength = Math.hypot(joystick.x, joystick.y)
-  return { x, y, run: isDown('run') || joystickStrength > 0.92 }
+  // the joystick only walks: pushing it to the edge on a phone shouldn't make you sprint
+  return { x, y, run: isDown('run') }
 }
