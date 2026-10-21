@@ -284,6 +284,43 @@ function schedule(fn, min, max) {
   ambience.timers.push(setTimeout(run, Math.random() * max * 1000))
 }
 
+/**
+ * Gentle running water: low, rounded noise (no hiss) whose tone drifts slowly,
+ * plus small "blup" bubbles when you stand close to the stream.
+ */
+function createStream() {
+  const src = ctx.createBufferSource()
+  src.buffer = noiseBuffer
+  src.loop = true
+  const highpass = ctx.createBiquadFilter()
+  highpass.type = 'highpass'
+  highpass.frequency.value = 140
+  const lowpass = ctx.createBiquadFilter()
+  lowpass.type = 'lowpass'
+  lowpass.frequency.value = 520
+  lowpass.Q.value = 0.4
+  // slow drift so it sounds like moving water, not a steady hiss
+  const lfo = ctx.createOscillator()
+  const lfoDepth = ctx.createGain()
+  lfo.frequency.value = 0.23
+  lfoDepth.gain.value = 140
+  lfo.connect(lfoDepth).connect(lowpass.frequency)
+  const g = ctx.createGain()
+  g.gain.value = 0
+  src.connect(highpass).connect(lowpass).connect(g).connect(ambBus)
+  src.start()
+  lfo.start()
+  ambience.sources.push(src, lfo)
+  return g
+}
+
+function streamBubble() {
+  if (!ready() || ambience.near.stream > 9) return
+  const level = Math.max(0, 1 - ambience.near.stream / 9)
+  const f = 260 + Math.random() * 320
+  tone({ freq: f, freqEnd: f * 1.7, at: 0, attack: 0.008, decay: 0.07, gain: 0.014 * level, bus: ambBus, pan: Math.random() * 1.2 - 0.6 })
+}
+
 function birdChirp() {
   if (!ready() || Math.random() < ambience.near.night) return
   const pan = Math.random() * 1.6 - 0.8
@@ -358,7 +395,8 @@ export function startAmbience() {
   lfo.start()
   ambience.sources.push(lfo)
   // stream water, volume follows distance
-  ambience.streamGain = loopNoise('bandpass', 1100, 0.45, 0)
+  ambience.streamGain = createStream()
+  schedule(streamBubble, 0.25, 0.9)
   schedule(birdChirp, 1.4, 5)
   schedule(crickets, 0.5, 1.4)
   schedule(frog, 2, 5)
@@ -389,7 +427,8 @@ export function updateAmbience(near) {
   Object.assign(ambience.near, near)
   if (!ctx || !ambience.running) return
   if (ambience.streamGain) {
-    const level = Math.max(0, 1 - near.stream / 24) ** 2 * 0.2
+    // quieter and more local than before: fades out within ~14 m
+    const level = Math.max(0, 1 - near.stream / 14) ** 2 * 0.07
     ambience.streamGain.gain.setTargetAtTime(level, ctx.currentTime, 0.4)
   }
   if (near.bikeMoving && near.bike < 11 && ctx.currentTime - ambience.lastBell > 9) {
