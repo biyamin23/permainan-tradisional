@@ -1,0 +1,30 @@
+# Packs the runtime dependencies (node_modules without dev tools) onto the
+# ci-deps branch, for building the app in places without npm access.
+name: Pack dependencies
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund --omit=dev
+      - run: |
+          mkdir out
+          tar -czf out/node_modules.tgz node_modules
+          ls -la out
+          cd out
+          git init -q -b ci-deps
+          git config user.name "kampung-deps"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -qm "deps for ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-deps
