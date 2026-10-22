@@ -7,8 +7,8 @@
  *   empty square behind it. An ordinary buah never moves or makan backward.
  * - Makan is compulsory. After a jump, keep jumping while you can (one move).
  * - A buah that ends its move on the far row naik haji (becomes a king).
- *   A Haji flies: it moves any distance diagonally, and makan from a distance,
- *   landing on any empty square beyond.
+ *   A haji also moves one square at a time, but forward or backward, and
+ *   makan forward or backward (jumping one buah next to it).
  * - You lose when you have no buah left or no move to make.
  * - Draw: 40 moves in a row with no makan and no ordinary buah moving
  *   (only haji walking about).
@@ -63,33 +63,14 @@ function captureChains(board, from, side, piece) {
     const r = rowOf(sq)
     const c = colOf(sq)
     for (const [dr, dc] of DIRS) {
-      if (king) {
-        // fly over empties to the first piece (`from` is empty: the haji has lifted off)
-        let k = 1
-        let t = at(r + dr * k, c + dc * k)
-        while (t >= 0 && (board[t] === 0 || t === from)) {
-          k++
-          t = at(r + dr * k, c + dc * k)
-        }
-        if (t < 0 || board[t] * s >= 0 || captured.includes(t)) continue
-        let j = 1
-        let land = at(r + dr * (k + j), c + dc * (k + j))
-        while (land >= 0 && (board[land] === 0 || land === from)) {
-          extended = true
-          walk(land, [...path, land], [...captured, t])
-          j++
-          land = at(r + dr * (k + j), c + dc * (k + j))
-        }
-      } else {
-        if (dr !== forward(side)) continue // an ordinary buah only makan forward
-        const mid = at(r + dr, c + dc)
-        const land = at(r + dr * 2, c + dc * 2)
-        if (mid < 0 || land < 0) continue
-        if (board[mid] * s >= 0 || captured.includes(mid)) continue
-        if (board[land] !== 0 && land !== from) continue
-        extended = true
-        walk(land, [...path, land], [...captured, mid])
-      }
+      if (!king && dr !== forward(side)) continue // an ordinary buah only makan forward
+      const mid = at(r + dr, c + dc)
+      const land = at(r + dr * 2, c + dc * 2)
+      if (mid < 0 || land < 0) continue
+      if (board[mid] * s >= 0 || captured.includes(mid)) continue
+      if (board[land] !== 0 && land !== from) continue
+      extended = true
+      walk(land, [...path, land], [...captured, mid])
     }
     if (!extended && captured.length > 0) chains.push({ path, captured })
   }
@@ -102,18 +83,9 @@ function quietMoves(board, from, side, piece) {
   const moves = []
   const r = rowOf(from)
   const c = colOf(from)
-  if (isKing(piece)) {
-    for (const [dr, dc] of DIRS) {
-      let k = 1
-      let t = at(r + dr * k, c + dc * k)
-      while (t >= 0 && board[t] === 0) {
-        moves.push({ path: [from, t], captured: [] })
-        k++
-        t = at(r + dr * k, c + dc * k)
-      }
-    }
-  } else {
-    const dr = forward(side)
+  // one square diagonally: forward only for a buah, any way for a haji
+  const rows = isKing(piece) ? [-1, 1] : [forward(side)]
+  for (const dr of rows) {
     for (const dc of [-1, 1]) {
       const t = at(r + dr, c + dc)
       if (t >= 0 && board[t] === 0) moves.push({ path: [from, t], captured: [] })

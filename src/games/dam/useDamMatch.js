@@ -108,7 +108,7 @@ export function useDamMatch({ level, starter = PLAYER }) {
         const n = move.captured.length
         if (side === PLAYER) {
           if (move.promote) {
-            say('Naik haji! Buah kamu boleh terbang sekarang.', 'good')
+            say('Naik haji! Buah ni boleh undur sekarang.', 'good')
             pakTamSays(pickLine(PAK_TAM.youHaji))
             sfx.extraTurn()
           } else if (n) {
