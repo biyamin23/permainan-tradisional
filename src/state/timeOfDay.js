@@ -27,6 +27,12 @@ export function advanceClock(dt) {
   if (minute !== timeStore.getState().minute) timeStore.setState({ minute })
 }
 
+/** Set the clock to an hour (debug and screenshots). */
+export function setClockHour(hour) {
+  clock.hour = hour % 24
+  timeStore.setState({ minute: Math.floor(clock.hour * 60) })
+}
+
 /** Jump ahead (the player tapped the clock). */
 export function skipClock(hours) {
   advanceClock(hours * SECONDS_PER_HOUR)

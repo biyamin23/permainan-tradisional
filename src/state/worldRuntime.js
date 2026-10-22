@@ -10,6 +10,12 @@ export const worldRuntime = {
   playerPosition: new Vector3(SPAWN[0], 0, SPAWN[2]),
   cameraYaw: 0,
   cameraDistance: 9,
+  /** Set { x, z, yaw } to move the player there on the next frame (map travel). */
+  teleport: null,
+  /** Jump the camera straight to its spot on the next frame (after a teleport). */
+  cameraSnap: false,
+  /** Debug only: { position: [x,y,z], target: [x,y,z] } overrides the follow camera. */
+  debugCamera: null,
   /** DOM nodes the HUD registers so the Canvas can update them without re-renders. */
   hud: {
     arrow: null,

@@ -48,6 +48,21 @@ export function Player({ gender, enabled }) {
     if (!rb) return
     const dt = Math.min(delta, 0.05)
 
+    // travelling from the map: appear at the spot, facing into it
+    const jump = worldRuntime.teleport
+    if (jump) {
+      worldRuntime.teleport = null
+      rb.setTranslation({ x: jump.x, y: 1.2, z: jump.z }, true)
+      rb.setLinvel({ x: 0, y: 0, z: 0 }, true)
+      worldRuntime.playerPosition.set(jump.x, 0.2, jump.z)
+      if (jump.yaw !== undefined) {
+        worldRuntime.cameraYaw = jump.yaw
+        facing.current = jump.yaw + Math.PI
+      }
+      worldRuntime.cameraSnap = true
+      return
+    }
+
     const input = enabled ? getMoveInput() : { x: 0, y: 0, run: false }
     const yaw = worldRuntime.cameraYaw
     // camera-relative axes on the ground plane

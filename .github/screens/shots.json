@@ -1,0 +1,6 @@
+[
+  { "name": "00-overview", "camera": { "position": [0, 150, 30], "target": [0, 0, 0] }, "hour": 12, "wait": 4000, "wideOnly": true },
+  { "name": "01-spawn", "at": [0, 24], "yaw": 0, "hour": 16 },
+  { "name": "02-congkak", "at": [25, -8], "yaw": 0, "hour": 16 },
+  { "name": "03-dam", "at": [3, 15], "yaw": 1.57, "hour": 16 }
+]

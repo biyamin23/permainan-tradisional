@@ -1,0 +1,33 @@
+# Builds the site and takes screenshots of the 3D kampung with headless
+# Chromium (software WebGL), so changes to the world can be checked without a
+# GPU. Runs on demand and on pushes to wip/* branches; download the
+# "kampung-screens" artifact to see the pictures.
+name: Kampung screenshots
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['wip/**']
+
+jobs:
+  screens:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - run: npm install --no-save playwright@1.48.2 && npx playwright install --with-deps chromium
+      - name: Serve and shoot
+        run: |
+          npx vite preview --port 4173 --strictPort &
+          npx wait-on -t 60000 http://localhost:4173 || sleep 5
+          node .github/screens/shoot.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kampung-screens
+          path: screens-out/

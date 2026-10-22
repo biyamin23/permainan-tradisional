@@ -87,12 +87,25 @@ export function CameraRig() {
 
     desired.current.set(p.x + Math.sin(yaw) * distance, p.y + height, p.z + Math.cos(yaw) * distance)
 
-    // Slow cinematic glide in on arrival, snappy follow afterwards
-    const followRate = MathUtils.lerp(1.4, 6, introProgress * introProgress)
-    camera.position.lerp(desired.current, 1 - Math.exp(-followRate * dt))
     lookTarget.current.set(p.x, p.y + LOOK_HEIGHT, p.z)
-    lookAt.current.lerp(lookTarget.current, 1 - Math.exp(-10 * dt))
-    camera.lookAt(lookAt.current)
+    const debug = worldRuntime.debugCamera
+    if (debug) {
+      camera.position.set(...debug.position)
+      camera.lookAt(...debug.target)
+    } else if (worldRuntime.cameraSnap) {
+      // just travelled from the map: cut straight to the new spot
+      worldRuntime.cameraSnap = false
+      started.current = -INTRO_SECONDS
+      camera.position.copy(desired.current)
+      lookAt.current.copy(lookTarget.current)
+      camera.lookAt(lookAt.current)
+    } else {
+      // Slow cinematic glide in on arrival, snappy follow afterwards
+      const followRate = MathUtils.lerp(1.4, 6, introProgress * introProgress)
+      camera.position.lerp(desired.current, 1 - Math.exp(-followRate * dt))
+      lookAt.current.lerp(lookTarget.current, 1 - Math.exp(-10 * dt))
+      camera.lookAt(lookAt.current)
+    }
 
     // Objective arrow in the HUD: points to the nearest game you can play
     const { arrow, distance: distanceEl, label } = worldRuntime.hud
