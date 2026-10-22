@@ -97,7 +97,6 @@ const PLAYER_IMG = { [GENDERS.LELAKI]: '/congkak/pemain-lelaki.webp', [GENDERS.P
 function Scene({ top, them, you, toast, board, bottom, children }) {
   return (
     <div className="cg">
-      <div className="cg-top">{top}</div>
       <div className="cg-hud">
         {them}
         {you}
@@ -113,7 +112,11 @@ function Scene({ top, them, you, toast, board, bottom, children }) {
         </div>
         {board}
       </div>
-      <div className="cg-bottom">{bottom}</div>
+      {/* everything you press sits at the bottom, within reach of your thumb */}
+      <div className="cg-dock">
+        <div className="cg-bottom">{bottom}</div>
+        <div className="cg-top">{top}</div>
+      </div>
       {children}
     </div>
   )

@@ -91,11 +91,28 @@
 }
 
 /* ---------------------------------------------------------------- top: exit / rules */
+/* ---------------------------------------------------------------- bottom dock: what to do next, then the buttons */
+.cg-dock {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(100%, 760px);
+  margin: 0 auto;
+}
+
 .cg-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+}
+
+.cg-top .cg-pill {
+  min-height: 52px;
+  padding: 0 1.3rem 0 1.1rem;
+  font-size: 1.08rem;
 }
 
 /* ---------------------------------------------------------------- the two players */
@@ -611,9 +628,10 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: min(100%, 760px);
-  min-height: 52px;
-  margin: 0 auto;
+}
+
+.cg-bottom:empty {
+  display: none;
 }
 
 .cg-next {
@@ -927,9 +945,27 @@
 /* ---------------------------------------------------------------- short screens (phone on its side)
    Players' cards move up between the two top buttons and the message floats over the mat. */
 @media (max-height: 520px) and (min-width: 561px) {
-  .cg-hud {
-    width: min(calc(100% - 330px), 600px);
-    margin-top: -54px;
+  /* buttons either side of the hint, all in one row */
+  .cg-dock {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .cg-bottom {
+    flex: 1 1 auto;
+    order: 2;
+  }
+
+  .cg-top {
+    display: contents;
+  }
+
+  .cg-top > :first-child {
+    order: 1;
+  }
+
+  .cg-top > :last-child {
+    order: 3;
   }
 
   .cg-toast-slot {
