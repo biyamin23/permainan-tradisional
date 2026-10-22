@@ -1,10 +1,13 @@
 import { useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { MeshStandardMaterial, Vector3 } from 'three'
 import { CuboidCollider, RigidBody } from '@react-three/rapier'
 import { useNpcBody } from '../../../state/npcBodies'
 import { PersonModel } from '../../character/PersonModel'
 import { InstancedParts, PartsBundle } from '../InstancedParts'
 import { GEO, MAT, part } from '../kit'
 import { ProximityBubble } from '../npc/ProximityBubble'
+import { worldRuntime } from '../../../state/worldRuntime'
 
 /**
  * Kedai kopi by the main road: a zinc-roofed shed with a counter at the back
@@ -59,13 +62,6 @@ function buildKedai() {
   // beams under the roof
   box.push(part([0, 2.7, D / 2 - 0.15], [W + 0.2, 0.14, 0.14], [0, 0, 0], WOOD))
   box.push(part([0, 3.1, -D / 2 + 0.15], [W + 0.2, 0.14, 0.14], [0, 0, 0], WOOD))
-  // single-slope zinc roof, lower at the front, with ridges
-  const slope = Math.atan2(0.5, D + 1)
-  box.push(part([0, 2.92, 0], [W + 0.9, 0.05, D + 1], [slope, 0, 0], '#a7aeb1'))
-  for (let i = 0; i < 15; i++) {
-    const x = -W / 2 - 0.3 + i * 0.6
-    box.push(part([x, 2.955, 0], [0.06, 0.03, D + 1], [slope, 0, 0], i % 5 === 2 ? '#9a7458' : '#8e969a'))
-  }
   // back wall of planks
   box.push(part([0, 1.45, -D / 2 + 0.05], [W, 2.9, 0.08], [0, 0, 0], '#86603d'))
   for (let y = 0.3; y < 2.9; y += 0.34) box.push(part([0, y, -D / 2 + 0.1], [W, 0.025, 0.01], [0, 0, 0], '#6b4a2c'))
@@ -132,7 +128,55 @@ function buildKedai() {
   return { box, cylinder }
 }
 
+/** Single-slope zinc roof, lower at the front, with ridges. Kept apart so it can fade. */
+function buildRoof() {
+  const box = []
+  const slope = Math.atan2(0.5, D + 1)
+  box.push(part([0, 2.92, 0], [W + 0.9, 0.05, D + 1], [slope, 0, 0], '#a7aeb1'))
+  for (let i = 0; i < 15; i++) {
+    const x = -W / 2 - 0.3 + i * 0.6
+    box.push(part([x, 2.955, 0], [0.06, 0.03, D + 1], [slope, 0, 0], i % 5 === 2 ? '#9a7458' : '#8e969a'))
+  }
+  return { box }
+}
+
 const PARTS = buildKedai()
+const ROOF = buildRoof()
+const roofMaterial = new MeshStandardMaterial({ color: '#ffffff', roughness: 0.88, flatShading: true, transparent: true, opacity: 1 })
+const _local = new Vector3()
+
+/**
+ * The roof fades away while you're inside or right at the front of the
+ * kedai, so the camera can see the tables and the dam board.
+ */
+function FadingRoof() {
+  const group = useRef()
+  useFrame((_, delta) => {
+    const g = group.current
+    if (!g) return
+    _local.copy(worldRuntime.playerPosition)
+    g.worldToLocal(_local)
+    const inside = Math.abs(_local.x) < W / 2 + 1.2 && _local.z > -D / 2 - 1 && _local.z < D / 2 + 3
+    const target = inside ? 0.12 : 1
+    const k = 1 - Math.exp(-6 * Math.min(delta, 0.1))
+    roofMaterial.opacity += (target - roofMaterial.opacity) * k
+    roofMaterial.depthWrite = roofMaterial.opacity > 0.95
+    g.visible = roofMaterial.opacity > 0.02
+    // a see-through roof shouldn't throw a solid shadow on the tables
+    const shadow = roofMaterial.opacity > 0.6
+    if (g.userData.shadow !== shadow) {
+      g.userData.shadow = shadow
+      g.traverse((o) => {
+        if (o.isMesh) o.castShadow = shadow
+      })
+    }
+  })
+  return (
+    <group ref={group}>
+      <PartsBundle bundle={ROOF} material={roofMaterial} castShadow />
+    </group>
+  )
+}
 // bulb hanging over the dam table: dark by day, glowing at night
 const BULB = [part([DAM_TABLE.x, 2.3, DAM_TABLE.z], [0.16, 0.2, 0.16], [0, 0, 0], '#ffffff')]
 const CORD = [part([DAM_TABLE.x, 2.55, DAM_TABLE.z], [0.015, 0.4, 0.015], [0, 0, 0], '#2a2a2a')]
@@ -183,6 +227,7 @@ export function KedaiKopi({ game }) {
       ))}
 
       <PartsBundle bundle={PARTS} />
+      <FadingRoof />
       <InstancedParts geometry={GEO.ball} material={MAT.glow} parts={BULB} castShadow={false} />
       <InstancedParts geometry={GEO.cylinder} parts={CORD} castShadow={false} />
 
