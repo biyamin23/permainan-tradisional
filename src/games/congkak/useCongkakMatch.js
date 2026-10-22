@@ -22,6 +22,8 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
   const [result, setResult] = useState(null)
   const [fast, setFast] = useState(false)
 
+  // a side may only tembak once its seeds have gone round past its own rumah
+  const lapped = useRef([false, false])
   const timers = useRef([])
   const pending = useRef(null) // { finalPits, finish }
   const fastRef = useRef(fast)
@@ -78,7 +80,8 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
   /** Animate a move event by event. */
   const runMove = useCallback(
     (side, house) => {
-      const outcome = playMove(pits, side, house)
+      const outcome = playMove(pits, side, house, lapped.current[side])
+      if (outcome.passedStore) lapped.current[side] = true
       const display = pits.slice()
       const { events } = outcome
       setAnimating(true)
@@ -137,6 +140,10 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
             sfx.capture()
             wait = 900
             break
+          case 'noTembak':
+            if (side === PLAYER) say('Belum cukup satu pusingan. Belum boleh tembak lagi.', 'bad')
+            wait = 600
+            break
           case 'extraTurn':
             sfx.extraTurn()
             wait = 400
@@ -181,7 +188,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
   useEffect(() => {
     if (result || animating || turn !== OPPONENT) return undefined
     const id = setTimeout(() => {
-      const move = chooseMove(pits, OPPONENT, level)
+      const move = chooseMove(pits, OPPONENT, level, Math.random, lapped.current)
       if (move !== null) runMove(OPPONENT, move)
     }, AI_THINK)
     return () => clearTimeout(id)
@@ -191,6 +198,7 @@ export function useCongkakMatch({ level, starter = PLAYER }) {
     (nextStarter = PLAYER) => {
       clearTimers()
       pending.current = null
+      lapped.current = [false, false]
       setPits(createBoard())
       setTurn(nextStarter)
       setAnimating(false)
