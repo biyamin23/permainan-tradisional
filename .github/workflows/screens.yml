@@ -1,8 +1,11 @@
 # Builds the site and takes screenshots of the 3D kampung with headless
 # Chromium (software WebGL), so changes to the world can be checked without a
 # GPU. Runs on demand and on pushes to wip/* branches; download the
-# "kampung-screens" artifact to see the pictures.
+# ci-screens branch to see the pictures.
 name: Kampung screenshots
+
+permissions:
+  contents: write
 
 on:
   workflow_dispatch:
@@ -26,8 +29,15 @@ jobs:
           npx vite preview --port 4173 --strictPort &
           npx wait-on -t 60000 http://localhost:4173 || sleep 5
           node .github/screens/shoot.mjs
-      - uses: actions/upload-artifact@v4
+      # pictures go to an orphan branch (force-pushed, so it never grows)
+      - name: Publish to ci-screens branch
         if: always()
-        with:
-          name: kampung-screens
-          path: screens-out/
+        run: |
+          cd screens-out
+          git init -q -b ci-screens
+          git config user.name "kampung-screens"
+          git config user.email "actions@users.noreply.github.com"
+          echo "${GITHUB_SHA}" > SOURCE_SHA
+          git add -A
+          git commit -qm "Screens for ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-screens
