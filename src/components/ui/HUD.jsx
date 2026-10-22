@@ -70,14 +70,17 @@ export function HUD({ isTouch }) {
   const playerName = usePlayerState((s) => s.playerName)
   const arrowRef = useRef(null)
   const distanceRef = useRef(null)
+  const labelRef = useRef(null)
   const [showHelp, setShowHelp] = useState(true)
 
   useEffect(() => {
     worldRuntime.hud.arrow = arrowRef.current
     worldRuntime.hud.distance = distanceRef.current
+    worldRuntime.hud.label = labelRef.current
     return () => {
       worldRuntime.hud.arrow = null
       worldRuntime.hud.distance = null
+      worldRuntime.hud.label = null
     }
   }, [])
 
@@ -103,7 +106,9 @@ export function HUD({ isTouch }) {
             </span>
           </span>
           <span className="hud__objective-text">
-            <span className="hud__objective-label">Jom main {OBJECTIVE_GAME.name}</span>
+            <span ref={labelRef} className="hud__objective-label">
+              Jom main {OBJECTIVE_GAME.name}
+            </span>
             <small ref={distanceRef}>…</small>
           </span>
         </div>

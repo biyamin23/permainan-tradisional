@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { MathUtils, Vector3 } from 'three'
-import { OBJECTIVE_GAME } from '../../data/games'
+import { games, isGameAvailable } from '../../data/games'
+
+const PLAYABLE = games.filter(isGameAvailable)
 import { worldRuntime } from '../../state/worldRuntime'
 
 const MIN_DISTANCE = 5.5
@@ -22,6 +24,7 @@ export function CameraRig() {
   const lookTarget = useRef(new Vector3())
   const started = useRef(null)
   const lastDistanceText = useRef('')
+  const lastTarget = useRef(null)
 
   useEffect(() => {
     const element = gl.domElement
@@ -91,17 +94,30 @@ export function CameraRig() {
     lookAt.current.lerp(lookTarget.current, 1 - Math.exp(-10 * dt))
     camera.lookAt(lookAt.current)
 
-    // Objective arrow in the HUD (screen-space direction to the padang)
-    const { arrow, distance: distanceEl } = worldRuntime.hud
+    // Objective arrow in the HUD: points to the nearest game you can play
+    const { arrow, distance: distanceEl, label } = worldRuntime.hud
     if (arrow || distanceEl) {
-      const [tx, tz] = OBJECTIVE_GAME.spot.position
+      let target = PLAYABLE[0]
+      let best = Infinity
+      for (const g of PLAYABLE) {
+        const d = Math.hypot(g.spot.position[0] - p.x, g.spot.position[1] - p.z) - g.spot.radius
+        if (d < best) {
+          best = d
+          target = g
+        }
+      }
+      if (label && target.id !== lastTarget.current) {
+        label.textContent = `Jom main ${target.name}`
+        lastTarget.current = target.id
+      }
+      const [tx, tz] = target.spot.position
       const vx = tx - p.x
       const vz = tz - p.z
       const sx = vx * Math.cos(yaw) - vz * Math.sin(yaw)
       const sy = -vx * Math.sin(yaw) - vz * Math.cos(yaw)
       if (arrow) arrow.style.transform = `rotate(${Math.atan2(sx, sy)}rad)`
       if (distanceEl) {
-        const meters = Math.max(0, Math.round(Math.hypot(vx, vz) - OBJECTIVE_GAME.spot.radius))
+        const meters = Math.max(0, Math.round(Math.hypot(vx, vz) - target.spot.radius))
         const text = meters < 1 ? 'Dah sampai!' : `${meters} m`
         if (text !== lastDistanceText.current) {
           distanceEl.textContent = text

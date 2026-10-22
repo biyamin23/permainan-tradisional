@@ -10,11 +10,13 @@ import { lazy } from 'react'
  */
 const LOADERS = {
   congkak: () => import('./congkak/CongkakGame').then((m) => ({ default: m.CongkakGame })),
+  dam: () => import('./dam/DamGame').then((m) => ({ default: m.DamGame })),
 }
 
 // pictures a game shows straight away, warmed up with its code
 const PRELOAD_IMAGES = {
-  congkak: ['/congkak/aisyah.webp', '/congkak/pemain-lelaki.webp', '/congkak/pemain-perempuan.webp'],
+  congkak: ['/avatars/aisyah.webp', '/avatars/pemain-lelaki.webp', '/avatars/pemain-perempuan.webp'],
+  dam: ['/avatars/pak-tam.webp', '/dam/kedai-kopi.webp'],
 }
 
 export const GAME_COMPONENTS = Object.fromEntries(Object.entries(LOADERS).map(([id, load]) => [id, lazy(load)]))

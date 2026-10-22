@@ -9,7 +9,8 @@ import { MathUtils, MeshStandardMaterial } from 'three'
  *
  * build:      'kid' | 'adult'
  * look:       colours/clothing (see DEFAULT_LOOK)
- * pose:       idle | wave | cheer | sit | sitDangle | crouch | kick | throw | holdUp |
+ * pose:       idle | wave | cheer | sit | sitDangle | sitPlay | sitThink | sitDrink |
+ *             crouch | kick | throw | holdUp |
  *             sweep | fish | hop | pull | ride | swing | guard | toss | clap
  * motionRef:  { current: { speed: 0..1 } } drives the walk cycle
  * actionRef:  { current: { t } } — elapsed time of the last one-shot action
@@ -151,8 +152,12 @@ export function PersonModel({
       case 'sit':
       case 'sitDangle':
       case 'fish':
-      case 'toss': {
-        const legAngle = pose === 'sit' || pose === 'toss' ? -1.5 : -1.1
+      case 'toss':
+      case 'sitPlay':
+      case 'sitThink':
+      case 'sitDrink': {
+        const atTable = pose === 'sitPlay' || pose === 'sitThink' || pose === 'sitDrink'
+        const legAngle = pose === 'sit' || pose === 'toss' ? -1.5 : atTable ? -1.45 : -1.1
         lL = lR = legAngle
         rootY = sitY
         aLx = aRx = -0.35
@@ -161,6 +166,36 @@ export function PersonModel({
           aLx = aRx = -1.05 + Math.sin(time * 0.7) * 0.04
           aLz = 0.25
           aRz = -0.25
+        }
+        const t = time + phase * 3
+        if (pose === 'sitPlay') {
+          // leaning over the dam board, now and then reaching to move a cap
+          const p = t % 5.5
+          const reach = p > 4.2 && p < 5.2 ? Math.sin(((p - 4.2) / 1) * Math.PI) : 0
+          aLx = -0.95
+          aRx = -1.0 - reach * 0.45
+          aLz = 0.18
+          aRz = -0.1 + reach * 0.15
+          lean = 0.22 + reach * 0.12
+          headX = 0.25
+        }
+        if (pose === 'sitThink') {
+          // elbow on the table, hand at the chin, studying the board
+          aLx = -0.95
+          aRx = -2.5
+          aRz = -0.45
+          lean = 0.2
+          headX = 0.2 + Math.sin(t * 0.6) * 0.04
+        }
+        if (pose === 'sitDrink') {
+          // sipping kopi: cup up to the mouth every few seconds
+          const p = t % 7
+          const sip = p > 5 && p < 6.6 ? Math.sin(((p - 5) / 1.6) * Math.PI) : 0
+          aLx = -0.85
+          aRx = -0.95 - sip * 1.35
+          aRz = -0.12 - sip * 0.25
+          headX = -sip * 0.22
+          lean = 0.06
         }
         if (pose === 'toss') {
           const p = (time % 1.6) / 1.6

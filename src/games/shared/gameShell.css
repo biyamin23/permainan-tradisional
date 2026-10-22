@@ -1,0 +1,729 @@
+/* ==========================================================================
+   Shared screen for the table games (Congkak, Dam…). Mobile first: the two
+   players with whose turn it is and their score across the top, the board in
+   the middle of the screen (on the mat in the background picture), a big
+   message for what just happened, and at the bottom what to do next plus the
+   buttons, within reach of the thumb. Each game adds its own board and
+   background picture.
+   ========================================================================== */
+
+.gs {
+  --cream: #fbf3e2;
+  --cream-2: #efe2c6;
+  --ink: #3b2414;
+  --ink-soft: rgba(59, 36, 20, 0.66);
+  --go: #3f9b4f;
+  --go-dark: #2c7a3b;
+  --go-soft: #9bd98f;
+  --glow: #ffd45e;
+  --bad: #c0412f;
+  /* the screen the game lays itself out on */
+  --vw: 100vw;
+  --vh: 100dvh;
+
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom))
+    max(10px, env(safe-area-inset-left));
+  overflow: hidden;
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: #6b3f22 center / cover no-repeat;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ---------------------------------------------------------------- shared: round cream pills */
+.gs-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 46px;
+  padding: 0 1.1rem 0 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1.02rem;
+  font-weight: 800;
+  box-shadow:
+    0 3px 0 rgba(60, 30, 10, 0.35),
+    0 8px 16px -8px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gs-pill:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgba(60, 30, 10, 0.35);
+}
+
+.gs-pill__chev {
+  font-size: 1.6rem;
+  line-height: 1;
+  margin-top: -3px;
+}
+
+.gs-pill__q {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--cream);
+  font-size: 0.85rem;
+}
+
+/* ---------------------------------------------------------------- top: exit / rules */
+/* ---------------------------------------------------------------- bottom dock: what to do next, then the buttons */
+.gs-dock {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(100%, 760px);
+  margin: 0 auto;
+}
+
+.gs-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.gs-top .gs-pill {
+  min-height: 52px;
+  padding: 0 1.3rem 0 1.1rem;
+  font-size: 1.08rem;
+}
+
+/* ---------------------------------------------------------------- the two players */
+.gs-hud {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  width: min(100%, 760px);
+  margin: 0 auto;
+}
+
+.gs-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px 16px 5px 5px;
+  border-radius: 999px;
+  background: var(--cream);
+  box-shadow:
+    0 3px 0 rgba(60, 30, 10, 0.3),
+    0 8px 16px -8px rgba(0, 0, 0, 0.5);
+  transition:
+    transform 0.25s,
+    box-shadow 0.25s;
+}
+
+/* yours mirrors Aisyah's: picture on the outside edge */
+.gs-card--you {
+  flex-direction: row-reverse;
+  padding: 5px 5px 5px 16px;
+}
+
+.gs-card.is-active {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow:
+    0 0 0 3px var(--go),
+    0 3px 0 3px rgba(30, 80, 40, 0.5),
+    0 10px 22px -8px rgba(0, 0, 0, 0.55);
+}
+
+.gs-avatar {
+  flex: none;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--c);
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 900;
+  box-shadow:
+    inset 0 -4px 0 rgba(0, 0, 0, 0.18),
+    0 0 0 3px #fff;
+}
+
+.gs-card__text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.gs-card__name {
+  max-width: 7.5em;
+  overflow: hidden;
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gs-card__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gs-card--you .gs-card__row {
+  flex-direction: row-reverse;
+}
+
+.gs-card__score {
+  display: grid;
+  place-items: center;
+  min-width: 64px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #f6b3ab;
+  font-size: 1.55rem;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.gs-card--you .gs-card__score {
+  background: #b5d6f6;
+}
+
+/* whose turn: a green light beside the score */
+.gs-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(59, 36, 20, 0.15);
+}
+
+.gs-dot.is-on {
+  background: var(--go);
+  box-shadow: 0 0 0 3px rgba(63, 155, 79, 0.25);
+  animation: gs-blink 1.2s ease-in-out infinite;
+}
+
+@keyframes gs-blink {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.gs-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Aisyah's speech bubble, hanging from her card */
+.gs-speech {
+  position: absolute;
+  left: 14px;
+  top: calc(100% + 6px);
+  z-index: 6;
+  width: max-content;
+  max-width: min(260px, calc(var(--vw) * 0.7));
+  margin: 0;
+  padding: 0.5rem 0.85rem;
+  border-radius: 14px;
+  background: #fffaf0;
+  color: var(--ink);
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.3;
+  box-shadow: 0 6px 16px -4px rgba(40, 10, 5, 0.55);
+  pointer-events: none;
+  animation: gs-speech 2.6s ease-out forwards;
+}
+
+.gs-speech::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: -7px;
+  width: 14px;
+  height: 14px;
+  background: #fffaf0;
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+
+@keyframes gs-speech {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.92);
+  }
+  10%,
+  85% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* ---------------------------------------------------------------- the table, with the mat under the board */
+/* the board sits in the middle of the screen, right on the mat in the picture */
+.gs-table {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* what just happened: big, short, fades away */
+.gs-toast-slot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.gs-toast {
+  margin: 0;
+  max-width: min(92%, 520px);
+  padding: 0.55rem 1.3rem;
+  border-radius: 16px;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: center;
+  box-shadow:
+    0 3px 0 rgba(60, 30, 10, 0.3),
+    0 10px 20px -8px rgba(0, 0, 0, 0.45);
+  animation: gs-toast 2.6s ease-out forwards;
+  border-radius: 20px 14px 22px 12px;
+}
+
+.gs-toast.is-long {
+  font-size: 1.15rem;
+}
+
+.gs-toast.is-you,
+.gs-toast.is-them,
+.gs-toast.is-good {
+  background: var(--go);
+  color: #fff;
+  box-shadow:
+    0 3px 0 var(--go-dark),
+    0 10px 20px -8px rgba(0, 0, 0, 0.45);
+}
+
+.gs-toast.is-bad {
+  background: var(--bad);
+  color: #fff;
+  box-shadow:
+    0 3px 0 #8e2a1d,
+    0 10px 20px -8px rgba(0, 0, 0, 0.45);
+}
+
+@keyframes gs-toast {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  8% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  14%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.gs-board-wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+}
+
+.gs-board-hit.is-skippable {
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------- bottom: what to do next */
+.gs-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.gs-bottom:empty {
+  display: none;
+}
+
+.gs-next {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 52px;
+  margin: 0;
+  padding: 0.35rem 1rem;
+  border-radius: 999px;
+  background: var(--cream);
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.25;
+  box-shadow:
+    0 3px 0 rgba(60, 30, 10, 0.3),
+    0 8px 16px -8px rgba(0, 0, 0, 0.5);
+}
+
+.gs-next.is-yours {
+  box-shadow:
+    0 0 0 3px var(--glow),
+    0 3px 0 3px rgba(150, 110, 20, 0.5);
+}
+
+.gs-next__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-left: -0.6rem;
+  border-radius: 50%;
+  background: #f7d27a;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.gs-next.is-yours .gs-next__icon {
+  animation: gs-tap 1.2s ease-in-out infinite;
+}
+
+@keyframes gs-tap {
+  50% {
+    transform: translateY(3px) scale(0.92);
+  }
+}
+
+.gs-pill--fast {
+  flex: none;
+  padding: 0 1.1rem;
+}
+
+.gs-pill--fast.is-idle {
+  opacity: 0.55;
+}
+
+.gs-pill--fast.is-on {
+  background: var(--go);
+  color: #fff;
+  box-shadow: 0 1px 0 var(--go-dark);
+  transform: translateY(2px);
+}
+
+/* Laju 2× works only while held, so keep a long press from selecting text or opening a menu */
+.gs-hold {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* ---------------------------------------------------------------- panels (intro, rules, result) */
+.gs-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(40, 20, 8, 0.5);
+  animation: gs-fade 0.3s ease-out;
+}
+
+@keyframes gs-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.gs-panel {
+  width: min(100%, 380px);
+  padding: 1.4rem 1.2rem 1.1rem;
+  border-radius: 24px;
+  background: var(--cream);
+  color: var(--ink);
+  text-align: center;
+  box-shadow:
+    0 5px 0 rgba(60, 30, 10, 0.35),
+    0 24px 50px -16px rgba(0, 0, 0, 0.8);
+  animation: gs-pop 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+@keyframes gs-pop {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+.gs-panel--rules {
+  width: min(100%, 460px);
+  max-height: calc(var(--vh) - 40px);
+  overflow-y: auto;
+  text-align: left;
+}
+
+.gs-panel__title {
+  margin: 0 0 0.9rem;
+  font-size: 1.4rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.gs-panel--rules .gs-panel__title {
+  text-align: center;
+}
+
+.gs-panel__title--big {
+  margin-bottom: 0.6rem;
+  font-size: 2rem;
+}
+
+.gs-panel__title--big.is-win {
+  color: var(--go-dark);
+}
+
+.gs-panel__label {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.gs-panel__note {
+  margin: 0.7rem 0 1rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.gs-panel__small {
+  margin: -0.4rem 0 1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.gs-levels {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.gs-level {
+  min-height: 52px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--cream-2);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 900;
+  box-shadow: 0 3px 0 rgba(60, 30, 10, 0.25);
+  cursor: pointer;
+}
+
+.gs-level.is-selected {
+  background: var(--wood, #7d4522);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--wood-dark, #4f2a12);
+}
+
+.gs-btn {
+  display: block;
+  width: 100%;
+  min-height: 56px;
+  margin-top: 0.5rem;
+  border: 0;
+  border-radius: 16px;
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.gs-btn--go {
+  background: var(--go);
+  color: #fff;
+  box-shadow: 0 4px 0 var(--go-dark);
+}
+
+.gs-btn--plain {
+  background: var(--cream-2);
+  color: var(--ink);
+  box-shadow: 0 4px 0 rgba(60, 30, 10, 0.25);
+}
+
+.gs-btn:active {
+  transform: translateY(3px);
+  box-shadow: none;
+}
+
+.gs-final {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.gs-final__side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.gs-final__num {
+  font-size: 2.6rem;
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.gs-final__vs {
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.gs-rules {
+  margin: 0 0 0.6rem;
+  padding-left: 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.gs-rules li {
+  margin-bottom: 0.5rem;
+}
+
+
+@media (max-width: 560px) {
+  .gs {
+    gap: 6px;
+    padding-left: max(8px, env(safe-area-inset-left));
+    padding-right: max(8px, env(safe-area-inset-right));
+  }
+
+  .gs-avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 1.4rem;
+  }
+
+  .gs-card {
+    padding-right: 12px;
+  }
+
+  .gs-card--you {
+    padding: 5px 5px 5px 12px;
+  }
+
+  .gs-card__score {
+    min-width: 54px;
+    height: 34px;
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .gs-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+
+  .gs-card__name {
+    font-size: 0.92rem;
+  }
+
+  .gs-card__score {
+    min-width: 46px;
+    font-size: 1.25rem;
+  }
+
+  .gs-next {
+    font-size: 0.9rem;
+  }
+}
+
+/* short screens (phone on its side): buttons either side of the hint, all in one row */
+@media (max-height: 520px) and (min-width: 561px) {
+  .gs-dock {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .gs-bottom {
+    flex: 1 1 auto;
+    order: 2;
+  }
+
+  .gs-top {
+    display: contents;
+  }
+
+  .gs-top > :first-child {
+    order: 1;
+  }
+
+  .gs-top > :last-child {
+    order: 3;
+  }
+
+  .gs-toast-slot {
+    bottom: auto;
+    top: -6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gs-sheet,
+  .gs-panel,
+  .gs-next__icon,
+  .gs-dot {
+    animation: none;
+  }
+}

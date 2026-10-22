@@ -28,6 +28,19 @@ export const games = [
     lines: ['Jom lawan aku main congkak!', 'Rumah aku dah penuh biji!'],
   },
   {
+    id: 'dam',
+    name: 'Dam',
+    emoji: '⚪',
+    tagline: 'Lawan Pak Tam main dam di kedai kopi. Makan wajib, naik haji!',
+    status: GAME_STATUS.AVAILABLE,
+    modes: ['solo', 'multiplayer'],
+    players: '1–2 pemain',
+    accent: '#5b3a22',
+    // the kedai kopi by the main road; its open front faces the road
+    spot: { position: [10, 15], radius: 5.6, rotationY: -Math.PI / 2 },
+    lines: ['Mari lawan Pak Tam main dam!', 'Kopi O satu, kurang manis!', 'Haa, naik haji dah buah aku.', 'Budak muda pun nak lawan?'],
+  },
+  {
     id: 'gasing',
     name: 'Gasing',
     emoji: '🌀',

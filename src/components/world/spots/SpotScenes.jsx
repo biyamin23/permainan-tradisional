@@ -6,6 +6,7 @@ import { PersonModel } from '../../character/PersonModel'
 import { kidLook } from '../npc/kidLooks'
 import { ProximityBubble } from '../npc/ProximityBubble'
 import { Wakaf } from '../Wakaf'
+import { KedaiKopi } from './KedaiKopi'
 import {
   DirtPatch,
   DirtRect,
@@ -471,6 +472,7 @@ export function TarikUpihScene({ game }) {
 
 export const SPOT_SCENES = {
   congkak: CongkakScene,
+  dam: KedaiKopi,
   gasing: GasingScene,
   wau: WauScene,
   'batu-seremban': BatuSerembanScene,
@@ -483,4 +485,4 @@ export const SPOT_SCENES = {
 }
 
 /** Scenes that position themselves in world space (they contain physics). */
-export const WORLD_SPACE_SCENES = new Set(['congkak'])
+export const WORLD_SPACE_SCENES = new Set(['congkak', 'dam'])
