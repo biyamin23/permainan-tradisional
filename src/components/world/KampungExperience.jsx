@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
+import { prefetchGames } from '../../games/registry'
 import { SCREENS, usePlayerState } from '../../state/playerState'
 import { GameModeSelection } from '../game/GameModeSelection'
 import { GameScreen } from '../game/GameScreen'
@@ -22,6 +23,12 @@ export function KampungExperience() {
   const exploring = screen === SCREENS.KAMPUNG
 
   useInteractionKey()
+
+  // once the kampung is up, quietly fetch the games so opening one is instant
+  useEffect(() => {
+    const id = window.setTimeout(prefetchGames, 4000)
+    return () => window.clearTimeout(id)
+  }, [])
 
   return (
     <div className={`kampung screen-fade-in ${exploring ? '' : 'is-paused'}`}>

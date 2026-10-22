@@ -68,11 +68,11 @@ function HoldFast({ fast, setFast, active }) {
 }
 
 /** A player's card in the top bar: who, whose turn, and the score in big type. */
-function PlayerCard({ side, name, color, score, active, children }) {
+function PlayerCard({ side, name, color, img, score, active, children }) {
   return (
     <div className={`cg-card cg-card--${side} ${active ? 'is-active' : ''}`} aria-label={`${name}, ${score} guli${active ? ', sedang bermain' : ''}`}>
       <span className="cg-avatar" style={{ '--c': color }} aria-hidden="true">
-        {name.slice(0, 1).toUpperCase()}
+        {img ? <img src={img} alt="" width="96" height="96" decoding="async" /> : name.slice(0, 1).toUpperCase()}
       </span>
       <span className="cg-card__text" aria-hidden="true">
         <span className="cg-card__name">{name}</span>
@@ -86,7 +86,9 @@ function PlayerCard({ side, name, color, score, active, children }) {
   )
 }
 
-const AISYAH_COLOR = '#9b6ad0'
+const AISYAH_COLOR = '#e9b52f'
+const AISYAH_IMG = '/congkak/aisyah.webp'
+const PLAYER_IMG = { [GENDERS.LELAKI]: '/congkak/pemain-lelaki.webp', [GENDERS.PEREMPUAN]: '/congkak/pemain-perempuan.webp' }
 
 /**
  * One layout for every screen, top to bottom: exit, the two players (turn and
@@ -100,7 +102,8 @@ function Scene({ top, them, you, toast, board, bottom, children }) {
         {them}
         {you}
       </div>
-      <div className="cg-table">
+      <div className="cg-table" />
+      <div className="cg-board-wrap">
         <div className="cg-toast-slot" aria-live="polite">
           {toast && (
             <p className={`cg-toast ${toast.tone ? `is-${toast.tone}` : ''}`} key={toast.key}>
@@ -108,7 +111,7 @@ function Scene({ top, them, you, toast, board, bottom, children }) {
             </p>
           )}
         </div>
-        <div className="cg-board-wrap">{board}</div>
+        {board}
       </div>
       <div className="cg-bottom">{bottom}</div>
       {children}
@@ -159,7 +162,7 @@ function RulesButton({ onOpen }) {
   )
 }
 
-function Intro({ level, setLevel, records, playerName, playerColor, onStart, onExit }) {
+function Intro({ level, setLevel, records, playerName, playerColor, playerImg, onStart, onExit }) {
   const [showRules, setShowRules] = useState(false)
   const current = LEVELS.find((l) => l.id === level)
   const played = records.wins + records.losses + records.draws
@@ -172,8 +175,8 @@ function Intro({ level, setLevel, records, playerName, playerColor, onStart, onE
           <RulesButton onOpen={() => setShowRules(true)} />
         </>
       }
-      them={<PlayerCard side="them" name="Aisyah" color={AISYAH_COLOR} score={0} />}
-      you={<PlayerCard side="you" name={playerName} color={playerColor} score={0} />}
+      them={<PlayerCard side="them" name="Aisyah" color={AISYAH_COLOR} img={AISYAH_IMG} score={0} />}
+      you={<PlayerCard side="you" name={playerName} color={playerColor} img={playerImg} score={0} />}
       board={<CongkakBoard pits={START} />}
     >
       <div className="cg-sheet">
@@ -251,9 +254,10 @@ function Result({ result, saved, playerName, onAgain, onExit }) {
   )
 }
 
-const SLEEVES = { [GENDERS.LELAKI]: '#2b9aa0', [GENDERS.PEREMPUAN]: '#e9779a' }
+// sleeves match the avatars: blue baju Melayu, pink baju kurung
+const SLEEVES = { [GENDERS.LELAKI]: '#2f4fb5', [GENDERS.PEREMPUAN]: '#e98fae' }
 
-function Match({ level, playerName, playerColor, onExit, onRecords }) {
+function Match({ level, playerName, playerColor, playerImg, onExit, onRecords }) {
   const [starter, setStarter] = useState(PLAYER)
   const { pits, turn, animating, hand, flash, banner, speech, result, fast, setFast, playHouse, skip, restart, scores, say } =
     useCongkakMatch({ level, starter })
@@ -340,13 +344,14 @@ function Match({ level, playerName, playerColor, onExit, onRecords }) {
           side="them"
           name="Aisyah"
           color={AISYAH_COLOR}
+          img={AISYAH_IMG}
           score={scores[1]}
           active={theirTurn}
         >
           <Speech says={speech} />
         </PlayerCard>
       }
-      you={<PlayerCard side="you" name={playerName} color={playerColor} score={scores[0]} active={yourTurn} />}
+      you={<PlayerCard side="you" name={playerName} color={playerColor} img={playerImg} score={scores[0]} active={yourTurn} />}
       toast={toast}
       board={
         <div className={`cg-board-hit ${animating ? 'is-skippable' : ''}`} onClick={animating ? skip : undefined}>
@@ -394,6 +399,7 @@ export function CongkakGame({ onExit }) {
   const playerName = usePlayerState((s) => s.playerName) || 'Kamu'
   const gender = usePlayerState((s) => s.playerGender)
   const playerColor = SLEEVES[gender] ?? SLEEVES[GENDERS.LELAKI]
+  const playerImg = PLAYER_IMG[gender] ?? PLAYER_IMG[GENDERS.LELAKI]
   const [phase, setPhase] = useState('intro')
   const [level, setLevel] = useState('biasa')
   const [records, setRecords] = useState(loadRecords)
@@ -407,6 +413,7 @@ export function CongkakGame({ onExit }) {
         records={records}
         playerName={playerName}
         playerColor={playerColor}
+        playerImg={playerImg}
         onExit={onExit}
         onStart={() => {
           sfx.select()
@@ -415,5 +422,5 @@ export function CongkakGame({ onExit }) {
       />
     )
   }
-  return <Match level={level} playerName={playerName} playerColor={playerColor} onExit={onExit} onRecords={onRecords} />
+  return <Match level={level} playerName={playerName} playerColor={playerColor} playerImg={playerImg} onExit={onExit} onRecords={onRecords} />
 }

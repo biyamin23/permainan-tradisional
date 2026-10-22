@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { Suspense, useCallback, useEffect } from 'react'
 import { sfx } from '../../audio/engine'
 import { getGameById } from '../../data/games'
 import { GAME_COMPONENTS } from '../../games/registry'
@@ -29,7 +29,9 @@ export function GameScreen() {
 
   return (
     <div className="game-screen" role="dialog" aria-modal="true" aria-label={game.name}>
-      <Game game={game} mode={mode} onExit={exit} />
+      <Suspense fallback={<p className="game-screen__loading">Memuatkan {game.name}…</p>}>
+        <Game game={game} mode={mode} onExit={exit} />
+      </Suspense>
     </div>
   )
 }

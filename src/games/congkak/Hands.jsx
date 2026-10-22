@@ -74,8 +74,8 @@ function ArmArt({ skin, sleeve, cuff, pose, seeds }) {
 
 const STYLE = {
   [PLAYER]: { sleeve: '#2b9aa0', cuff: '#23797e', skin: '#c98c5f' },
-  // Aisyah: lilac baju kurung with a lace cuff
-  [OPPONENT]: { sleeve: '#9b6ad0', cuff: '#f1e6f7', skin: '#c48558' },
+  // Aisyah: yellow baju kurung with a teal songket cuff, like her picture
+  [OPPONENT]: { sleeve: '#efbe2e', cuff: '#3cbfb4', skin: '#c48558' },
 }
 
 function Arm({ point, angle, visible, pose, seeds, colors, moveMs, tick, recoil }) {

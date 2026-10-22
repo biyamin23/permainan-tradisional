@@ -1,8 +1,27 @@
-import { CharacterCreation } from './components/character/CharacterCreation'
+import { Suspense, lazy, useEffect } from 'react'
 import { LandingPage } from './components/landing/LandingPage'
 import { SoundToggle } from './components/ui/SoundToggle'
-import { KampungExperience } from './components/world/KampungExperience'
 import { SCREENS, isWorldScreen, usePlayerState } from './state/playerState'
+
+// The landing page loads on its own. Three.js, physics and the kampung come in
+// separate chunks, fetched in the background while the player reads the landing.
+const loadCharacter = () => import('./components/character/CharacterCreation')
+const loadKampung = () => import('./components/world/KampungExperience')
+const CharacterCreation = lazy(() => loadCharacter().then((m) => ({ default: m.CharacterCreation })))
+const KampungExperience = lazy(() => loadKampung().then((m) => ({ default: m.KampungExperience })))
+
+function whenIdle(fn) {
+  if (typeof window.requestIdleCallback === 'function') return window.requestIdleCallback(fn, { timeout: 2500 })
+  return window.setTimeout(fn, 1200)
+}
+
+function Loading() {
+  return (
+    <div className="screen-loading" role="status">
+      Memuatkan kampung…
+    </div>
+  )
+}
 
 /**
  * Screen router. Flow:
@@ -12,11 +31,20 @@ import { SCREENS, isWorldScreen, usePlayerState } from './state/playerState'
 export default function App() {
   const screen = usePlayerState((s) => s.currentScreen)
 
+  useEffect(() => {
+    whenIdle(() => {
+      loadCharacter()
+      loadKampung()
+    })
+  }, [])
+
   return (
     <main className="app">
       {screen === SCREENS.LANDING && <LandingPage />}
-      {screen === SCREENS.CHARACTER && <CharacterCreation />}
-      {isWorldScreen(screen) && <KampungExperience />}
+      <Suspense fallback={<Loading />}>
+        {screen === SCREENS.CHARACTER && <CharacterCreation />}
+        {isWorldScreen(screen) && <KampungExperience />}
+      </Suspense>
       {!isWorldScreen(screen) && <SoundToggle className="sound-toggle--floating" />}
     </main>
   )

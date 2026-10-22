@@ -2095,3 +2095,19 @@ kbd {
     display: none;
   }
 }
+
+/* shown for a moment while a lazily loaded screen or game downloads */
+.screen-loading,
+.game-screen__loading {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  background: #3a2216;
+  color: #f6ead2;
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  font-weight: 800;
+}

@@ -13,7 +13,7 @@ Landing → Character creation → Enter kampung → walk to a game spot → Sol
 What's in the kampung:
 
 - **10 game spots**, one per game, each with kids playing it (Congkak at the wakaf, Gasing on the padang, Wau in the open field, Teng-Teng near the road…). Only Congkak is open for now; the others say *akan datang*.
-- **Congkak** (solo vs Aisyah, three levels: Mudah, Biasa, Pakar): traditional rules, sown clockwise with your rumah on your left, relay sowing (*main terus*), extra turn when the last seed lands in your rumah, and *tembak* captures. Hands reach over the board and sow the guli one by one with sound; try to play on Aisyah's turn and her hand slaps yours away while she tells you off in her own voice (five recorded lines, shuffled). Sowing goes at one steady pace; press and hold *Laju 2×* to double it, or tap the board to skip. Wins, losses and your best score are remembered. Mobile-first screen: big round buttons, both players' cards with whose turn it is and their score, a big message for what just happened, glowing holes you can tap, and a bar at the bottom saying what to do next. The board is warm carved wood with glass guli on a mengkuang mat; it always lies across the screen with your row at the bottom and your rumah on the left.
+- **Congkak** (solo vs Aisyah, three levels: Mudah, Biasa, Pakar): traditional rules, sown clockwise with your rumah on your left, relay sowing (*main terus*), extra turn when the last seed lands in your rumah, and *tembak* captures. Hands reach over the board and sow the guli one by one with sound; try to play on Aisyah's turn and her hand slaps yours away while she tells you off in her own voice (five recorded lines, shuffled). Sowing goes at one steady pace; press and hold *Laju 2×* to double it, or tap the board to skip. Wins, losses and your best score are remembered. Mobile-first screen: big round buttons, both players' cards with whose turn it is and their score, a big message for what just happened, glowing holes you can tap, and a bar at the bottom saying what to do next. Aisyah and the player have picture avatars, and the board (drawn in code) sits on a picture of a wooden wakaf table with a mengkuang mat; it always lies across the screen with your row at the bottom and your rumah on the left.
 - **Villagers** you can talk to: Tok Wan on his stairs, Mak Cik Kiah sweeping, Pak Abu fishing by the stream. Pak Mat cycles up and down the road.
 - **Animals**: chickens, ducks in the pond, butterflies.
 - **Day and night**: a full day passes in 12 minutes (one in-game hour = 30 s). The visit starts at 5:36 petang; the sun sets, stars and the moon come out, windows, pelita and street lamps light up, birds roost and crickets take over. Tap the clock under your name to jump 3 hours ahead.
@@ -46,7 +46,9 @@ Follow the arrow at the top right to Congkak and press `E` (or tap **MAIN** on a
 
 React 18 · Vite 5 · Three.js · React Three Fiber · @react-three/drei · @react-three/rapier
 
-Everything in the world is built from Three.js primitive geometry. There are no GLB models, textures or image assets. Parts are drawn with `InstancedMesh` (one draw call per geometry type), so the whole kampung stays light.
+Everything in the 3D world is built from Three.js primitive geometry. There are no GLB models or textures in it; the only pictures are the Congkak screen's avatars and table background (small WebP files in `public/congkak`).
+
+To keep the web app light, the landing page loads first and the 3D kampung, physics and each game are separate chunks fetched in the background; Three.js, physics and React sit in their own long-cached vendor chunks (see `vite.config.js` and `vercel.json`). Parts are drawn with `InstancedMesh` (one draw call per geometry type), so the whole kampung stays light.
 
 ## Project structure
 
