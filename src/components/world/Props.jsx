@@ -77,7 +77,7 @@ function riverPose(u, v, side) {
   const [bx, bz] = river.points[index + 1]
   return { position: [x, 0.04, z], rotationY: Math.atan2(bx - ax, bz - az) + side * 0.15 }
 }
-const SAMPAN = [riverPose(1310, 872, 1), riverPose(1392, 700, -1), riverPose(330, 524, 1)]
+export const SAMPAN = [riverPose(1310, 872, 1), riverPose(1392, 700, -1), riverPose(330, 524, 1)]
 
 // old bicycles leaning about: by the warung, Tok Wan's stairs and the school
 const at = (base, dx, dz, yaw) => ({ position: [base.position[0] + dx, 0, base.position[2] + dz], rotationY: yaw })

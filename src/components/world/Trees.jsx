@@ -68,7 +68,7 @@ function buildCoconutTree(x, z, random) {
     )
   }
 
-  return { bundle: { box, cylinder, ball }, collider: { position: [x, 1.2, z], radius: 0.38, halfHeight: 1.2 } }
+  return { kind: 'coconut', bundle: { box, cylinder, ball }, collider: { position: [x, 1.2, z], radius: 0.38, halfHeight: 1.2 } }
 }
 
 function buildLeafyTree(x, z, random, { fruit = false, scale = 1 } = {}) {
@@ -108,6 +108,9 @@ function buildLeafyTree(x, z, random, { fruit = false, scale = 1 } = {}) {
   }
 
   return {
+    kind: 'leafy',
+    size: scale,
+    fruit,
     bundle: { taperedCylinder, blob, ball },
     collider: { position: [x, 1.2, z], radius: trunkR + 0.05, halfHeight: 1.2 },
   }
@@ -134,7 +137,7 @@ function buildBananaTree(x, z, random) {
     const ez = z + d1[2] * l1
     box.push(part([ex + (d2[0] * l2) / 2, ey + (d2[1] * l2) / 2, ez + (d2[2] * l2) / 2], [0.75, 0.04, l2], [down, fy, 0], color, 'YXZ'))
   }
-  return { bundle: { box, cylinder }, collider: { position: [x, 0.9, z], radius: 0.25, halfHeight: 0.9 } }
+  return { kind: 'banana', bundle: { box, cylinder }, collider: { position: [x, 0.9, z], radius: 0.25, halfHeight: 0.9 } }
 }
 
 function buildBush(x, z, random, flowers = false) {
@@ -182,17 +185,27 @@ export const KEBUN_PALMS = (() => {
   return out
 })()
 
-export function Trees() {
-  const { bundle, colliders } = useMemo(() => {
+let layoutCache = null
+
+/**
+ * Every tree and bush in the kampung (deterministic). `plants` lists what was
+ * planted where, so the Peta can draw the same trees.
+ */
+export function treeLayout() {
+  if (layoutCache) return layoutCache
+  layoutCache = (() => {
     const random = createRandom(2026)
     const pieces = []
     const colliderList = []
     const placed = []
+    const plants = []
 
+    const KIND = { coconut: 'palm', leafy: 'tree', banana: 'banana' }
     const add = (result, x, z) => {
       pieces.push(result.bundle)
       if (result.collider) colliderList.push(result.collider)
       placed.push([x, z])
+      plants.push({ kind: KIND[result.kind] ?? 'tree', x, z, size: result.size ?? 1, fruit: result.fruit })
     }
     const farEnough = (x, z, d) => placed.every(([px, pz]) => (px - x) ** 2 + (pz - z) ** 2 > d * d)
 
@@ -202,6 +215,7 @@ export function Trees() {
       if (MODELS.kelapa.url) {
         colliderList.push({ position: [palm.x, 1, palm.z], radius: 0.35, halfHeight: 1 })
         placed.push([palm.x, palm.z])
+        plants.push({ kind: 'palm', x: palm.x, z: palm.z, size: palm.scale })
       } else add(buildCoconutTree(palm.x, palm.z, random), palm.x, palm.z)
     }
     // Hutan kecil: thick trees round the waterfall
@@ -218,7 +232,10 @@ export function Trees() {
     }
     HAND_TREES.forEach(({ at: [x, z], fruit, scale }) => add(buildLeafyTree(x, z, random, { fruit, scale }), x, z))
     HAND_BANANAS.forEach(([x, z]) => add(buildBananaTree(x, z, random), x, z))
-    HAND_FLOWER_BUSHES.forEach(([x, z]) => pieces.push(buildBush(x, z, random, true).bundle))
+    HAND_FLOWER_BUSHES.forEach(([x, z]) => {
+      pieces.push(buildBush(x, z, random, true).bundle)
+      plants.push({ kind: 'bush', x, z, size: 1, fruit: true })
+    })
 
     // Scattered trees inside the playable area
     let attempts = 0
@@ -243,7 +260,9 @@ export function Trees() {
       const x = randomBetween(random, BOUNDS.xMin + 2, BOUNDS.xMax - 2)
       const z = randomBetween(random, BOUNDS.zMin + 2, BOUNDS.zMax - 2)
       if (isReserved(x, z, 0.5) || !farEnough(x, z, 2)) continue
-      pieces.push(buildBush(x, z, random, random() > 0.9).bundle)
+      const flowers = random() > 0.9
+      pieces.push(buildBush(x, z, random, flowers).bundle)
+      plants.push({ kind: 'bush', x, z, size: 1, fruit: flowers })
       bushes++
     }
 
@@ -260,10 +279,16 @@ export function Trees() {
     ring.forEach(([x, z]) => {
       const tree = random() < 0.35 ? buildCoconutTree(x, z, random) : buildLeafyTree(x, z, random, { scale: 1.3 })
       pieces.push(tree.bundle)
+      plants.push({ kind: tree.kind === 'coconut' ? 'palm' : 'tree', x, z, size: tree.size ?? 1.3, edge: true })
     })
 
-    return { bundle: mergeBundles(...pieces), colliders: colliderList }
-  }, [])
+    return { bundle: mergeBundles(...pieces), colliders: colliderList, plants }
+  })()
+  return layoutCache
+}
+
+export function Trees() {
+  const { bundle, colliders } = useMemo(() => treeLayout(), [])
 
   return (
     <RigidBody type="fixed" colliders={false}>

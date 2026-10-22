@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { MathUtils } from 'three'
-import { ROADS, isOnBridge } from '../../../data/kampungLayout'
+import { ROADS, groundY } from '../../../data/kampungLayout'
 import { CYCLIST, NPCS } from '../../../data/npcs'
 import { useNpcBody } from '../../../state/npcBodies'
 import { worldRuntime } from '../../../state/worldRuntime'
@@ -188,10 +188,10 @@ function Cyclist() {
     while (diff > Math.PI) diff -= Math.PI * 2
     while (diff < -Math.PI) diff += Math.PI * 2
     s.heading += diff * (1 - Math.exp(-3 * dt))
-    const y = isOnBridge(x, z) ? 0.12 : 0
+    const y = groundY(x, z)
 
     if (rig.current) {
-      rig.current.position.set(x, MathUtils.lerp(rig.current.position.y, y, 0.2), z)
+      rig.current.position.set(x, MathUtils.lerp(rig.current.position.y, y, 0.5), z)
       rig.current.rotation.y = s.heading
     }
     const spin = (speed / 0.32) * dt

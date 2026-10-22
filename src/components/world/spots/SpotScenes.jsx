@@ -1,13 +1,13 @@
 import { useCallback, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { MathUtils } from 'three'
+import { Euler, MathUtils, Quaternion, Vector3 } from 'three'
 import { useNpcBody } from '../../../state/npcBodies'
 import { PersonModel } from '../../character/PersonModel'
 import { kidLook } from '../npc/kidLooks'
 import { ProximityBubble } from '../npc/ProximityBubble'
 import { Bicycle } from '../npc/Npcs'
 import { part } from '../kit'
-import { HOUSE } from '../../../data/kampungLayout'
+import { HOUSE, ROADS, groundY, pathOf } from '../../../data/kampungLayout'
 import { MODELS } from '../../../data/models'
 import { PartsBundle } from '../InstancedParts'
 import { KedaiKopi } from './KedaiKopi'
@@ -549,21 +549,45 @@ export function PoliceThiefScene({ game }) {
 }
 
 // ------------------------------------------------------------------ Lumba basikal
+// The race runs along Jalan Kampung (over the bridge), not across the river.
+const RACE_ROAD = pathOf(ROADS[0].points)
+const RACE_SPAN = 11
+const _v = new Vector3()
+const _q = new Quaternion()
+const _e = new Euler()
+
 function RacingKid({ seed, girl, lane, phase }) {
   const rig = useRef()
   const front = useRef()
   const rear = useRef()
   const motion = useRef({ speed: 0.7 })
+  const centre = useRef(null)
   useFrame((state, delta) => {
     const g = rig.current
-    if (!g) return
+    const parent = g?.parent
+    if (!g || !parent) return
+    parent.updateWorldMatrix(true, false)
+    if (centre.current === null) {
+      parent.getWorldPosition(_v)
+      centre.current = RACE_ROAD.closest(_v.x, _v.z)
+    }
     // up and down the road, racing each other
-    const t = state.clock.elapsedTime * 0.32 + phase
-    const z = Math.sin(t) * 9
-    const dir = Math.cos(t) >= 0 ? 0 : Math.PI
-    g.position.set(lane, 0, z)
-    g.rotation.y = MathUtils.lerp(g.rotation.y, dir, 1 - Math.exp(-4 * Math.min(delta, 0.05)))
-    const spin = Math.abs(Math.cos(t)) * 0.32 * 9 * Math.min(delta, 0.05) / 0.32
+    const t = state.clock.elapsedTime * 0.3 + phase
+    const d = centre.current + Math.sin(t) * RACE_SPAN
+    const p = RACE_ROAD.at(d)
+    const forward = Math.cos(t) >= 0 ? 1 : -1
+    const wx = p.x + p.dz * lane
+    const wz = p.z - p.dx * lane
+    _v.set(wx, groundY(wx, wz), wz)
+    parent.worldToLocal(_v)
+    g.position.lerp(_v, g.position.lengthSq() === 0 ? 1 : 0.5)
+    const parentYaw = _e.setFromQuaternion(parent.getWorldQuaternion(_q), 'YXZ').y
+    const heading = Math.atan2(p.dx * forward, p.dz * forward) - parentYaw
+    let diff = heading - g.rotation.y
+    while (diff > Math.PI) diff -= Math.PI * 2
+    while (diff < -Math.PI) diff += Math.PI * 2
+    g.rotation.y += diff * (1 - Math.exp(-4 * Math.min(delta, 0.05)))
+    const spin = Math.abs(Math.cos(t)) * 0.3 * RACE_SPAN * Math.min(delta, 0.05) / 0.32
     if (front.current) front.current.rotation.x += spin
     if (rear.current) rear.current.rotation.x += spin
   })

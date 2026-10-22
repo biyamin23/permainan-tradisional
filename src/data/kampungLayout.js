@@ -1,4 +1,5 @@
 import { games } from './games'
+import { MODELS } from './models'
 import { MAP_SIZE, px, toMap } from './mapCoords'
 
 /**
@@ -131,15 +132,74 @@ function findBridges() {
 }
 export const BRIDGES = findBridges()
 
+// Deck height along a bridge, matching the arched GLB (or the flat stand-in).
+const DECK = MODELS.jambatan.url
+  ? { end: MODELS.jambatan.deck.end - MODELS.jambatan.sink, mid: MODELS.jambatan.deck.mid - MODELS.jambatan.sink, ramp: 1 }
+  : { end: 0.12, mid: 0.12, ramp: 0.4 }
+
+/** A polyline as a path you can walk along by distance. */
+export function pathOf(points) {
+  const segs = []
+  let total = 0
+  for (let i = 0; i < points.length - 1; i++) {
+    const [ax, az] = points[i]
+    const [bx, bz] = points[i + 1]
+    const len = Math.hypot(bx - ax, bz - az)
+    segs.push({ ax, az, dx: (bx - ax) / len, dz: (bz - az) / len, start: total, len })
+    total += len
+  }
+  const at = (d) => {
+    const seg = segs.find((s) => d <= s.start + s.len) ?? segs[segs.length - 1]
+    const t = Math.min(Math.max(d - seg.start, 0), seg.len)
+    return { x: seg.ax + seg.dx * t, z: seg.az + seg.dz * t, dx: seg.dx, dz: seg.dz }
+  }
+  const closest = (x, z) => {
+    let best = { d: 0, dist: Infinity }
+    for (const s of segs) {
+      const t = Math.min(Math.max((x - s.ax) * s.dx + (z - s.az) * s.dz, 0), s.len)
+      const dist = Math.hypot(s.ax + s.dx * t - x, s.az + s.dz * t - z)
+      if (dist < best.dist) best = { d: s.start + t, dist }
+    }
+    return best.d
+  }
+  return { segs, total, at, closest }
+}
+
+/** Deck height (m above ground) at `along` metres from a bridge's centre. */
+export function bridgeDeckY(bridge, along) {
+  const half = bridge.length / 2
+  const a = Math.abs(along)
+  if (a <= half) return DECK.end + (DECK.mid - DECK.end) * (1 - (a / half) ** 3)
+  if (a <= half + DECK.ramp) return DECK.end * (1 - (a - half) / DECK.ramp)
+  return 0
+}
+export const BRIDGE_RAMP = DECK.ramp
+
+function bridgeLocal(b, x, z) {
+  const dx = x - b.x
+  const dz = z - b.z
+  return {
+    along: dx * Math.sin(b.rotationY) + dz * Math.cos(b.rotationY),
+    across: dx * Math.cos(b.rotationY) - dz * Math.sin(b.rotationY),
+  }
+}
+
 /** True on a bridge deck. */
 export function isOnBridge(x, z) {
   return BRIDGES.some((b) => {
-    const dx = x - b.x
-    const dz = z - b.z
-    const along = dx * Math.sin(b.rotationY) + dz * Math.cos(b.rotationY)
-    const across = dx * Math.cos(b.rotationY) - dz * Math.sin(b.rotationY)
+    const { along, across } = bridgeLocal(b, x, z)
     return Math.abs(along) < b.length / 2 && Math.abs(across) < b.width / 2
   })
+}
+
+/** Ground height at (x, z): the bridge deck where there is one, otherwise 0. */
+export function groundY(x, z) {
+  let y = 0
+  for (const b of BRIDGES) {
+    const { along, across } = bridgeLocal(b, x, z)
+    if (Math.abs(across) < b.width / 2 + 0.3) y = Math.max(y, bridgeDeckY(b, along))
+  }
+  return y
 }
 
 // ---------------------------------------------------------------- areas
@@ -168,7 +228,7 @@ export const SCHOOL = at(900, 222)
 export const WARUNG = at(1176, 500)
 
 export const NEIGHBOUR_HOUSES = [
-  { ...at(600, 250, 0.15), variant: 'biru' },
+  { ...at(640, 272, 0.15), variant: 'biru' },
   { ...at(262, 236, -0.1), variant: 'kelabu' },
   { ...at(694, 586, 0.3), variant: 'hijau' },
   { ...at(1000, 408, -Math.PI / 2), variant: 'biru' },

@@ -14,7 +14,7 @@ export const MODELS = {
     url: '/models/rumah_tok_wan.glb',
     colliders: [[[4.4, 1.6, 6.0], [0, 1.6, -1.05]], [[1.1, 0.8, 1.0], [0, 0.8, 5.8]]],
     serambi: { y: 1.37, xMin: -3.9, xMax: 3.9, zMin: 1.45, zMax: 4.9 },
-    stairsTop: [0, 1.37, 5.0],
+    stairsTop: [0, 1.13, 5.2],
   },
   // neighbours: three houses, about 7 × 8.6 m
   rumah: {
@@ -32,8 +32,9 @@ export const MODELS = {
     url: '/models/sekolah_kampung.glb',
     colliders: [[[6.9, 1.6, 3.2], [-3.4, 1.6, 2.2]], [[5.4, 1.6, 3.4], [5.0, 1.6, -2.3]]],
   },
-  // arched bridge, 3.16 × 8 m; deck 0.9 m up at the ends, 1.47 m in the middle
-  jambatan: { url: '/models/jambatan_kayu.glb', size: [3.16, 8], deck: { end: 0.95, mid: 1.47 } },
+  // arched bridge, 3.16 × 8 m; plank tops 1.03 m up at the ends, 1.55 m mid-span.
+  // It is sunk `sink` m into the ground so the ends meet the road.
+  jambatan: { url: '/models/jambatan_kayu.glb', size: [3.16, 8], deck: { end: 1.03, mid: 1.55 }, sink: 0.78 },
   // stepped rocks with water, 7.4 × 5.8 m, water spilling towards +z
   airTerjun: { url: '/models/air_terjun_batu.glb' },
   sampan: { url: '/models/sampan.glb' },

@@ -1,8 +1,8 @@
 /**
- * The kampung is laid out after the illustrated map "Peta Kampung Halaman"
- * (public/peta/peta-kampung.webp, 1536 × 1024). Places are written in that
- * picture's pixel coordinates and converted to world metres here, so the 3D
- * kampung and the Peta screen always agree. +x is east (right on the map),
+ * The kampung is laid out on a 1536 × 1024 "map pixel" grid (after the
+ * original illustrated map). Places are written in map pixels and converted to
+ * world metres here; the Peta screen draws the same grid, so the 3D kampung and
+ * the map always agree. +x is east (right on the map),
  * +z is south (down).
  */
 export const MAP_SIZE = [1536, 1024]

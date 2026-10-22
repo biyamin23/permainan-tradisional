@@ -224,21 +224,21 @@
   "wideOnly": true
  },
  {
-  "name": "96-warung",
+  "name": "97-bridge-riders",
   "camera": {
    "position": [
-    44.9,
-    6,
-    8.5
+    -60,
+    5,
+    5
    ],
    "target": [
-    44.9,
-    1,
-    -1.3
+    -68.8,
+    0.6,
+    -2.2
    ]
   },
-  "hour": 16,
-  "wait": 3000,
+  "hour": 12,
+  "wait": 6000,
   "wideOnly": true
  }
 ]

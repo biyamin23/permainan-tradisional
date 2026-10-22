@@ -1,13 +1,14 @@
-/* Peta Kampung: the illustrated map over the 3D kampung. */
+/* Peta Kampung: the drawn map over the 3D kampung. */
 .peta {
   position: fixed;
   inset: 0;
   z-index: 40;
   display: flex;
   flex-direction: column;
-  padding: max(10px, env(safe-area-inset-top)) 0 max(10px, env(safe-area-inset-bottom));
-  background: rgba(30, 18, 10, 0.88);
-  backdrop-filter: blur(4px);
+  gap: 8px;
+  padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom))
+    max(10px, env(safe-area-inset-left));
+  background: #3b2414;
   font-family: var(--font-body);
   color: #fbf3e2;
   animation: modal-fade 0.25s ease-out both;
@@ -17,20 +18,42 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px 8px;
+  gap: 10px;
+}
+
+/* a wooden signboard */
+.peta__sign {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 16px 7px;
+  border: 2px solid #4a2a14;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #9a6236, #7d4a26);
+  box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.25), 0 3px 0 rgba(0, 0, 0, 0.35);
+  line-height: 1.05;
 }
 
 .peta__title {
-  margin: 0;
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #fff4dc;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.peta__subtitle {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #f5d9a8;
 }
 
 .peta__close {
+  flex: none;
   display: grid;
   place-items: center;
-  width: 46px;
-  height: 46px;
+  width: 48px;
+  height: 48px;
   border: 0;
   border-radius: 50%;
   background: #fbf3e2;
@@ -41,108 +64,227 @@
   cursor: pointer;
 }
 
-.peta__scroll {
+.peta__frame {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
+  border: 4px solid #7d4a26;
+  border-radius: 16px;
+  background: #a9cc62;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 2px #c08a52;
+}
+
+.peta__scroll {
+  position: absolute;
+  inset: 0;
+  display: flex;
   overflow: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  scrollbar-width: none;
+  cursor: grab;
 }
 
-/* the picture fills the height; on a phone you scroll sideways */
+.peta__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.peta__scroll.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
 .peta__map {
   position: relative;
-  height: 100%;
-  min-height: 300px;
-  aspect-ratio: 1536 / 1024;
-  margin: 0 auto;
+  flex: none;
+  margin: auto;
 }
 
-@media (min-aspect-ratio: 3/2) {
-  .peta__map {
-    height: auto;
-    width: 100%;
-  }
-}
-
-.peta__map img {
+.peta-art {
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 10px;
   user-select: none;
-  -webkit-user-drag: none;
 }
 
-/* invisible tap target over each pin drawn in the picture */
+.peta-art__label {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-anchor: middle;
+  fill: #4a2c14;
+  stroke: #fbf3e2;
+  stroke-width: 5px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+}
+
+.peta-art__label--water {
+  fill: #f2fbff;
+  stroke: #2f7fa3;
+  stroke-width: 3.5px;
+  dominant-baseline: middle;
+}
+
+.peta-art__label--road {
+  fill: #6b4223;
+  stroke: #ebc88f;
+  stroke-width: 3px;
+  dominant-baseline: middle;
+}
+
+.peta-art__sign {
+  font-family: var(--font-body);
+  font-size: 9px;
+  font-weight: 900;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  fill: #fff4dc;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- game pins */
 .peta__pin {
   position: absolute;
-  width: 46px;
-  height: 46px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
   padding: 0;
-  border: 3px solid transparent;
-  border-radius: 50%;
-  background: transparent;
-  transform: translate(-50%, -50%);
+  border: 0;
+  background: none;
+  transform: translate(-50%, -100%);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  z-index: 1;
 }
 
-.peta__pin.is-open {
-  border-color: rgba(255, 212, 94, 0.9);
-  box-shadow: 0 0 14px 4px rgba(255, 212, 94, 0.6);
-  animation: peta-glow 1.6s ease-in-out infinite;
-}
-
-.peta__pin.is-selected {
-  border-color: #fff;
-  box-shadow: 0 0 0 4px rgba(63, 155, 79, 0.9);
-  animation: none;
-}
-
-/* a game the picture doesn't show gets its own pin */
-.peta__pin.is-drawn {
+.peta__pin-head {
+  position: relative;
+  display: grid;
+  place-items: center;
   width: 34px;
   height: 34px;
   border: 3px solid #fff;
-  background: #2f5fa8;
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
-}
-
-.peta__pin-num {
-  font-weight: 900;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--c);
   color: #fff;
+  font-weight: 900;
+  font-size: 0.95rem;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+  order: 0;
 }
 
-@keyframes peta-glow {
+/* keep the number upright inside the rotated drop */
+.peta__pin-head > span {
+  transform: rotate(45deg);
+}
+
+.peta__pin-name {
+  order: -1;
+  max-width: 120px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(251, 243, 226, 0.95);
+  color: #3b2414;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1.25;
+  white-space: nowrap;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.peta__pin:not(.is-open) .peta__pin-head {
+  filter: saturate(0.55) brightness(0.95);
+}
+
+.peta__pin.is-open .peta__pin-name {
+  background: #ffd45e;
+}
+
+.peta__pin.is-open .peta__pin-head {
+  animation: peta-bob 1.6s ease-in-out infinite;
+}
+
+.peta__pin.is-open {
+  z-index: 2;
+}
+
+.peta__pin.is-selected {
+  z-index: 3;
+}
+
+.peta__pin.is-selected .peta__pin-head {
+  width: 42px;
+  height: 42px;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.55), 0 4px 0 rgba(0, 0, 0, 0.3);
+  animation: none;
+}
+
+.peta__pin.is-selected .peta__pin-name {
+  background: #3b2414;
+  color: #fff4dc;
+}
+
+@keyframes peta-bob {
   50% {
-    box-shadow: 0 0 4px 1px rgba(255, 212, 94, 0.3);
+    translate: 0 -4px;
   }
 }
 
+/* ---------- you are here */
 .peta__me {
   position: absolute;
-  width: 18px;
-  height: 18px;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.peta__me-dot {
+  position: absolute;
+  left: -10px;
+  top: -10px;
+  width: 20px;
+  height: 20px;
   border: 3px solid #fff;
   border-radius: 50%;
   background: #e2622b;
-  transform: translate(-50%, -50%);
   box-shadow: 0 0 0 6px rgba(226, 98, 43, 0.35);
-  pointer-events: none;
   animation: peta-me 1.4s ease-in-out infinite;
+}
+
+.peta__me-arrow {
+  position: absolute;
+  left: -14px;
+  top: -14px;
+  width: 28px;
+  height: 28px;
+}
+
+.peta__me-arrow::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -14px;
+  border: 9px solid transparent;
+  border-bottom: 16px solid #e2622b;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 1px 0 #fff);
 }
 
 .peta__me-label {
   position: absolute;
-  left: 50%;
-  bottom: calc(100% + 6px);
+  left: 0;
+  top: 16px;
   transform: translateX(-50%);
-  padding: 2px 8px;
+  padding: 1px 8px;
   border-radius: 999px;
   background: #e2622b;
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 900;
   white-space: nowrap;
 }
@@ -153,25 +295,63 @@
   }
 }
 
-.peta__sheet {
-  padding: 10px 12px 0;
+/* ---------- zoom */
+.peta__zoom {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 4;
 }
 
-.peta__hint {
-  margin: 0 0 8px;
-  font-weight: 700;
-  color: rgba(251, 243, 226, 0.8);
+.peta__zoom button {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 2px solid #7d4a26;
+  border-radius: 14px;
+  background: #fbf3e2;
+  color: #3b2414;
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.peta__zoom button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ---------- bottom sheet */
+.peta__sheet {
+  flex: none;
 }
 
 .peta__card {
+  box-sizing: border-box;
+  min-height: 66px;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   padding: 8px 8px 8px 10px;
   border-radius: 18px;
   background: #fbf3e2;
   color: #3b2414;
+}
+
+/* same height as a game card, so the map doesn't jump when you pick one */
+.peta__card--hint {
+  padding: 8px 14px;
+  background: rgba(251, 243, 226, 0.12);
+  color: rgba(251, 243, 226, 0.88);
+  font-weight: 800;
 }
 
 .peta__num,
@@ -179,13 +359,14 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border: 3px solid #fff;
   border-radius: 50%;
   background: var(--c);
   color: #fff;
   font-weight: 900;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
 }
 
 .peta__info {
@@ -202,12 +383,16 @@
 
 .peta__info small {
   font-weight: 700;
-  color: rgba(59, 36, 20, 0.7);
+  color: rgba(59, 36, 20, 0.72);
+}
+
+.peta__ok {
+  color: #2c7a3b;
 }
 
 .peta__go {
   flex: none;
-  min-height: 48px;
+  min-height: 50px;
   padding: 0 1rem;
   border: 0;
   border-radius: 14px;
@@ -229,8 +414,13 @@
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
+  scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+}
+
+.peta__list::-webkit-scrollbar {
+  display: none;
 }
 
 .peta__chip {
@@ -264,4 +454,45 @@
 .peta__chip.is-selected {
   background: #fbf3e2;
   color: #3b2414;
+}
+
+/* landscape: the list sits beside the map */
+@media (min-aspect-ratio: 4/3) {
+  .peta {
+    display: grid;
+    grid-template-columns: 1fr minmax(260px, 34%);
+    grid-template-rows: auto 1fr;
+  }
+  .peta__head {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .peta__frame {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+  .peta__sheet {
+    grid-column: 2;
+    grid-row: 2;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .peta__list {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .peta__card {
+    flex-wrap: wrap;
+  }
+  .peta__info {
+    flex-basis: calc(100% - 60px);
+  }
+  .peta__go {
+    flex: 1 1 100%;
+  }
+}
+
+/* a small map: only open games and the one you picked keep their name tag */
+.peta__map.is-small .peta__pin:not(.is-open):not(.is-selected) .peta__pin-name {
+  display: none;
 }

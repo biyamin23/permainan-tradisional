@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { CuboidCollider, RigidBody } from '@react-three/rapier'
 import { Object3D } from 'three'
-import { BRIDGES, RIVERS, WATERFALL } from '../../data/kampungLayout'
+import { BRIDGES, BRIDGE_RAMP, RIVERS, WATERFALL, bridgeDeckY } from '../../data/kampungLayout'
 import { PartsBundle } from './InstancedParts'
 import { GEO, MAT, createRandom, part, pick, randomBetween } from './kit'
 import { MODELS } from '../../data/models'
@@ -153,25 +153,29 @@ function buildBridgeParts(b) {
   return { box, cylinder }
 }
 
-// The GLB bridge is arched (deck 0.95 m up at the ends, 1.47 m mid-span), so it
-// is sunk a little and walked over on two gentle ramps.
-const GLB_SINK = 0.78
+// The GLB bridge is arched, so it is sunk a little and its deck colliders follow
+// the arch (bridgeDeckY) with a short ramp at each end.
+const GLB_SINK = MODELS.jambatan.sink
 
 function Bridge({ bridge }) {
   const parts = useMemo(() => buildBridgeParts(bridge), [bridge])
   const rail = bridge.width / 2 + 0.2
   const glb = MODELS.jambatan.url
-  const ramps = useMemo(() => {
-    if (!glb) return null
-    const run = bridge.length / 2 + 0.7
-    const rise = MODELS.jambatan.deck.mid - GLB_SINK
-    const angle = Math.atan2(rise, run)
-    const half = Math.hypot(run, rise) / 2
-    return [1, -1].map((side) => ({
-      position: [0, rise / 2 - 0.05, (side * run) / 2],
-      rotation: [side * angle, 0, 0],
-      half: [bridge.width / 2, 0.05, half],
-    }))
+  // the deck as a chain of planks that follow the arch, so feet stay on it
+  const deck = useMemo(() => {
+    const reach = bridge.length / 2 + BRIDGE_RAMP
+    const n = glb ? 12 : 1
+    const out = []
+    for (let i = 0; i < n; i++) {
+      const a0 = -reach + (i / n) * reach * 2
+      const a1 = -reach + ((i + 1) / n) * reach * 2
+      const y0 = glb ? bridgeDeckY(bridge, a0) : 0.12
+      const y1 = glb ? bridgeDeckY(bridge, a1) : 0.12
+      const angle = Math.atan2(y1 - y0, a1 - a0)
+      const half = Math.hypot(a1 - a0, y1 - y0) / 2 + 0.02
+      out.push({ position: [0, (y0 + y1) / 2 - 0.06, (a0 + a1) / 2], rotation: [-angle, 0, 0], half: [bridge.width / 2, 0.06, half] })
+    }
+    return out
   }, [bridge, glb])
 
   return (
@@ -183,11 +187,9 @@ function Bridge({ bridge }) {
         fallback={<PartsBundle bundle={parts} />}
       />
       <RigidBody type="fixed" colliders={false}>
-        {ramps ? (
-          ramps.map((r, i) => <CuboidCollider key={i} args={r.half} position={r.position} rotation={r.rotation} />)
-        ) : (
-          <CuboidCollider args={[bridge.width / 2, 0.05, bridge.length / 2]} position={[0, 0.07, 0]} />
-        )}
+        {deck.map((r, i) => (
+          <CuboidCollider key={i} args={r.half} position={r.position} rotation={r.rotation} />
+        ))}
         <CuboidCollider args={[0.1, 1.2, bridge.length / 2]} position={[-rail, 0.9, 0]} />
         <CuboidCollider args={[0.1, 1.2, bridge.length / 2]} position={[rail, 0.9, 0]} />
       </RigidBody>
