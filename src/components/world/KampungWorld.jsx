@@ -34,6 +34,9 @@ preloadModels([
   MODELS.sekolah.url,
   MODELS.jambatan.url,
   MODELS.airTerjun.url,
+  MODELS.raga.url,
+  MODELS.bangku.url,
+  MODELS.lampuPadang.url,
   MODELS.sampan.url,
   MODELS.basikal.url,
   MODELS.kelapa.url,
@@ -45,7 +48,7 @@ import { Water } from './Water'
  * The explorable 3D kampung. Everything here is built from primitives —
  * no models, textures or image files.
  */
-export function KampungWorld({ gender, controlsEnabled }) {
+export function KampungWorld({ gender, controlsEnabled, paused = false }) {
   useEffect(() => {
     resetWorldRuntime()
     resetClock()
@@ -55,6 +58,7 @@ export function KampungWorld({ gender, controlsEnabled }) {
   return (
     <Canvas
       className="kampung-canvas"
+      frameloop={paused ? 'never' : 'always'}
       shadows
       dpr={[1, 1.75]}
       camera={{ fov: 50, near: 0.1, far: 700, position: [6, 16, 52] }}
@@ -64,7 +68,7 @@ export function KampungWorld({ gender, controlsEnabled }) {
       <Lighting />
 
       <Suspense fallback={null}>
-        <Physics gravity={[0, -20, 0]}>
+        <Physics gravity={[0, -20, 0]} paused={paused}>
           <KampungEnvironment />
           <Water />
           <House position={HOUSE.position} rotationY={HOUSE.rotationY} variant="tokwan" />

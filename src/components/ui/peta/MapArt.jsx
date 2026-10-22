@@ -25,6 +25,7 @@ import {
   YARD_FENCE,
   toMap,
 } from '../../../data/kampungLayout'
+import { games } from '../../../data/games'
 import { treeLayout } from '../../world/Trees'
 import { SAMPAN } from '../../world/Props'
 
@@ -182,15 +183,17 @@ function Ground() {
   )
 }
 
+/** Sepak raga: the 6 m circle with the 2 m circle inside, on bare earth. */
 function SepakCourt() {
   const r = rect(PADANG_SEPAK)
-  const inset = 18
+  const spot = games.find((g) => g.id === 'sepak-raga').spot.position
+  const [cx, cy] = m(spot[0], spot[1])
   return (
     <g>
       <rect {...r} rx="16" fill="#b2d36d" />
-      <rect x={r.x + inset} y={r.y + inset} width={r.width - inset * 2} height={r.height - inset * 2} fill="none" stroke="#f6f3e6" strokeWidth="3" />
-      <line x1={r.x + r.width / 2} y1={r.y + inset - 6} x2={r.x + r.width / 2} y2={r.y + r.height - inset + 6} stroke="#5a4a3a" strokeWidth="4" />
-      <line x1={r.x + r.width / 2} y1={r.y + inset} x2={r.x + r.width / 2} y2={r.y + r.height - inset} stroke="#f6f3e6" strokeWidth="1.5" strokeDasharray="3 3" />
+      <circle cx={cx} cy={cy} r={4.1 * K} fill="#d6b27a" />
+      <circle cx={cx} cy={cy} r={3 * K} fill="none" stroke="#f6f3e6" strokeWidth="3" />
+      <circle cx={cx} cy={cy} r={1 * K} fill="none" stroke="#f6f3e6" strokeWidth="2.5" />
     </g>
   )
 }

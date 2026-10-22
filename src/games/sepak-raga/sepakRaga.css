@@ -1,0 +1,238 @@
+/* Sepak Raga: the 3D padang fills the screen; cards on top, buttons at the bottom. */
+.sr {
+  background: #bfe3ee;
+}
+
+.sr-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  touch-action: manipulation;
+}
+
+.sr-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* keeps the "what happened" message up near the top of the circle */
+.sr-board {
+  width: min(92vw, 520px);
+  height: 38dvh;
+  pointer-events: none;
+}
+
+.sr .gs-bottom {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.sr .gs-next {
+  align-self: center;
+}
+
+/* ---------- round, time and the rally count */
+.sr-status {
+  position: absolute;
+  left: 50%;
+  top: calc(max(10px, env(safe-area-inset-top)) + 70px);
+  z-index: 3;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 4px 12px;
+  border-radius: 999px;
+  background: rgba(251, 243, 226, 0.92);
+  font-size: 0.82rem;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 3px 0 rgba(60, 30, 10, 0.25);
+  pointer-events: none;
+}
+
+.sr-clock {
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-clock.is-low {
+  color: var(--bad);
+}
+
+.sr-count {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.sr-count b {
+  font-size: 1.05rem;
+}
+
+/* ---------- your buttons */
+.sr-acts {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+}
+
+.sr-act {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 64px;
+  padding: 6px 10px 6px 6px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: left;
+  box-shadow: 0 4px 0 rgba(60, 30, 10, 0.35);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.sr-act:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.sr-act.is-hot:not(:disabled) {
+  background: #fff6d6;
+  box-shadow:
+    0 0 0 3px var(--glow),
+    0 4px 0 rgba(150, 110, 20, 0.55);
+}
+
+.sr-act:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(60, 30, 10, 0.35);
+}
+
+.sr-act__face {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--c);
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 900;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.sr-act__face img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sr-act__num {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--cream);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.sr-act__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--go);
+  color: #fff;
+  font-size: 1.5rem;
+}
+
+.sr-act__text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.sr-act__text strong {
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.sr-act--timang.is-hot:not(:disabled) {
+  background: #e6f6df;
+  box-shadow:
+    0 0 0 3px var(--go),
+    0 4px 0 var(--go-dark);
+}
+
+.sr-skip {
+  min-height: 52px;
+}
+
+/* "Cantik!" for a perfectly timed touch */
+.sr-nice {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 5;
+  margin: 0;
+  padding: 0.3rem 1rem;
+  border-radius: 999px;
+  background: var(--go);
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 900;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: sr-nice 0.9s ease-out both;
+}
+
+@keyframes sr-nice {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -30%) scale(0.7);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -110%) scale(1);
+  }
+}
+
+@media (max-width: 420px) {
+  .sr-act {
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 4px;
+    text-align: center;
+    font-size: 0.78rem;
+  }
+  .sr-act__text {
+    align-items: center;
+  }
+  .sr-status {
+    top: calc(max(10px, env(safe-area-inset-top)) + 64px);
+    font-size: 0.74rem;
+  }
+}

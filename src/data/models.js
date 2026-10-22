@@ -40,4 +40,12 @@ export const MODELS = {
   sampan: { url: '/models/sampan.glb' },
   basikal: { url: '/models/basikal_tua.glb' },
   kelapa: { url: '/models/pokok_kelapa.glb' },
+  // Sepak Raga (url: null = the stand-in until the model files arrive)
+  raga: { url: '/models/bola_raga.glb' }, // bola rotan anyaman, 14 cm across, centred
+  bangku: { url: '/models/bangku_kayu_panjang.glb' }, // 2.87 × 0.39 m, seat 0.45 m up
+  papanMata: { url: null }, // papan mata kayu (the scores are drawn on top)
+  // street lamp, 5.55 m; pole at the origin, the lamp head reaches 5.4 m towards -z
+  lampuPadang: { url: '/models/tiang_lampu_padang.glb' },
+  // picnic table with its benches, 2.15 m square, top 0.76 m up
+  meja: { url: '/models/meja_kayu.glb' },
 }

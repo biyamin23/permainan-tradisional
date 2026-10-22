@@ -32,7 +32,8 @@ export function KampungExperience() {
 
   return (
     <div className={`kampung screen-fade-in ${exploring ? '' : 'is-paused'}`}>
-      <KampungWorld gender={gender} controlsEnabled={exploring} />
+      {/* a game covers the screen: stop drawing the kampung underneath */}
+      <KampungWorld gender={gender} controlsEnabled={exploring} paused={screen === SCREENS.GAME} />
 
       <div className={`kampung__ui ${exploring ? '' : 'is-dimmed'}`}>
         <HUD isTouch={isTouch} />

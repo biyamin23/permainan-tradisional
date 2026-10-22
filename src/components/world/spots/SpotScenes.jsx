@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { CuboidCollider, CylinderCollider, RigidBody } from '@react-three/rapier'
 import { Euler, MathUtils, Quaternion, Vector3 } from 'three'
 import { useNpcBody } from '../../../state/npcBodies'
 import { PersonModel } from '../../character/PersonModel'
@@ -9,8 +10,11 @@ import { Bicycle } from '../npc/Npcs'
 import { part } from '../kit'
 import { HOUSE, ROADS, groundY, pathOf } from '../../../data/kampungLayout'
 import { MODELS } from '../../../data/models'
+import { ModelSlot } from '../ModelSlot'
 import { PartsBundle } from '../InstancedParts'
 import { KedaiKopi } from './KedaiKopi'
+import { PAK_TEAM } from '../../../games/sepak-raga/cast'
+import { RagaBall } from '../../../games/sepak-raga/RagaBall'
 import {
   DirtPatch,
   DirtRect,
@@ -18,7 +22,6 @@ import {
   GroundLine,
   KondaStick,
   MengkuangMat,
-  RattanBall,
   RestingGasing,
   SpinningGasing,
   WauKite,
@@ -112,34 +115,53 @@ export function GasingScene({ game }) {
 }
 
 // ------------------------------------------------------------------ Sepak raga
-const RAGA_KIDS = [0, 1, 2].map((i) => {
-  const a = (i / 3) * Math.PI * 2 + 0.3
-  const x = Math.sin(a) * 1.9
-  const z = Math.cos(a) * 1.9
-  return { x, z, rotationY: faceTowards(-x, -z), seed: 10 + i, girl: i === 1 }
+
+// Geng Pak-pak in the 6 m circle (with the 2 m circle inside), passing the
+// raga across the middle as the rules say: player i to i+2.
+const RAGA_R = 3
+const RAGA_SPOTS = PAK_TEAM.map((_, i) => {
+  const a = (i / 5) * Math.PI * 2
+  return { x: -Math.sin(a) * RAGA_R, z: Math.cos(a) * RAGA_R }
 })
-const PASS_TIME = 1.15
+const RAGA_STEP = 1.15 // seconds per touch
+
+function PakPlayer({ pak, at, actionRef, phase }) {
+  const body = useRef(null)
+  useNpcBody(body, { radius: 0.32, halfHeight: 0.6 })
+  return (
+    <group ref={body} position={[at.x, 0, at.z]} rotation={[0, Math.atan2(-at.x, -at.z), 0]}>
+      <PersonModel build="adult" look={pak.look} pose="raga" actionRef={actionRef} phase={phase} detail={false} />
+    </group>
+  )
+}
 
 export function SepakRagaScene({ game }) {
   const ball = useRef()
-  const actions = useRef(RAGA_KIDS.map(() => ({ current: { t: -10 } })))
-  const lastIndex = useRef(-1)
+  const actions = useRef(PAK_TEAM.map(() => ({ current: { t: -10, kind: 'sila' } })))
+  const plan = useRef({ step: -1, from: 0, to: 0, pop: false })
 
   useFrame((state) => {
     const t = state.clock.elapsedTime
-    const index = Math.floor(t / PASS_TIME) % 3
-    const p = (t % PASS_TIME) / PASS_TIME
-    if (index !== lastIndex.current) {
-      lastIndex.current = index
-      actions.current[index].current.t = t - 0.2
+    const step = Math.floor(t / RAGA_STEP)
+    const p = (t % RAGA_STEP) / RAGA_STEP
+    const k = plan.current
+    if (step !== k.step) {
+      // each step: the holder either keeps it up (timang) or passes across
+      k.step = step
+      k.from = k.to
+      k.pop = step % 3 === 1
+      k.to = k.pop ? k.from : (k.from + 2 + (step % 2)) % 5
+      const act = actions.current[k.from].current
+      act.t = t
+      act.kind = ['sila', 'kuda', 'lutut', 'kepala'][step % 4]
     }
-    const a = RAGA_KIDS[index]
-    const b = RAGA_KIDS[(index + 1) % 3]
+    const a = RAGA_SPOTS[k.from]
+    const b = RAGA_SPOTS[k.to]
     if (ball.current) {
       ball.current.position.set(
-        MathUtils.lerp(a.x * 0.8, b.x * 0.8, p),
-        0.4 + Math.sin(p * Math.PI) * 2.3,
-        MathUtils.lerp(a.z * 0.8, b.z * 0.8, p),
+        MathUtils.lerp(a.x * 0.84, b.x * 0.84, p),
+        0.55 + Math.sin(p * Math.PI) * (k.pop ? 1.3 : 2.6),
+        MathUtils.lerp(a.z * 0.84, b.z * 0.84, p),
       )
       ball.current.rotation.x = t * 6
       ball.current.rotation.y = t * 4
@@ -148,20 +170,31 @@ export function SepakRagaScene({ game }) {
 
   return (
     <group>
-      <DirtPatch radius={3.1} color="#cfa86e" />
-      {RAGA_KIDS.map((kid, i) => (
-        <Kid
-          key={i}
-          seed={kid.seed}
-          girl={kid.girl}
-          pose="kick"
-          position={[kid.x, 0, kid.z]}
-          rotationY={kid.rotationY}
-          actionRef={actions.current[i]}
-        />
+      <DirtPatch radius={RAGA_R + 1.1} color="#cfa86e" />
+      {[RAGA_R, 1].map((r) => (
+        <mesh key={r} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.035, 0]}>
+          <ringGeometry args={[r - 0.05, r + 0.05, 56]} />
+          <meshBasicMaterial color="#f6f1e2" polygonOffset polygonOffsetFactor={-4} />
+        </mesh>
       ))}
-      <RattanBall ballRef={ball} />
-      <KidBubble game={game} position={[RAGA_KIDS[0].x, 1.9, RAGA_KIDS[0].z]} />
+      {PAK_TEAM.map((pak, i) => (
+        <PakPlayer key={pak.id} pak={pak} at={RAGA_SPOTS[i]} actionRef={actions.current[i]} phase={i * 0.7} />
+      ))}
+      <group ref={ball}>
+        <RagaBall radius={0.1} />
+      </group>
+      {/* a bench for whoever's resting, and a lamp for playing on after Maghrib */}
+      <RigidBody type="fixed" colliders={false} position={[0, 0, RAGA_R + 2.3]}>
+        <CuboidCollider args={[1.43, 0.25, 0.2]} position={[0, 0.25, 0]} />
+        <ModelSlot model={MODELS.bangku} fallback={null} />
+      </RigidBody>
+      <RigidBody type="fixed" colliders={false} position={[RAGA_R + 2.6, 0, -1.5]}>
+        <CylinderCollider args={[1.5, 0.15]} position={[0, 1.5, 0]} />
+      </RigidBody>
+      <group position={[RAGA_R + 2.6, 0, -1.5]} rotation={[0, Math.atan2(RAGA_R + 2.6, -1.5), 0]}>
+        <ModelSlot model={MODELS.lampuPadang} fallback={null} />
+      </group>
+      <KidBubble game={game} position={[RAGA_SPOTS[0].x, 2.5, RAGA_SPOTS[0].z]} />
     </group>
   )
 }

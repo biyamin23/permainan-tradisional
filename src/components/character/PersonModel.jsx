@@ -11,7 +11,8 @@ import { MathUtils, MeshStandardMaterial } from 'three'
  * look:       colours/clothing (see DEFAULT_LOOK)
  * pose:       idle | wave | cheer | sit | sitDangle | sitPlay | sitThink | sitDrink |
  *             crouch | kick | throw | holdUp |
- *             sweep | fish | hop | pull | ride | swing | guard | toss | clap
+ *             sweep | fish | hop | pull | ride | swing | guard | toss | clap |
+ *             raga (sepak raga: actionRef.current.kind = kuda | sila | lutut | kepala | lambung)
  * motionRef:  { current: { speed: 0..1 } } drives the walk cycle
  * actionRef:  { current: { t } } — elapsed time of the last one-shot action
  *             (kick, flick…) so spots can sync props with the animation
@@ -54,12 +55,17 @@ export const DEFAULT_LOOK = {
   bottomType: 'shorts', // shorts | kain | pelikat | seluar
   longTop: false, // baju kurung style top
   hair: '#21140d',
-  hairStyle: 'short', // short | pigtails | none
+  hairStyle: 'short', // short | pigtails | curly | none
   headwear: null, // tudung | kopiah | songkok | cap
   headwearColor: null,
+  capBackward: false,
   slipper: '#2f6fd1',
   accent: '#f2c14e',
-  beard: false,
+  beard: false, // Tok Wan's white beard
+  facialHair: null, // goatee | beard | mustache (mustache + goatee)
+  top: 'tee', // tee | singlet | kemeja (collared shirt) | baju (baju Melayu, cekak musang)
+  mouth: 'line', // line | smile | grin
+  bagStrap: null, // colour of a shoulder-bag strap
 }
 
 const materialCache = new Map()
@@ -75,6 +81,103 @@ function Part({ color, children, shadow = false, ...props }) {
     <mesh castShadow={shadow} material={getMaterial(color)} {...props}>
       {children}
     </mesh>
+  )
+}
+
+/** What shows at the neck for each kind of top. */
+function Neckline({ look, b }) {
+  const y = b.shoulderY + 0.04
+  if (look.top === 'singlet') {
+    return (
+      <>
+        {[-1, 1].map((side) => (
+          <Part key={side} color={look.shirt} position={[side * b.torsoR * 0.55, y - 0.02, 0]} rotation={[0, 0, side * 0.15]}>
+            <boxGeometry args={[0.06, 0.08, b.torsoR * 1.7]} />
+          </Part>
+        ))}
+      </>
+    )
+  }
+  if (look.top === 'kemeja') {
+    return (
+      <>
+        {[-1, 1].map((side) => (
+          <Part key={side} color={look.accent} position={[side * 0.07, y, b.torsoR * 0.62]} rotation={[0.5, side * 0.5, side * 0.6]}>
+            <boxGeometry args={[0.12, 0.025, 0.1]} />
+          </Part>
+        ))}
+        <Part color={look.skin} position={[0, y - 0.04, b.torsoR * 0.84]} rotation={[0.2, 0, Math.PI / 4]}>
+          <boxGeometry args={[0.08, 0.08, 0.02]} />
+        </Part>
+        <Part color={look.accent} position={[0, b.torsoY - 0.02, b.torsoR + 0.005]}>
+          <boxGeometry args={[0.025, b.torsoLen + 0.1, 0.01]} />
+        </Part>
+      </>
+    )
+  }
+  if (look.top === 'baju') {
+    return (
+      <>
+        <Part color={look.shirt} position={[0, y + 0.02, 0.01]}>
+          <cylinderGeometry args={[b.torsoR * 0.5, b.torsoR * 0.56, 0.07, 12, 1, true]} />
+        </Part>
+        {[0, 1, 2].map((i) => (
+          <Part key={i} color={look.accent} position={[0, y - 0.07 - i * 0.075, b.torsoR + 0.01]}>
+            <sphereGeometry args={[0.016, 6, 4]} />
+          </Part>
+        ))}
+      </>
+    )
+  }
+  return (
+    <Part color={look.accent} position={[0, y, 0.05]} rotation={[0.3, 0, 0]}>
+      <torusGeometry args={[b.torsoR * 0.48, 0.022, 5, 10]} />
+    </Part>
+  )
+}
+
+function CurlyHair({ color, r }) {
+  const curls = useMemo(() => {
+    const out = []
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2
+      const up = i % 2 ? 0.55 : 0.75
+      out.push([Math.cos(a) * r * 0.82 * Math.cos(up - 0.4), r * (0.35 + Math.sin(up) * 0.45), Math.sin(a) * r * 0.82 * Math.cos(up - 0.4) - r * 0.08])
+    }
+    for (let i = 0; i < 5; i++) out.push([(i - 2) * r * 0.3, r * 0.9, r * (i % 2 ? 0.1 : -0.2)])
+    return out
+  }, [r])
+  return (
+    <>
+      {curls.map((p, i) => (
+        <Part key={i} color={color} position={p}>
+          <icosahedronGeometry args={[r * 0.3, 0]} />
+        </Part>
+      ))}
+    </>
+  )
+}
+
+function FacialHair({ kind, color, r, s }) {
+  return (
+    <>
+      {(kind === 'goatee' || kind === 'mustache') && (
+        <Part color={color} position={[0, -r * 0.62, r * 0.82]}>
+          <boxGeometry args={[0.07 * s, 0.07 * s, 0.05]} />
+        </Part>
+      )}
+      {(kind === 'mustache' || kind === 'beard') && (
+        <Part color={color} position={[0, -0.065 * s, r * 0.99]}>
+          <boxGeometry args={[0.14 * s, 0.024 * s, 0.03]} />
+        </Part>
+      )}
+      {kind === 'beard' && (
+        // a short beard along the jaw, leaving the smile showing
+        <Part color={color} position={[0, 0, 0]}>
+          <sphereGeometry args={[r * 1.025, 16, 8, Math.PI * 0.08, Math.PI * 0.84, Math.PI * 0.7, Math.PI * 0.22]} />
+        </Part>
+      )}
+    </>
   )
 }
 
@@ -128,6 +231,7 @@ export function PersonModel({
 
     let lL = swing
     let lR = -swing
+    let lRz = 0
     let aLx = -swing * 0.9
     let aRx = swing * 0.9
     let aLz = 0.12
@@ -292,6 +396,42 @@ export function PersonModel({
         aLx = aRx = 0
         lean = 0.1
         break
+      case 'raga': {
+        // ready stance, and the sepak raga touches (synced by actionRef)
+        const kind = actionRef?.current?.kind ?? 'sila'
+        const dur = kind === 'lambung' ? 0.7 : 0.45
+        const k = sinceAction < dur ? Math.sin((sinceAction / dur) * Math.PI) : 0
+        lean = 0.14
+        aLz = 0.55
+        aRz = -0.55
+        aLx = aRx = -0.15
+        lL = lR = -0.12
+        rootY = -0.03 + Math.sin(time * 3) * 0.012
+        bob = breathe
+        if (kind === 'sila') {
+          lR = -0.95 * k
+          lRz = 0.75 * k
+          lL = 0.1 * k
+        } else if (kind === 'kuda') {
+          lR = 1.25 * k
+          lean = 0.14 + 0.35 * k
+          headX = 0.25 * k
+        } else if (kind === 'lutut') {
+          lR = -1.55 * k
+          lean = 0.14 - 0.2 * k
+        } else if (kind === 'kepala') {
+          rootY = 0.22 * k
+          headX = -0.45 + 0.9 * k
+          lean = -0.1 * k
+          lL = lR = -0.25 * k
+        } else if (kind === 'lambung') {
+          aLx = aRx = -0.4 - 2.3 * k
+          aLz = 0.3
+          aRz = -0.3
+          headX = -0.35 * k
+        }
+        break
+      }
       case 'clap': {
         const clapping = time % 4 < 1.6
         aLx = aRx = -1.0
@@ -312,6 +452,7 @@ export function PersonModel({
     }
     lerpRot(legL, 'x', lL)
     lerpRot(legR, 'x', lR)
+    lerpRot(legR, 'z', lRz)
     lerpRot(armL, 'x', aLx)
     lerpRot(armR, 'x', aRx)
     lerpRot(armL, 'z', aLz)
@@ -365,11 +506,14 @@ export function PersonModel({
               <cylinderGeometry args={[b.torsoR * 1.02, b.torsoR * 1.3, b.hip * 0.5, 10]} />
             </Part>
           ) : (
-            look.headwear !== 'tudung' && (
-              <Part color={look.accent} position={[0, b.shoulderY + 0.04, 0.05]} rotation={[0.3, 0, 0]}>
-                <torusGeometry args={[b.torsoR * 0.48, 0.022, 5, 10]} />
+            look.headwear !== 'tudung' && <Neckline look={look} b={b} />
+          )}
+          {look.bagStrap && (
+            <>
+              <Part color={look.bagStrap} position={[0, b.torsoY + 0.02, 0]} rotation={[0, 0, 0.72]}>
+                <torusGeometry args={[b.torsoR * 1.16, 0.022, 4, 14, Math.PI * 2]} />
               </Part>
-            )
+            </>
           )}
 
           {/* Arms (pivot at the shoulder) */}
@@ -378,7 +522,7 @@ export function PersonModel({
             [armR, -1, rightHand],
           ].map(([ref, side, item]) => (
             <group key={side} ref={ref} position={[side * b.shoulderX, b.shoulderY, 0]}>
-              <Part color={look.shirt} position={[0, -(b.armLen / 2 + b.armR * 0.6), 0]}>
+              <Part color={look.top === 'singlet' ? look.skin : look.shirt} position={[0, -(b.armLen / 2 + b.armR * 0.6), 0]}>
                 <capsuleGeometry args={[b.armR, b.armLen, 4, 8]} />
               </Part>
               <Part color={look.skin} position={[0, -handY, 0]}>
@@ -411,6 +555,10 @@ export function PersonModel({
               )
             )}
 
+            {look.hairStyle === 'curly' && look.headwear !== 'tudung' && (
+              <CurlyHair color={look.hair} r={b.headR} />
+            )}
+
             {look.hairStyle === 'pigtails' &&
               look.headwear !== 'tudung' &&
               [-1, 1].map((side) => (
@@ -430,14 +578,14 @@ export function PersonModel({
               </Part>
             )}
             {look.headwear === 'cap' && (
-              <>
+              <group rotation={[0, look.capBackward ? Math.PI : 0, 0]}>
                 <Part color={headwearColor} position={[0, b.headR * 0.42, 0]}>
                   <sphereGeometry args={[b.headR * 1.04, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.42]} />
                 </Part>
                 <Part color={headwearColor} position={[0, b.headR * 0.62, b.headR * 0.95]}>
                   <boxGeometry args={[b.headR * 1.2, 0.025, b.headR * 0.8]} />
                 </Part>
-              </>
+              </group>
             )}
 
             {/* Face */}
@@ -452,9 +600,21 @@ export function PersonModel({
                   <sphereGeometry args={[0.045 * faceScale, 6, 5]} />
                 </Part>
               ))}
-            <Part color="#7a2f24" position={[0, -0.1 * faceScale, b.headR * 0.935]}>
-              <boxGeometry args={[0.07 * faceScale, 0.018, 0.02]} />
-            </Part>
+            {look.mouth === 'line' ? (
+              <Part color="#7a2f24" position={[0, -0.1 * faceScale, b.headR * 0.935]}>
+                <boxGeometry args={[0.07 * faceScale, 0.018, 0.02]} />
+              </Part>
+            ) : (
+              <group position={[0, -0.1 * faceScale, b.headR * 0.91]}>
+                <Part color="#5a1f18">
+                  <boxGeometry args={[0.12 * faceScale, (look.mouth === 'grin' ? 0.05 : 0.035) * faceScale, 0.03]} />
+                </Part>
+                <Part color="#fbf7ef" position={[0, 0.008 * faceScale, 0.012]}>
+                  <boxGeometry args={[0.1 * faceScale, 0.018 * faceScale, 0.02]} />
+                </Part>
+              </group>
+            )}
+            {look.facialHair && <FacialHair kind={look.facialHair} color={look.hair} r={b.headR} s={faceScale} />}
             {look.beard && (
               <Part color="#ece8df" position={[0, -b.headR * 0.78, b.headR * 0.55]}>
                 <sphereGeometry args={[b.headR * 0.42, 8, 6]} />

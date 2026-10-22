@@ -2,7 +2,7 @@ import { GENDERS } from '../../state/playerState'
 import { PersonModel } from './PersonModel'
 
 /** The player's kid, in the two looks chosen at character creation. */
-const LOOKS = {
+export const CHILD_LOOKS = {
   [GENDERS.LELAKI]: {
     shirt: '#2b9aa0',
     bottom: '#4b3a2c',
@@ -23,5 +23,5 @@ const LOOKS = {
 }
 
 export function ChildModel({ gender = GENDERS.LELAKI, motionRef, pose = 'idle' }) {
-  return <PersonModel build="kid" look={LOOKS[gender] ?? LOOKS[GENDERS.LELAKI]} motionRef={motionRef} pose={pose} />
+  return <PersonModel build="kid" look={CHILD_LOOKS[gender] ?? CHILD_LOOKS[GENDERS.LELAKI]} motionRef={motionRef} pose={pose} />
 }
