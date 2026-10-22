@@ -38,9 +38,9 @@ const LEVELS = [
 const RULES = [
   'Setiap pemain ada 12 buah (penutup botol) di petak gelap. Buah kamu yang biru, di bawah.',
   'Buah bergerak satu petak serong ke depan.',
-  'Makan: lompat atas buah lawan yang bersebelahan ke petak kosong di belakangnya. Buah boleh makan ke depan atau ke belakang.',
+  'Makan: lompat ke depan atas buah lawan yang bersebelahan ke petak kosong di belakangnya. Buah biasa tak boleh undur atau makan ke belakang.',
   'Makan itu wajib. Kalau selepas melompat boleh makan lagi, teruskan dalam giliran yang sama.',
-  'Buah yang sampai ke hujung papan naik haji. Haji boleh terbang: gerak dan makan serong sejauh mana pun.',
+  'Buah yang sampai ke hujung papan naik haji. Haji boleh gerak ke depan dan ke belakang, terbang serong sejauh mana pun, dan makan dari jauh.',
   'Kamu menang bila semua buah Pak Tam habis atau dia tak boleh bergerak lagi.',
 ]
 

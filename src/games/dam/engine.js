@@ -3,8 +3,8 @@
  * squares are used. 12 buah each; you start at the bottom and move up.
  *
  * - A buah moves one square diagonally forward.
- * - Makan (capture) by jumping over an enemy buah next to you onto the empty
- *   square behind it. A buah may makan forward or backward.
+ * - Makan (capture) by jumping forward over an enemy buah next to you onto the
+ *   empty square behind it. An ordinary buah never moves or makan backward.
  * - Makan is compulsory. After a jump, keep jumping while you can (one move).
  * - A buah that ends its move on the far row naik haji (becomes a king).
  *   A Haji flies: it moves any distance diagonally, and makan from a distance,
@@ -81,6 +81,7 @@ function captureChains(board, from, side, piece) {
           land = at(r + dr * (k + j), c + dc * (k + j))
         }
       } else {
+        if (dr !== forward(side)) continue // an ordinary buah only makan forward
         const mid = at(r + dr, c + dc)
         const land = at(r + dr * 2, c + dc * 2)
         if (mid < 0 || land < 0) continue
