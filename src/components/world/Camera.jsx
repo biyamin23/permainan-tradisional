@@ -92,6 +92,7 @@ export function CameraRig() {
     if (debug) {
       camera.position.set(...debug.position)
       camera.lookAt(...debug.target)
+      if (state.scene.fog) state.scene.fog.far = 3000
     } else if (worldRuntime.cameraSnap) {
       // just travelled from the map: cut straight to the new spot
       worldRuntime.cameraSnap = false

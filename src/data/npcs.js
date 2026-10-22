@@ -1,4 +1,7 @@
-import { HOUSE } from './kampungLayout'
+import { HOUSE, px } from './kampungLayout'
+
+const [kiahX, kiahZ] = px(612, 432)
+const [abuX, abuZ] = px(430, 566)
 
 /**
  * Kampung folk. Kids playing at the game spots are defined with each spot
@@ -52,9 +55,9 @@ export const NPCS = [
     },
     pose: 'sweep',
     hand: 'broom',
-    position: [-7.4, 0, 7.4],
+    position: [kiahX, 0, kiahZ],
     rotationY: -0.6,
-    zone: { position: [-7.4, 7.4], radius: 2.6 },
+    zone: { position: [kiahX, kiahZ], radius: 2.6 },
     lines: [
       'Nak ke mana tu? Main elok-elok, jangan bergaduh.',
       'Mak Cik baru goreng kuih. Nanti singgah, ya!',
@@ -78,9 +81,10 @@ export const NPCS = [
     pose: 'fish',
     hand: 'rod',
     stool: true,
-    position: [-20, 0, -22.6],
+    // on the south bank of the sungai, rod over the water
+    position: [abuX, 0, abuZ],
     rotationY: Math.PI,
-    zone: { position: [-20, -21.6], radius: 2.8 },
+    zone: { position: [abuX, abuZ + 1], radius: 2.8 },
     lines: [
       'Syhh… nanti ikan lari.',
       'Petang ni dah dapat tiga ekor ikan keli.',
@@ -102,7 +106,6 @@ export const CYCLIST = {
     hair: '#2a1d16',
     slipper: '#2a2a2a',
   },
-  road: { x: 0.7, zFrom: 46, zTo: -70 },
   speed: 3.4,
   bubble: ['Kring! Kring!', 'Tumpang lalu!', 'Nak ke kedai sekejap!'],
 }

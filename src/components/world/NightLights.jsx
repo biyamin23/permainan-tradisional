@@ -2,8 +2,7 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { CylinderCollider, RigidBody } from '@react-three/rapier'
 import { DoubleSide } from 'three'
-import { HOUSE } from '../../data/kampungLayout'
-import { getGameById } from '../../data/games'
+import { HOUSE, ROADS } from '../../data/kampungLayout'
 import { clock } from '../../state/timeOfDay'
 import { worldRuntime } from '../../state/worldRuntime'
 import { MAT } from './kit'
@@ -14,14 +13,32 @@ import { MAT } from './kit'
  * driven by the day–night cycle; only three real point lights are used so
  * phones stay fast.
  */
-const POSTS = [34, 12, -2, -16, -36, -54].map((z) => [2.5, z])
+// wooden lamp posts every ~24 m along the main road, on its left-hand edge
+const POSTS = (() => {
+  const road = ROADS[0]
+  const out = []
+  let along = 0
+  let next = 8
+  for (let i = 0; i < road.points.length - 1; i++) {
+    const [ax, az] = road.points[i]
+    const [bx, bz] = road.points[i + 1]
+    const len = Math.hypot(bx - ax, bz - az)
+    const dx = (bx - ax) / len
+    const dz = (bz - az) / len
+    const off = road.width / 2 + 0.9
+    while (next < along + len) {
+      const t = next - along
+      out.push([ax + dx * t + dz * off, az + dz * t - dx * off])
+      next += 24
+    }
+    along += len
+  }
+  return out
+})()
 
-const congkak = getGameById('congkak')
 const LAMPS = [
   // Tok Wan's porch post
   { position: [HOUSE.position[0] + 2.7, 3.0, HOUSE.position[2] + 6.05], light: true },
-  // the congkak wakaf
-  { position: [congkak.spot.position[0], 2.45, congkak.spot.position[1]], light: true },
 ]
 
 function LampPost({ x, z }) {
@@ -98,7 +115,7 @@ export function NightLights() {
   return (
     <group>
       {POSTS.map(([x, z]) => (
-        <LampPost key={z} x={x} z={z} />
+        <LampPost key={`${x},${z}`} x={x} z={z} />
       ))}
       {LAMPS.map((lamp) => (
         <Pelita key={lamp.position.join()} position={lamp.position} light={lamp.light} />
@@ -106,7 +123,7 @@ export function NightLights() {
       <NearestPostLight />
       <RigidBody type="fixed" colliders={false}>
         {POSTS.map(([x, z]) => (
-          <CylinderCollider key={z} args={[1.9, 0.12]} position={[x, 1.9, z]} />
+          <CylinderCollider key={`${x},${z}`} args={[1.9, 0.12]} position={[x, 1.9, z]} />
         ))}
       </RigidBody>
     </group>

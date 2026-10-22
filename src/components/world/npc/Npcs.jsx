@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { MathUtils } from 'three'
-import { BRIDGE } from '../../../data/kampungLayout'
+import { ROADS, isOnBridge } from '../../../data/kampungLayout'
 import { CYCLIST, NPCS } from '../../../data/npcs'
 import { useNpcBody } from '../../../state/npcBodies'
 import { worldRuntime } from '../../../state/worldRuntime'
@@ -95,7 +95,7 @@ function Bar({ from, to, r = 0.025, color = '#2f6a8a' }) {
   )
 }
 
-function Bicycle({ frontWheel, rearWheel }) {
+export function Bicycle({ frontWheel, rearWheel }) {
   return (
     <group>
       <Wheel wheelRef={rearWheel} z={-0.55} />
@@ -128,53 +128,77 @@ function Bicycle({ frontWheel, rearWheel }) {
   )
 }
 
-/** Pak Mat cycling up and down the main road, across the bridge. */
+// Pak Mat's route: the main road, from the west end to the warung and back
+const ROUTE = (() => {
+  const points = ROADS[0].points
+  const segs = []
+  let total = 0
+  for (let i = 0; i < points.length - 1; i++) {
+    const [ax, az] = points[i]
+    const [bx, bz] = points[i + 1]
+    const len = Math.hypot(bx - ax, bz - az)
+    segs.push({ ax, az, dx: (bx - ax) / len, dz: (bz - az) / len, start: total, len })
+    total += len
+  }
+  return { segs, total }
+})()
+const ROUTE_FROM = 6
+const ROUTE_TO = ROUTE.total - 18
+
+function routeAt(d) {
+  const seg = ROUTE.segs.find((s) => d <= s.start + s.len) ?? ROUTE.segs[ROUTE.segs.length - 1]
+  const t = d - seg.start
+  return { x: seg.ax + seg.dx * t, z: seg.az + seg.dz * t, dx: seg.dx, dz: seg.dz }
+}
+
+/** Pak Mat cycling along the main road and back, keeping to his left. */
 function Cyclist() {
   const rig = useRef()
   const frontWheel = useRef()
   const rearWheel = useRef()
   const motion = useRef({ speed: 0.6 })
   useNpcBody(rig, { radius: 0.45, halfHeight: 0.5 })
-  const state = useRef({ z: CYCLIST.road.zFrom, dir: -1, pause: 0, heading: Math.PI, x: -CYCLIST.road.x })
+  const state = useRef({ d: ROUTE_FROM, dir: 1, pause: 0, heading: 0, lane: 0.8 })
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05)
     const s = state.current
-    const { zFrom, zTo, x: laneX } = CYCLIST.road
     let speed = CYCLIST.speed
     if (s.pause > 0) {
       s.pause -= dt
       speed = 0
       if (s.pause <= 0) s.dir *= -1
     } else {
-      s.z += s.dir * speed * dt
-      if ((s.dir < 0 && s.z <= zTo) || (s.dir > 0 && s.z >= zFrom)) {
-        s.z = MathUtils.clamp(s.z, zTo, zFrom)
+      s.d += s.dir * speed * dt
+      if ((s.dir > 0 && s.d >= ROUTE_TO) || (s.dir < 0 && s.d <= ROUTE_FROM)) {
+        s.d = MathUtils.clamp(s.d, ROUTE_FROM, ROUTE_TO)
         s.pause = 2.5
       }
     }
-    // keep left: heading -z rides on -x, heading +z rides on +x
-    const targetX = s.dir < 0 ? -laneX : laneX
-    s.x = MathUtils.lerp(s.x, targetX, 1 - Math.exp(-1.5 * dt))
+    const p = routeAt(s.d)
+    // keep left of the direction of travel
+    const side = s.dir > 0 ? -1 : 1
+    s.lane = MathUtils.lerp(s.lane, side * 0.8, 1 - Math.exp(-1.5 * dt))
+    const x = p.x + p.dz * s.lane
+    const z = p.z - p.dx * s.lane
     const turning = s.pause > 0 && s.pause < 1.2
-    const facingMinusZ = turning ? s.dir > 0 : s.dir < 0
-    const targetHeading = facingMinusZ ? Math.PI : 0
+    const forward = turning ? -s.dir : s.dir
+    const targetHeading = Math.atan2(p.dx * forward, p.dz * forward)
     let diff = targetHeading - s.heading
     while (diff > Math.PI) diff -= Math.PI * 2
     while (diff < -Math.PI) diff += Math.PI * 2
     s.heading += diff * (1 - Math.exp(-3 * dt))
-    const onBridge = Math.abs(s.z - BRIDGE.z) < BRIDGE.length / 2 && Math.abs(s.x - BRIDGE.x) < BRIDGE.width / 2
-    const y = onBridge ? 0.1 : 0
+    const y = isOnBridge(x, z) ? 0.12 : 0
 
     if (rig.current) {
-      rig.current.position.set(s.x, MathUtils.lerp(rig.current.position.y, y, 0.2), s.z)
+      rig.current.position.set(x, MathUtils.lerp(rig.current.position.y, y, 0.2), z)
       rig.current.rotation.y = s.heading
     }
     const spin = (speed / 0.32) * dt
     if (frontWheel.current) frontWheel.current.rotation.x += spin
     if (rearWheel.current) rearWheel.current.rotation.x += spin
     motion.current.speed = speed > 0 ? 0.6 : 0
-    worldRuntime.npc.bike.set(s.x, 0, s.z)
+    worldRuntime.npc.bike.set(x, 0, z)
     worldRuntime.npc.bikeMoving = speed > 0
   })
 

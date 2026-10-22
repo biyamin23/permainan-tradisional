@@ -45,7 +45,8 @@ function buildSawah() {
       if (isOnRoad(x, z, 1)) continue
       if ((x - px) ** 2 + (z - pz) ** 2 < 16) continue
       if ((x - SCARECROW.position[0]) ** 2 + (z - SCARECROW.position[2]) ** 2 < 2.5) continue
-      if (Math.abs(((z - SAWAH.zMax) % 8) + 8) % 8 < 0.7) continue // batas paths
+      if (Math.abs(((z - SAWAH.zMax) % 4.5) + 4.5) % 4.5 < 0.7) continue // batas paths
+      if (Math.abs(((x - SAWAH.xMin) % 11) + 11) % 11 < 0.7) continue
       const jx = x + randomBetween(random, -0.2, 0.2)
       const jz = z + randomBetween(random, -0.2, 0.2)
       const h = randomBetween(random, 0.75, 1.05)
@@ -54,10 +55,11 @@ function buildSawah() {
   }
   // batas (bunds) between plots
   const width = SAWAH.xMax - SAWAH.xMin
-  for (let z = SAWAH.zMax; z >= SAWAH.zMin; z -= 8) {
-    for (const [x0, x1] of [[SAWAH.xMin, -2.2], [2.2, SAWAH.xMax]]) {
-      box.push(part([(x0 + x1) / 2, 0.06, z + 0.35], [x1 - x0, 0.14, 0.55], [0, 0, 0], '#8f7a45'))
-    }
+  for (let z = SAWAH.zMax; z >= SAWAH.zMin; z -= 4.5) {
+    box.push(part([(SAWAH.xMin + SAWAH.xMax) / 2, 0.06, z + 0.35], [width, 0.14, 0.55], [0, 0, 0], '#8f7a45'))
+  }
+  for (let x = SAWAH.xMin; x <= SAWAH.xMax; x += 11) {
+    box.push(part([x + 0.35, 0.06, (SAWAH.zMin + SAWAH.zMax) / 2], [0.55, 0.14, SAWAH.zMax - SAWAH.zMin], [0, 0, 0], '#8f7a45'))
   }
   box.push(part([SAWAH.xMin, 0.06, (SAWAH.zMin + SAWAH.zMax) / 2], [0.55, 0.14, SAWAH.zMax - SAWAH.zMin], [0, 0, 0], '#8f7a45'))
   box.push(part([SAWAH.xMax, 0.06, (SAWAH.zMin + SAWAH.zMax) / 2], [0.55, 0.14, SAWAH.zMax - SAWAH.zMin], [0, 0, 0], '#8f7a45'))
@@ -97,7 +99,7 @@ export function Fields() {
       <RigidBody type="fixed" colliders={false}>
         <CylinderCollider args={[1, 0.25]} position={[SCARECROW.position[0], 1, SCARECROW.position[2]]} />
       </RigidBody>
-      <Wakaf position={PONDOK_SAWAH.position} rotationY={Math.PI / 2} roof="#9b7a4a" />
+      <Wakaf position={PONDOK_SAWAH.position} rotationY={-Math.PI / 2} roof="#9b7a4a" />
     </group>
   )
 }

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { CapsuleCollider, RigidBody } from '@react-three/rapier'
 import { sfx } from '../../audio/engine'
-import { BRIDGE, SPAWN, isOnRoad } from '../../data/kampungLayout'
+import { SPAWN, isOnBridge, isOnRoad } from '../../data/kampungLayout'
 import { getMoveInput } from '../../state/input'
 import { worldRuntime } from '../../state/worldRuntime'
 import { ChildModel } from '../character/ChildModel'
@@ -14,7 +14,7 @@ const ACCELERATION = 12
 const TURN_SPEED = 12
 
 function surfaceAt(x, z) {
-  if (Math.abs(x - BRIDGE.x) < BRIDGE.width / 2 && Math.abs(z - BRIDGE.z) < BRIDGE.length / 2) return 'wood'
+  if (isOnBridge(x, z)) return 'wood'
   if (isOnRoad(x, z)) return 'dirt'
   return 'grass'
 }

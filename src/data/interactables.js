@@ -1,5 +1,5 @@
 import { games, isGameAvailable } from './games'
-import { BRIDGE, POND, SAWAH, SCARECROW } from './kampungLayout'
+import { BRIDGES, POND, SAWAH, SCARECROW } from './kampungLayout'
 import { NPCS } from './npcs'
 
 /**
@@ -50,19 +50,19 @@ const npcZones = NPCS.map((npc) => ({
 
 const placeZones = [
   {
-    id: 'kolam',
-    label: 'Kolam',
+    id: 'sungai',
+    label: 'Tepi Sungai',
     prompt: 'Tekan E untuk berinteraksi',
     position: POND.center,
     radius: POND.radius + 2.6,
     action: INTERACTION_ACTIONS.MESSAGE,
-    message: 'Airnya tenang. Itik berenang di celah teratai.',
+    message: 'Air sungai mengalir tenang. Itik berenang di selekoh sungai.',
   },
   {
     id: 'jambatan',
     label: 'Jambatan Kayu',
     prompt: 'Tekan E untuk berinteraksi',
-    position: [BRIDGE.x, BRIDGE.z],
+    position: [BRIDGES[0].x, BRIDGES[0].z],
     radius: 4,
     action: INTERACTION_ACTIONS.MESSAGE,
     message: 'Dulu-dulu, dari sinilah budak-budak kampung terjun ke sungai.',
@@ -71,7 +71,7 @@ const placeZones = [
     id: 'sawah',
     label: 'Sawah Padi',
     prompt: 'Tekan E untuk berinteraksi',
-    position: [1.8, SAWAH.zMax - 4],
+    position: [SAWAH.xMax - 4, SAWAH.zMax + 1],
     radius: 3.5,
     action: INTERACTION_ACTIONS.MESSAGE,
     message: 'Padi dah menguning. Angin petang bawa bau sawah yang wangi.',

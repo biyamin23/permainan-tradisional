@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { startAmbience, stopAmbience, updateAmbience } from '../../audio/engine'
-import { POND, STREAM } from '../../data/kampungLayout'
+import { POND, distanceToRiver } from '../../data/kampungLayout'
 import { clock } from '../../state/timeOfDay'
 import { worldRuntime } from '../../state/worldRuntime'
 
@@ -26,7 +26,7 @@ export function AudioDriver() {
       if (d < nearestChicken) nearestChicken = d
     }
     updateAmbience({
-      stream: Math.max(0, Math.abs(p.z - STREAM.z) - STREAM.width / 2),
+      stream: Math.max(0, distanceToRiver(p.x, p.z)),
       pond: Math.max(0, Math.hypot(p.x - POND.center[0], p.z - POND.center[1]) - POND.radius),
       chickens: nearestChicken,
       bike: Math.hypot(bike.x - p.x, bike.z - p.z),

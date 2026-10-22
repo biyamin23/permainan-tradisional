@@ -1,6 +1,227 @@
 [
-  { "name": "00-overview", "camera": { "position": [0, 150, 30], "target": [0, 0, 0] }, "hour": 12, "wait": 4000, "wideOnly": true },
-  { "name": "01-spawn", "at": [0, 24], "yaw": 0, "hour": 16 },
-  { "name": "02-congkak", "at": [25, -8], "yaw": 0, "hour": 16 },
-  { "name": "03-dam", "at": [3, 15], "yaw": 1.57, "hour": 16 }
+ {
+  "name": "00-overview",
+  "camera": {
+   "position": [
+    0,
+    175,
+    40
+   ],
+   "target": [
+    0,
+    0,
+    2
+   ]
+  },
+  "hour": 13,
+  "wait": 5000,
+  "wideOnly": true
+ },
+ {
+  "name": "00b-oblique",
+  "camera": {
+   "position": [
+    0,
+    70,
+    110
+   ],
+   "target": [
+    0,
+    0,
+    0
+   ]
+  },
+  "hour": 16,
+  "wait": 3000,
+  "wideOnly": true
+ },
+ {
+  "name": "01-spawn",
+  "at": [
+   -12.98,
+   -2.2
+  ],
+  "yaw": 0.0,
+  "hour": 16
+ },
+ {
+  "name": "02-congkak",
+  "at": [
+   -29.48,
+   -0.8
+  ],
+  "yaw": 0,
+  "hour": 16,
+  "wideOnly": false
+ },
+ {
+  "name": "03-dam",
+  "at": [
+   44.88,
+   6.68
+  ],
+  "yaw": 0,
+  "hour": 16,
+  "wideOnly": false
+ },
+ {
+  "name": "04-ting-ting",
+  "at": [
+   39.6,
+   -0.8
+  ],
+  "yaw": 0,
+  "hour": 16,
+  "wideOnly": true
+ },
+ {
+  "name": "05-konda-kondi",
+  "at": [
+   35.64,
+   38.58
+  ],
+  "yaw": 0,
+  "hour": 16,
+  "wideOnly": true
+ },
+ {
+  "name": "06-batu-seremban",
+  "at": [
+   -24.2,
+   9.32
+  ],
+  "yaw": 0,
+  "hour": 16,
+  "wideOnly": true
+ },
+ {
+  "name": "07-lumba-basikal",
+  "at": [
+   -61.82,
+   0.52
+  ],
+  "yaw": 0,
+  "hour": 16,
+  "wideOnly": false
+ },
+ {
+  "name": "08-kejar-kejar",
+  "at": [
+   8.14,
+   -4.1
+  ],
+  "yaw": 0,
+  "hour": 16,
+  "wideOnly": true
+ },
+ {
+  "name": "09-police-thief",
+  "at": [
+   17.6,
+   0.08
+  ],
+  "yaw": 0,
+  "hour": 16,
+  "wideOnly": true
+ },
+ {
+  "name": "10-gasing",
+  "at": [
+   -0.88,
+   22.3
+  ],
+  "yaw": 0,
+  "hour": 16,
+  "wideOnly": true
+ },
+ {
+  "name": "11-galah-panjang",
+  "at": [
+   -55.22,
+   26.7
+  ],
+  "yaw": 0,
+  "hour": 16,
+  "wideOnly": true
+ },
+ {
+  "name": "12-sepak-raga",
+  "at": [
+   50.38,
+   -16.42
+  ],
+  "yaw": 0,
+  "hour": 16,
+  "wideOnly": true
+ },
+ {
+  "name": "13-tarik-upih",
+  "at": [
+   -7.48,
+   -28.74
+  ],
+  "yaw": 0,
+  "hour": 16,
+  "wideOnly": true
+ },
+ {
+  "name": "14-wau",
+  "at": [
+   42.02,
+   -30.72
+  ],
+  "yaw": 0,
+  "hour": 16,
+  "wideOnly": true
+ },
+ {
+  "name": "15-guli",
+  "at": [
+   -46.86,
+   44.74
+  ],
+  "yaw": 0,
+  "hour": 16,
+  "wideOnly": true
+ },
+ {
+  "name": "16-baling-selipar",
+  "at": [
+   -8.58,
+   49.58
+  ],
+  "yaw": 0,
+  "hour": 16,
+  "wideOnly": true
+ },
+ {
+  "name": "90-waterfall",
+  "at": [
+   -31.02,
+   -28.82
+  ],
+  "yaw": 0,
+  "hour": 12,
+  "wideOnly": true
+ },
+ {
+  "name": "91-school",
+  "at": [
+   14.52,
+   -20.02
+  ],
+  "yaw": 0,
+  "hour": 12,
+  "wideOnly": true
+ },
+ {
+  "name": "92-night",
+  "at": [
+   -12.98,
+   -2.2
+  ],
+  "yaw": 0,
+  "hour": 21,
+  "wideOnly": true
+ }
 ]

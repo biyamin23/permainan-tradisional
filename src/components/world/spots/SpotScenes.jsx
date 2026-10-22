@@ -5,7 +5,10 @@ import { useNpcBody } from '../../../state/npcBodies'
 import { PersonModel } from '../../character/PersonModel'
 import { kidLook } from '../npc/kidLooks'
 import { ProximityBubble } from '../npc/ProximityBubble'
-import { Wakaf } from '../Wakaf'
+import { Bicycle } from '../npc/Npcs'
+import { part } from '../kit'
+import { HOUSE } from '../../../data/kampungLayout'
+import { PartsBundle } from '../InstancedParts'
 import { KedaiKopi } from './KedaiKopi'
 import {
   DirtPatch,
@@ -61,17 +64,22 @@ function KidBubble({ game, position, maxDistance }) {
 }
 
 // ------------------------------------------------------------------ Congkak
+// On the serambi of Tok Wan's house: Aisyah and a friend at the board.
 const CONGKAK_EXTRAS = buildCongkakOnMat()
+const PORCH_LIFT = 0.65 // the congkak props were built for a wakaf floor; the serambi is higher
+const MAT_AT = { x: -1.45, z: 4.75 }
 
 export function CongkakScene({ game }) {
-  const [x, z] = game.spot.position
   return (
-    <Wakaf position={[x, 0, z]} rotationY={game.spot.rotationY} extras={CONGKAK_EXTRAS}>
+    <group position={HOUSE.position} rotation={[0, HOUSE.rotationY, 0]}>
+      <group position={[MAT_AT.x, PORCH_LIFT, MAT_AT.z - 0.1]}>
+        <PartsBundle bundle={CONGKAK_EXTRAS} />
+      </group>
       {/* Aisyah, who challenges you to a game */}
-      <Kid seed={1} girl pose="toss" position={[0, 0.65, -0.62]} />
-      <Kid seed={2} girl pose="sit" position={[0, 0.65, 1.02]} rotationY={Math.PI} phase={0.8} />
-      <KidBubble game={game} position={[0, 2.1, -0.62]} />
-    </Wakaf>
+      <Kid seed={1} girl pose="toss" position={[MAT_AT.x, 1.275, MAT_AT.z - 0.72]} />
+      <Kid seed={2} girl pose="sit" position={[MAT_AT.x, 1.275, MAT_AT.z + 0.92]} rotationY={Math.PI} phase={0.8} />
+      <KidBubble game={game} position={[MAT_AT.x, 2.75, MAT_AT.z - 0.72]} maxDistance={game.spot.radius + 9} />
+    </group>
   )
 }
 
@@ -470,6 +478,149 @@ export function TarikUpihScene({ game }) {
   )
 }
 
+// ------------------------------------------------------------------ Main kejar-kejar
+export function KejarKejarScene({ game }) {
+  const kids = [useRef(), useRef(), useRef()]
+  const motion = [useRef({ speed: 0 }), useRef({ speed: 0 }), useRef({ speed: 0 })]
+  useFrame((state) => {
+    const t = state.clock.elapsedTime
+    kids.forEach((ref, k) => {
+      const g = ref.current
+      if (!g) return
+      // two run round the tree, the third (who is "it") chases a step behind
+      const a = t * 0.9 - k * (k === 2 ? 0.55 : 2.2)
+      const r = 2.7 + Math.sin(t * 0.7 + k) * 0.5
+      g.position.set(Math.cos(a) * r, 0, Math.sin(a) * r)
+      g.rotation.y = faceTowards(-Math.sin(a), Math.cos(a))
+      motion[k].current.speed = 0.85
+    })
+  })
+  return (
+    <group>
+      <DirtPatch radius={3.6} color="#b9a06a" />
+      <Kid seed={90} groupRef={kids[0]} motionRef={motion[0]} />
+      <Kid seed={91} girl groupRef={kids[1]} motionRef={motion[1]} />
+      <Kid seed={92} groupRef={kids[2]} motionRef={motion[2]} />
+      <KidBubble game={game} position={[0, 2.2, 0]} maxDistance={game.spot.radius + 6} />
+    </group>
+  )
+}
+
+// ------------------------------------------------------------------ Police & thief
+export function PoliceThiefScene({ game }) {
+  const thief = useRef()
+  const police = useRef()
+  const thiefMotion = useRef({ speed: 0 })
+  const policeMotion = useRef({ speed: 0 })
+  const path = (t) => ({ x: Math.sin(t) * 2.8, z: Math.sin(t * 2) * 1.6 })
+  useFrame((state) => {
+    const t = state.clock.elapsedTime * 0.75
+    const p = path(t)
+    const q = path(t - 0.55)
+    const p2 = path(t + 0.05)
+    const q2 = path(t - 0.5)
+    if (thief.current) {
+      thief.current.position.set(p.x, 0, p.z)
+      thief.current.rotation.y = faceTowards(p2.x - p.x, p2.z - p.z)
+    }
+    if (police.current) {
+      police.current.position.set(q.x, 0, q.z)
+      police.current.rotation.y = faceTowards(q2.x - q.x, q2.z - q.z)
+    }
+    thiefMotion.current.speed = 0.9
+    policeMotion.current.speed = 0.9
+  })
+  return (
+    <group>
+      {/* the "lokap": a square drawn on the ground */}
+      <GroundLine from={[2.2, 2.4]} to={[3.4, 2.4]} />
+      <GroundLine from={[2.2, 3.6]} to={[3.4, 3.6]} />
+      <GroundLine from={[2.2, 2.4]} to={[2.2, 3.6]} />
+      <GroundLine from={[3.4, 2.4]} to={[3.4, 3.6]} />
+      <Kid seed={95} groupRef={thief} motionRef={thiefMotion} />
+      <Kid seed={96} groupRef={police} motionRef={policeMotion} />
+      <Kid seed={97} girl pose="clap" position={[2.8, 0, 3]} rotationY={Math.PI} phase={0.4} />
+      <KidBubble game={game} position={[2.8, 1.6, 3]} maxDistance={game.spot.radius + 6} />
+    </group>
+  )
+}
+
+// ------------------------------------------------------------------ Lumba basikal
+function RacingKid({ seed, girl, lane, phase }) {
+  const rig = useRef()
+  const front = useRef()
+  const rear = useRef()
+  const motion = useRef({ speed: 0.7 })
+  useFrame((state, delta) => {
+    const g = rig.current
+    if (!g) return
+    // up and down the road, racing each other
+    const t = state.clock.elapsedTime * 0.32 + phase
+    const z = Math.sin(t) * 9
+    const dir = Math.cos(t) >= 0 ? 0 : Math.PI
+    g.position.set(lane, 0, z)
+    g.rotation.y = MathUtils.lerp(g.rotation.y, dir, 1 - Math.exp(-4 * Math.min(delta, 0.05)))
+    const spin = Math.abs(Math.cos(t)) * 0.32 * 9 * Math.min(delta, 0.05) / 0.32
+    if (front.current) front.current.rotation.x += spin
+    if (rear.current) rear.current.rotation.x += spin
+  })
+  return (
+    <group ref={rig}>
+      <group scale={0.82}>
+        <Bicycle frontWheel={front} rearWheel={rear} />
+      </group>
+      <group position={[0, 0.05, -0.18]}>
+        <PersonModel build="kid" look={kidLook(seed, girl)} pose="ride" motionRef={motion} detail={false} />
+      </group>
+    </group>
+  )
+}
+
+export function LumbaBasikalScene({ game }) {
+  return (
+    <group>
+      <RacingKid seed={100} lane={-0.7} phase={0} />
+      <RacingKid seed={101} girl lane={0.7} phase={0.25} />
+      <Kid seed={102} pose="cheer" position={[3.2, 0, 1]} rotationY={-Math.PI / 2} />
+      <KidBubble game={game} position={[3.2, 1.6, 1]} maxDistance={game.spot.radius + 8} />
+    </group>
+  )
+}
+
+// ------------------------------------------------------------------ Baling selipar
+const TIN_COLORS = ['#c43d3d', '#e2b44a', '#2f6f9a', '#d8d8d8', '#3f7a4a', '#c8642f']
+function buildTins() {
+  const cylinder = []
+  const box = []
+  let i = 0
+  for (let row = 0; row < 3; row++) {
+    const n = 3 - row
+    for (let k = 0; k < n; k++) {
+      const x = (k - (n - 1) / 2) * 0.17
+      cylinder.push(part([x, 0.08 + row * 0.16, -2.2], [0.14, 0.15, 0.14], [0, 0, 0], TIN_COLORS[i++ % TIN_COLORS.length]))
+    }
+  }
+  // a selipar on the ground, and the throwing line
+  box.push(part([0.6, 0.02, -1.4], [0.11, 0.03, 0.27], [0, 0.6, 0], '#2f6fd1'))
+  box.push(part([-0.4, 0.02, 0.8], [0.11, 0.03, 0.27], [0, -0.4, 0], '#d9473b'))
+  return { cylinder, box }
+}
+const TINS = buildTins()
+
+export function BalingSeliparScene({ game }) {
+  return (
+    <group>
+      <DirtPatch radius={3.2} color="#c39461" scaleZ={1.4} />
+      <GroundLine from={[-1.5, 2.2]} to={[1.5, 2.2]} />
+      <PartsBundle bundle={TINS} />
+      <Kid seed={110} pose="throw" position={[0, 0, 2.7]} rotationY={Math.PI} />
+      <Kid seed={111} girl pose="clap" position={[-2, 0, 0.4]} rotationY={faceTowards(2, -0.4)} phase={0.5} />
+      <Kid seed={112} pose="guard" position={[1.8, 0, -1.6]} rotationY={faceTowards(-1.8, 2.6)} phase={1.1} />
+      <KidBubble game={game} position={[0, 1.6, 2.7]} />
+    </group>
+  )
+}
+
 export const SPOT_SCENES = {
   congkak: CongkakScene,
   dam: KedaiKopi,
@@ -480,7 +631,11 @@ export const SPOT_SCENES = {
   guli: GuliScene,
   'galah-panjang': GalahPanjangScene,
   'konda-kondi': KondaKondiScene,
-  'teng-teng': TengTengScene,
+  'ting-ting': TengTengScene,
+  'lumba-basikal': LumbaBasikalScene,
+  'kejar-kejar': KejarKejarScene,
+  'police-thief': PoliceThiefScene,
+  'baling-selipar': BalingSeliparScene,
   'tarik-upih': TarikUpihScene,
 }
 

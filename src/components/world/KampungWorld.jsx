@@ -1,7 +1,7 @@
 import { Suspense, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
-import { HOUSE, NEIGHBOUR_HOUSES, YARD_FENCE } from '../../data/kampungLayout'
+import { HOUSE, NEIGHBOUR_HOUSES, SCHOOL, YARD_FENCE } from '../../data/kampungLayout'
 import { attachKeyboardInput } from '../../state/input'
 import { resetClock } from '../../state/timeOfDay'
 import { resetWorldRuntime } from '../../state/worldRuntime'
@@ -20,6 +20,7 @@ import { Animals } from './npc/Animals'
 import { NpcColliders } from './npc/NpcColliders'
 import { Npcs } from './npc/Npcs'
 import { Player } from './Player'
+import { School } from './School'
 import { Trees } from './Trees'
 import { Water } from './Water'
 
@@ -39,10 +40,10 @@ export function KampungWorld({ gender, controlsEnabled }) {
       className="kampung-canvas"
       shadows
       dpr={[1, 1.75]}
-      camera={{ fov: 50, near: 0.1, far: 600, position: [6, 16, 52] }}
+      camera={{ fov: 50, near: 0.1, far: 700, position: [6, 16, 52] }}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
     >
-      <fog attach="fog" args={['#f0c08d', 55, 230]} />
+      <fog attach="fog" args={['#f0c08d', 60, 260]} />
       <Lighting />
 
       <Suspense fallback={null}>
@@ -50,9 +51,10 @@ export function KampungWorld({ gender, controlsEnabled }) {
           <KampungEnvironment />
           <Water />
           <House position={HOUSE.position} rotationY={HOUSE.rotationY} variant="tokwan" />
-          {NEIGHBOUR_HOUSES.map((house) => (
-            <House key={house.variant} position={house.position} rotationY={house.rotationY} variant={house.variant} />
+          {NEIGHBOUR_HOUSES.map((house, i) => (
+            <House key={i} position={house.position} rotationY={house.rotationY} variant={house.variant} />
           ))}
+          <School position={SCHOOL.position} rotationY={SCHOOL.rotationY} />
           <Fence segments={YARD_FENCE} />
           <Trees />
           <Fields />

@@ -77,7 +77,7 @@ const ICONS = {
       <path d="M12 64 Q24 54 36 62" {...stroke} strokeWidth="2" />
     </>
   ),
-  'teng-teng': (
+  'ting-ting': (
     <>
       <path d="M32 62 H48 V50 H32 Z M32 50 H48 V38 H32 Z M24 38 H40 V26 H24 Z M40 38 H56 V26 H40 Z M32 26 H48 V16 H32 Z" {...stroke} strokeWidth="2.5" />
       <circle cx="40" cy="44" r="2.5" fill="currentColor" />

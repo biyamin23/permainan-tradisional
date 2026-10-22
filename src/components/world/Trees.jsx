@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { CylinderCollider, RigidBody } from '@react-three/rapier'
-import { BOUNDS, isReserved } from '../../data/kampungLayout'
+import { BOUNDS, HOUSE, HUTAN, KEBUN_KELAPA, isNearGameSpot, isOnRoad, isReserved } from '../../data/kampungLayout'
 import { PartsBundle } from './InstancedParts'
 import { createRandom, makeAlignedMatrix, mergeBundles, part, pick, randomBetween } from './kit'
 
@@ -154,21 +154,17 @@ function buildBush(x, z, random, flowers = false) {
   return { bundle: { blob, ball } }
 }
 
-const HAND_COCONUTS = [
-  [-20.5, 15], [-19.5, 22.5], [-10, 21.5], [-10.5, 13.5],
-  [-8, -21.6], [6, -21.4], [12, -30.6], [-14, -30.6], [22, -21.6], [-25, -21.6], [32, -30.8],
-  [3.6, 14], [-3.8, 31], [4.2, 38], [29, -19], [-26, 12], [8, 26],
-]
+// a few fruit trees and banana clumps around Tok Wan's yard (offsets from the house)
+const [hx, , hz] = HOUSE.position
 const HAND_TREES = [
-  { at: [-20, -8], fruit: true },
-  { at: [-6.8, -9.6], fruit: true },
-  { at: [-21.5, -1.5], fruit: false },
-  { at: [4.8, -17], scale: 1.35 },
-  { at: [31, 7], scale: 1.2 },
-  { at: [-6, 16], fruit: true },
+  { at: [hx - 7, hz + 6], fruit: true },
+  { at: [hx + 7.5, hz - 4], fruit: true },
+  { at: [hx - 7.5, hz - 3.5], fruit: false },
 ]
-const HAND_BANANAS = [[-21, -5], [-21.5, 7.2], [-15.5, -9.8], [-10.5, -10], [-6.6, -4.5]]
-const HAND_FLOWER_BUSHES = [[-16.8, 7.8], [-9.6, 8], [-6.2, 1.5], [-20.5, 1.5], [-3.2, 10.5], [3.3, -9.2]]
+const HAND_BANANAS = [[hx - 7.8, hz + 1], [hx + 7.8, hz + 2.5], [hx - 3, hz - 5]]
+const HAND_FLOWER_BUSHES = [[hx - 3.2, hz + 9], [hx + 3.4, hz + 9], [hx + 6.5, hz + 7]]
+
+const inRect = (x, z, r) => x > r.xMin && x < r.xMax && z > r.zMin && z < r.zMax
 
 export function Trees() {
   const { bundle, colliders } = useMemo(() => {
@@ -184,7 +180,27 @@ export function Trees() {
     }
     const farEnough = (x, z, d) => placed.every(([px, pz]) => (px - x) ** 2 + (pz - z) ** 2 > d * d)
 
-    HAND_COCONUTS.forEach(([x, z]) => add(buildCoconutTree(x, z, random), x, z))
+    // Kebun kelapa: rows of coconut palms (an open strip is kept for Tarik Upih)
+    for (let x = KEBUN_KELAPA.xMin + 2; x < KEBUN_KELAPA.xMax - 1; x += 5.2) {
+      for (let z = KEBUN_KELAPA.zMin + 2; z < KEBUN_KELAPA.zMax - 1; z += 5.2) {
+        const jx = x + randomBetween(random, -0.8, 0.8)
+        const jz = z + randomBetween(random, -0.8, 0.8)
+        if (isNearGameSpot(jx, jz, 1) || isOnRoad(jx, jz, 1.5)) continue
+        add(buildCoconutTree(jx, jz, random), jx, jz)
+      }
+    }
+    // Hutan kecil: thick trees round the waterfall
+    let forest = 0
+    let tries = 0
+    while (forest < 46 && tries < 3000) {
+      tries++
+      const x = randomBetween(random, HUTAN.xMin, HUTAN.xMax)
+      const z = randomBetween(random, HUTAN.zMin, HUTAN.zMax)
+      if (isReserved(x, z, 1) || !farEnough(x, z, 3.4)) continue
+      const roll = random()
+      add(roll < 0.2 ? buildCoconutTree(x, z, random) : buildLeafyTree(x, z, random, { scale: randomBetween(random, 1.1, 1.5) }), x, z)
+      forest++
+    }
     HAND_TREES.forEach(({ at: [x, z], fruit, scale }) => add(buildLeafyTree(x, z, random, { fruit, scale }), x, z))
     HAND_BANANAS.forEach(([x, z]) => add(buildBananaTree(x, z, random), x, z))
     HAND_FLOWER_BUSHES.forEach(([x, z]) => pieces.push(buildBush(x, z, random, true).bundle))
@@ -192,11 +208,11 @@ export function Trees() {
     // Scattered trees inside the playable area
     let attempts = 0
     let trees = 0
-    while (trees < 58 && attempts < 4000) {
+    while (trees < 120 && attempts < 8000) {
       attempts++
       const x = randomBetween(random, BOUNDS.xMin + 3, BOUNDS.xMax - 3)
       const z = randomBetween(random, BOUNDS.zMin + 3, BOUNDS.zMax - 3)
-      if (isReserved(x, z, 2) || !farEnough(x, z, 4.5)) continue
+      if (isReserved(x, z, 2) || !farEnough(x, z, 4.5) || inRect(x, z, KEBUN_KELAPA)) continue
       const roll = random()
       if (roll < 0.28) add(buildCoconutTree(x, z, random), x, z)
       else if (roll < 0.36) add(buildBananaTree(x, z, random), x, z)
@@ -207,7 +223,7 @@ export function Trees() {
     // Bushes (no colliders — you can push through them)
     let bushes = 0
     attempts = 0
-    while (bushes < 85 && attempts < 4000) {
+    while (bushes < 150 && attempts < 8000) {
       attempts++
       const x = randomBetween(random, BOUNDS.xMin + 2, BOUNDS.xMax - 2)
       const z = randomBetween(random, BOUNDS.zMin + 2, BOUNDS.zMax - 2)

@@ -1,41 +1,69 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { CuboidCollider, CylinderCollider, RigidBody } from '@react-three/rapier'
+import { CuboidCollider, RigidBody } from '@react-three/rapier'
 import { Object3D } from 'three'
-import { BRIDGE, POND, STREAM } from '../../data/kampungLayout'
+import { BRIDGES, RIVERS, WATERFALL } from '../../data/kampungLayout'
 import { PartsBundle } from './InstancedParts'
 import { GEO, MAT, createRandom, part, pick, randomBetween } from './kit'
+
+/**
+ * The rivers from the map: the anak sungai from the waterfall in the hutan
+ * kecil, and the main sungai winding round the bottom of the kampung, with a
+ * wooden bridge wherever a road crosses. Water is a flat ribbon along each
+ * polyline; colliders keep you out of it except on the bridges.
+ */
 
 const SAND = '#cfa86e'
 const ROCKS = ['#8d877c', '#7a746b', '#a09a8e']
 const REEDS = ['#7a9a45', '#8aa64e', '#6c8c3d']
-const STREAM_HALF_LENGTH = 110
 
-const FLOW_COUNT = 46
+/** Walk along a polyline every `step` metres: { x, z, dirX, dirZ, along }. */
+function samplesAlong(points, step) {
+  const out = []
+  let along = 0
+  for (let i = 0; i < points.length - 1; i++) {
+    const [ax, az] = points[i]
+    const [bx, bz] = points[i + 1]
+    const len = Math.hypot(bx - ax, bz - az)
+    const dirX = (bx - ax) / len
+    const dirZ = (bz - az) / len
+    for (let t = 0; t < len; t += step) {
+      out.push({ x: ax + dirX * t, z: az + dirZ * t, dirX, dirZ, along: along + t })
+    }
+    along += len
+  }
+  return out
+}
+
+const nearBridge = (x, z, extra = 0) => BRIDGES.some((b) => Math.hypot(x - b.x, z - b.z) < b.width / 2 + 0.6 + extra)
+
+// ---------------------------------------------------------------- flowing streaks
 const _dummy = new Object3D()
-
-/** Light streaks drifting along the stream so the water reads as flowing. */
-function StreamFlow() {
+function RiverFlow({ river, count }) {
   const ref = useRef()
   const streaks = useMemo(() => {
-    const random = createRandom(9)
-    return Array.from({ length: FLOW_COUNT }, () => ({
-      x: randomBetween(random, -STREAM_HALF_LENGTH, STREAM_HALF_LENGTH),
-      z: STREAM.z + randomBetween(random, -STREAM.width / 2 + 0.5, STREAM.width / 2 - 0.5),
-      length: randomBetween(random, 1.2, 3.2),
-      speed: randomBetween(random, 0.9, 1.8),
+    const random = createRandom(river.width * 100)
+    const total = samplesAlong(river.points, 1).length
+    return Array.from({ length: count }, () => ({
+      along: random() * total,
+      side: randomBetween(random, -river.width / 2 + 0.6, river.width / 2 - 0.6),
+      length: randomBetween(random, 1.2, 3),
+      speed: randomBetween(random, 0.9, 1.7),
+      total,
     }))
-  }, [])
+  }, [river, count])
+  const samples = useMemo(() => samplesAlong(river.points, 1), [river])
 
   useFrame((_, delta) => {
     const mesh = ref.current
     if (!mesh) return
     const dt = Math.min(delta, 0.1)
     streaks.forEach((s, i) => {
-      s.x += s.speed * dt
-      if (s.x > STREAM_HALF_LENGTH) s.x = -STREAM_HALF_LENGTH
-      _dummy.position.set(s.x, 0.07, s.z)
-      _dummy.scale.set(s.length, 0.01, 0.08)
+      s.along = (s.along + s.speed * dt) % s.total
+      const p = samples[Math.floor(s.along)] ?? samples[0]
+      _dummy.position.set(p.x - p.dirZ * s.side, 0.075, p.z + p.dirX * s.side)
+      _dummy.rotation.set(0, Math.atan2(p.dirX, p.dirZ), 0)
+      _dummy.scale.set(0.08, 0.01, s.length)
       _dummy.updateMatrix()
       mesh.setMatrixAt(i, _dummy.matrix)
     })
@@ -43,159 +71,188 @@ function StreamFlow() {
   })
 
   return (
-    <instancedMesh ref={ref} args={[GEO.box, undefined, FLOW_COUNT]} frustumCulled={false}>
+    <instancedMesh ref={ref} args={[GEO.box, undefined, count]} frustumCulled={false}>
       <meshBasicMaterial color="#cfeef0" transparent opacity={0.45} />
     </instancedMesh>
   )
 }
 
-function buildStreamParts() {
+// ---------------------------------------------------------------- static parts
+function buildRiverParts() {
   const random = createRandom(11)
-  const box = []
+  const water = []
+  const bed = { box: [], cylinder: [] }
   const blob = []
   const blade = []
-  const bankOffset = STREAM.width / 2 + 0.45
-  const gap = BRIDGE.width / 2 + 0.6
-  const bankLength = STREAM_HALF_LENGTH - gap
-  for (const side of [-1, 1]) {
-    for (const dir of [-1, 1]) {
-      box.push(
-        part([dir * (gap + bankLength / 2), 0.025, STREAM.z + side * bankOffset], [bankLength, 0.04, 1.1], [0, 0, 0], SAND),
-      )
+  for (const river of RIVERS) {
+    for (let i = 0; i < river.points.length - 1; i++) {
+      const [ax, az] = river.points[i]
+      const [bx, bz] = river.points[i + 1]
+      const len = Math.hypot(bx - ax, bz - az)
+      const yaw = Math.atan2(bx - ax, bz - az)
+      const mid = [(ax + bx) / 2, 0, (az + bz) / 2]
+      water.push({ kind: 'box', p: part([mid[0], 0.05, mid[2]], [river.width, 0.04, len], [0, yaw, 0]) })
+      bed.box.push(part([mid[0], 0.02, mid[2]], [river.width + 0.5, 0.02, len], [0, yaw, 0], '#2f5e5a'))
+      bed.box.push(part([mid[0], 0.012, mid[2]], [river.width + 2.4, 0.012, len], [0, yaw, 0], SAND))
+    }
+    river.points.forEach(([x, z]) => {
+      water.push({ kind: 'cylinder', p: part([x, 0.05, z], [river.width, 0.04, river.width]) })
+      bed.cylinder.push(part([x, 0.02, z], [river.width + 0.5, 0.02, river.width + 0.5], [0, 0, 0], '#2f5e5a'))
+      bed.cylinder.push(part([x, 0.012, z], [river.width + 2.4, 0.012, river.width + 2.4], [0, 0, 0], SAND))
+    })
+    // rocks and reeds along both banks
+    for (const s of samplesAlong(river.points, 1.6)) {
+      if (nearBridge(s.x, s.z, 1)) continue
+      for (const side of [-1, 1]) {
+        const off = side * (river.width / 2 + randomBetween(random, -0.3, 0.8))
+        const x = s.x - s.dirZ * off
+        const z = s.z + s.dirX * off
+        if (random() < 0.28) {
+          const r = randomBetween(random, 0.35, 0.95)
+          blob.push(part([x, r * 0.2, z], [r, r * 0.6, r * 0.9], [random(), random() * 3, 0], pick(random, ROCKS)))
+        }
+        if (random() < 0.6) {
+          const h = randomBetween(random, 0.6, 1.3)
+          blade.push(part([x, 0, z], [0.12, h, 0.12], [randomBetween(random, -0.2, 0.2), 0, randomBetween(random, -0.2, 0.2)], pick(random, REEDS)))
+        }
+      }
     }
   }
-  for (let i = 0; i < 70; i++) {
-    const x = randomBetween(random, -STREAM_HALF_LENGTH + 5, STREAM_HALF_LENGTH - 5)
-    if (Math.abs(x) < BRIDGE.width) continue
-    const side = random() > 0.5 ? 1 : -1
-    const z = STREAM.z + side * randomBetween(random, STREAM.width / 2 - 0.2, STREAM.width / 2 + 0.9)
-    const s = randomBetween(random, 0.35, 1.0)
-    blob.push(part([x, s * 0.2, z], [s, s * 0.6, s * 0.9], [random(), random() * 3, 0], pick(random, ROCKS)))
+  return {
+    waterBundle: {
+      box: water.filter((w) => w.kind === 'box').map((w) => w.p),
+      cylinder: water.filter((w) => w.kind === 'cylinder').map((w) => w.p),
+    },
+    bankBundle: { box: bed.box, cylinder: bed.cylinder, blob, blade },
   }
-  for (let i = 0; i < 160; i++) {
-    const x = randomBetween(random, -STREAM_HALF_LENGTH + 5, STREAM_HALF_LENGTH - 5)
-    if (Math.abs(x) < BRIDGE.width) continue
-    const side = random() > 0.5 ? 1 : -1
-    const z = STREAM.z + side * randomBetween(random, STREAM.width / 2 - 0.5, STREAM.width / 2 + 0.3)
-    const h = randomBetween(random, 0.6, 1.3)
-    blade.push(part([x, 0, z], [0.12, h, 0.12], [randomBetween(random, -0.2, 0.2), 0, randomBetween(random, -0.2, 0.2)], pick(random, REEDS)))
-  }
-  return { box, blob, blade }
 }
 
-function buildBridgeParts() {
+/** A plank bridge across the river, in its own frame (length along local z). */
+function buildBridgeParts(b) {
   const box = []
   const cylinder = []
-  const z0 = BRIDGE.z - BRIDGE.length / 2
-  const z1 = BRIDGE.z + BRIDGE.length / 2
   const plankColors = ['#9b7048', '#8a6340', '#a87b50']
+  const half = b.length / 2
+  const rail = b.width / 2 + 0.15
   let i = 0
-  for (let z = z0 + 0.17; z < z1; z += 0.36) {
-    box.push(part([BRIDGE.x, 0.07, z], [BRIDGE.width, 0.06, 0.32], [0, (i % 3) * 0.01 - 0.01, 0], plankColors[i % 3]))
+  for (let z = -half + 0.17; z < half; z += 0.36) {
+    box.push(part([0, 0.09, z], [b.width, 0.06, 0.32], [0, (i % 3) * 0.01 - 0.01, 0], plankColors[i % 3]))
     i++
   }
-  for (const x of [-1.35, 1.35]) {
-    box.push(part([BRIDGE.x + x, 0.0, BRIDGE.z], [0.22, 0.16, BRIDGE.length], [0, 0, 0], '#5e4029'))
+  for (const x of [-b.width / 2 + 0.25, b.width / 2 - 0.25]) box.push(part([x, 0.02, 0], [0.22, 0.16, b.length], [0, 0, 0], '#5e4029'))
+  for (const x of [-rail, rail]) {
+    for (const z of [-half + 0.15, 0, half - 0.15]) cylinder.push(part([x, 0.57, z], [0.16, 1.3, 0.16], [0, 0, 0], '#6b4a2e'))
+    box.push(part([x, 1.07, 0], [0.1, 0.1, b.length], [0, 0, 0], '#8a6340'))
+    box.push(part([x, 0.62, 0], [0.07, 0.07, b.length], [0, 0, 0], '#8a6340'))
   }
-  for (const x of [-1.78, 1.78]) {
-    for (const z of [z0 + 0.15, BRIDGE.z, z1 - 0.15]) {
-      cylinder.push(part([BRIDGE.x + x, 0.55, z], [0.16, 1.3, 0.16], [0, 0, 0], '#6b4a2e'))
-    }
-    box.push(part([BRIDGE.x + x, 1.05, BRIDGE.z], [0.1, 0.1, BRIDGE.length], [0, 0, 0], '#8a6340'))
-    box.push(part([BRIDGE.x + x, 0.6, BRIDGE.z], [0.07, 0.07, BRIDGE.length], [0, 0, 0], '#8a6340'))
-  }
-  // stilts down into the water
-  for (const z of [BRIDGE.z - 1.4, BRIDGE.z + 1.4]) {
-    for (const x of [-1.35, 1.35]) {
-      cylinder.push(part([BRIDGE.x + x, -0.3, z], [0.2, 0.8, 0.2], [0, 0, 0], '#4f3622'))
-    }
+  for (const z of [-1.4, 1.4]) {
+    for (const x of [-b.width / 2 + 0.25, b.width / 2 - 0.25]) cylinder.push(part([x, -0.3, z], [0.2, 0.8, 0.2], [0, 0, 0], '#4f3622'))
   }
   return { box, cylinder }
 }
 
-function buildPondParts() {
-  const random = createRandom(23)
-  const cylinder = []
+function Bridge({ bridge }) {
+  const parts = useMemo(() => buildBridgeParts(bridge), [bridge])
+  const rail = bridge.width / 2 + 0.2
+  return (
+    <group position={[bridge.x, 0, bridge.z]} rotation={[0, bridge.rotationY, 0]}>
+      <PartsBundle bundle={parts} />
+      <RigidBody type="fixed" colliders={false}>
+        <CuboidCollider args={[bridge.width / 2, 0.05, bridge.length / 2]} position={[0, 0.07, 0]} />
+        <CuboidCollider args={[0.1, 0.6, bridge.length / 2]} position={[-rail, 0.6, 0]} />
+        <CuboidCollider args={[0.1, 0.6, bridge.length / 2]} position={[rail, 0.6, 0]} />
+      </RigidBody>
+    </group>
+  )
+}
+
+// ---------------------------------------------------------------- waterfall
+function buildWaterfallParts() {
+  const random = createRandom(77)
   const blob = []
-  const blade = []
-  const [cx, cz] = POND.center
-  // lily pads
-  for (let i = 0; i < 11; i++) {
-    const a = random() * Math.PI * 2
-    const r = randomBetween(random, 0.8, POND.radius - 0.6)
-    const s = randomBetween(random, 0.45, 0.8)
-    cylinder.push(part([cx + Math.cos(a) * r, 0.09, cz + Math.sin(a) * r], [s, 0.03, s], [0, 0, 0], i % 2 ? '#4f8f3c' : '#5c9c44'))
-    if (i % 3 === 0) {
-      blade.push(part([cx + Math.cos(a) * r, 0.1, cz + Math.sin(a) * r], [0.22, 0.22, 0.22], [0, i, 0], '#f2a2c0'))
+  const [x, z] = WATERFALL.at
+  // a rocky ledge across the top of the anak sungai
+  for (let i = 0; i < 26; i++) {
+    const a = randomBetween(random, -1.4, 1.4)
+    const r = randomBetween(random, 1, 2.4)
+    const dist = randomBetween(random, 3.2, 6.5)
+    blob.push(part([x + Math.sin(a) * dist, randomBetween(random, 0.6, WATERFALL.height), z - Math.cos(a) * dist], [r * 1.4, r, r * 1.2], [random(), random() * 3, 0], pick(random, ROCKS)))
+  }
+  for (let i = 0; i < 10; i++) {
+    const r = randomBetween(random, 0.5, 1)
+    blob.push(part([x + randomBetween(random, -3, 3), r * 0.3, z + randomBetween(random, -1, 2)], [r, r * 0.6, r], [random(), random() * 3, 0], pick(random, ROCKS)))
+  }
+  return { blob }
+}
+
+function Waterfall() {
+  const parts = useMemo(buildWaterfallParts, [])
+  const foam = useRef()
+  const [x, z] = WATERFALL.at
+  useFrame((state) => {
+    if (foam.current) foam.current.scale.setScalar(1 + Math.sin(state.clock.elapsedTime * 6) * 0.06)
+  })
+  return (
+    <group>
+      <PartsBundle bundle={parts} />
+      {/* the fall: a sheet of water coming down the rocks */}
+      <mesh position={[x, WATERFALL.height / 2, z - 2.6]} rotation={[-0.25, 0, 0]} material={MAT.water}>
+        <boxGeometry args={[WATERFALL.width * 0.7, WATERFALL.height, 0.15]} />
+      </mesh>
+      <mesh ref={foam} position={[x, 0.12, z - 1.4]}>
+        <cylinderGeometry args={[2.2, 2.4, 0.08, 18]} />
+        <meshBasicMaterial color="#eaf6f4" transparent opacity={0.65} />
+      </mesh>
+      <RigidBody type="fixed" colliders={false}>
+        <CuboidCollider args={[5, 3, 3]} position={[x, 3, z - 5]} />
+      </RigidBody>
+    </group>
+  )
+}
+
+// ---------------------------------------------------------------- colliders
+/** Short collider blocks along each river, leaving gaps at the bridges. */
+function riverColliders() {
+  const blocks = []
+  for (const river of RIVERS) {
+    for (let i = 0; i < river.points.length - 1; i++) {
+      const [ax, az] = river.points[i]
+      const [bx, bz] = river.points[i + 1]
+      const len = Math.hypot(bx - ax, bz - az)
+      const yaw = Math.atan2(bx - ax, bz - az)
+      const pieces = Math.max(1, Math.ceil(len / 2))
+      const pieceLen = len / pieces
+      for (let k = 0; k < pieces; k++) {
+        const t = (k + 0.5) / pieces
+        const x = ax + (bx - ax) * t
+        const z = az + (bz - az) * t
+        if (nearBridge(x, z, pieceLen / 2)) continue
+        blocks.push({ position: [x, 1, z], yaw, half: [river.width / 2 - 0.2, 1, pieceLen / 2 + 0.25] })
+      }
     }
   }
-  // stones around the edge
-  for (let i = 0; i < 22; i++) {
-    const a = (i / 22) * Math.PI * 2 + randomBetween(random, -0.08, 0.08)
-    const r = POND.radius + randomBetween(random, 0.1, 0.5)
-    const s = randomBetween(random, 0.4, 0.85)
-    blob.push(part([cx + Math.cos(a) * r, s * 0.18, cz + Math.sin(a) * r], [s, s * 0.55, s], [random(), random() * 3, 0], pick(random, ROCKS)))
-  }
-  for (let i = 0; i < 40; i++) {
-    const a = random() * Math.PI * 2
-    const r = POND.radius + randomBetween(random, -0.2, 0.6)
-    blade.push(part([cx + Math.cos(a) * r, 0, cz + Math.sin(a) * r], [0.1, randomBetween(random, 0.5, 1.1), 0.1], [randomBetween(random, -0.25, 0.25), 0, randomBetween(random, -0.25, 0.25)], pick(random, REEDS)))
-  }
-  return { cylinder, blob, blade }
+  return blocks
 }
 
 export function Water() {
-  const streamParts = useMemo(buildStreamParts, [])
-  const bridgeParts = useMemo(buildBridgeParts, [])
-  const pondParts = useMemo(buildPondParts, [])
-  const [pondX, pondZ] = POND.center
-  const gapHalf = BRIDGE.width / 2 + 0.05
-  const blockerHalfLength = (STREAM_HALF_LENGTH - gapHalf) / 2
+  const { waterBundle, bankBundle } = useMemo(buildRiverParts, [])
+  const blocks = useMemo(riverColliders, [])
 
   return (
     <group>
-      {/* Stream */}
-      <mesh position={[0, 0.05, STREAM.z]} receiveShadow material={MAT.water}>
-        <boxGeometry args={[STREAM_HALF_LENGTH * 2, 0.04, STREAM.width]} />
-      </mesh>
-      <mesh position={[0, 0.02, STREAM.z]}>
-        <boxGeometry args={[STREAM_HALF_LENGTH * 2, 0.02, STREAM.width + 0.4]} />
-        <meshStandardMaterial color="#2f5e5a" roughness={1} />
-      </mesh>
-      <StreamFlow />
-      <PartsBundle bundle={streamParts} />
-
-      {/* Bridge */}
-      <PartsBundle bundle={bridgeParts} />
-
-      {/* Pond */}
-      <mesh position={[pondX, 0.06, pondZ]} receiveShadow material={MAT.water}>
-        <cylinderGeometry args={[POND.radius, POND.radius, 0.04, 32]} />
-      </mesh>
-      <mesh position={[pondX, 0.025, pondZ]} receiveShadow>
-        <cylinderGeometry args={[POND.radius + 0.7, POND.radius + 0.7, 0.03, 32]} />
-        <meshStandardMaterial color={SAND} roughness={1} />
-      </mesh>
-      <PartsBundle bundle={pondParts} />
-
-      {/* Colliders: keep the player out of the water except on the bridge */}
+      <PartsBundle bundle={bankBundle} castShadow={false} />
+      <PartsBundle bundle={waterBundle} material={MAT.water} castShadow={false} />
+      {RIVERS.map((river) => (
+        <RiverFlow key={river.id} river={river} count={river.width > 5 ? 60 : 24} />
+      ))}
+      {BRIDGES.map((b, i) => (
+        <Bridge key={i} bridge={b} />
+      ))}
+      <Waterfall />
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider
-          args={[blockerHalfLength, 1, STREAM.width / 2]}
-          position={[-gapHalf - blockerHalfLength, 1, STREAM.z]}
-        />
-        <CuboidCollider
-          args={[blockerHalfLength, 1, STREAM.width / 2]}
-          position={[gapHalf + blockerHalfLength, 1, STREAM.z]}
-        />
-        <CylinderCollider args={[1, POND.radius]} position={[pondX, 1, pondZ]} />
-        {/* bridge deck (a small step up) and rails */}
-        <CuboidCollider
-          args={[BRIDGE.width / 2, 0.05, BRIDGE.length / 2]}
-          position={[BRIDGE.x, 0.05, BRIDGE.z]}
-        />
-        <CuboidCollider args={[0.1, 0.6, BRIDGE.length / 2]} position={[BRIDGE.x - 1.85, 0.6, BRIDGE.z]} />
-        <CuboidCollider args={[0.1, 0.6, BRIDGE.length / 2]} position={[BRIDGE.x + 1.85, 0.6, BRIDGE.z]} />
+        {blocks.map((b, i) => (
+          <CuboidCollider key={i} args={b.half} position={b.position} rotation={[0, b.yaw, 0]} />
+        ))}
       </RigidBody>
     </group>
   )

@@ -3,14 +3,25 @@ import { useFrame } from '@react-three/fiber'
 import { Sparkles } from '@react-three/drei'
 import { CuboidCollider, RigidBody } from '@react-three/rapier'
 import { BufferAttribute, Color, PlaneGeometry } from 'three'
-import { BOUNDS, FIELD, POND, ROADS, SAWAH } from '../../data/kampungLayout'
+import {
+  BOUNDS,
+  HUTAN,
+  LAMAN_GASING,
+  OPEN_AREAS,
+  PASIR_GULI,
+  POND,
+  ROADS,
+  SAWAH,
+  TAMAN,
+  distanceToRiver,
+} from '../../data/kampungLayout'
 import { PartsBundle } from './InstancedParts'
 import { MAT, createRandom, part, randomBetween } from './kit'
 
-const GROUND_SIZE = 340
+const GROUND_SIZE = 380
 
 function createGroundGeometry() {
-  const geometry = new PlaneGeometry(GROUND_SIZE, GROUND_SIZE, 110, 110)
+  const geometry = new PlaneGeometry(GROUND_SIZE, GROUND_SIZE, 190, 190)
   geometry.rotateX(-Math.PI / 2)
   const positions = geometry.attributes.position
   const colors = new Float32Array(positions.count * 3)
@@ -19,7 +30,13 @@ function createGroundGeometry() {
   const dry = new Color('#a8a457')
   const sawah = new Color('#9aa04f')
   const far = new Color('#5d7f3a')
+  const open = new Color('#a3c766')
+  const sand = new Color('#d6b77c')
+  const dirt = new Color('#b98a5a')
+  const forest = new Color('#4d7432')
+  const bank = new Color('#9a9a5a')
   const c = new Color()
+  const inRect = (x, z, r, m = 0) => x > r.xMin - m && x < r.xMax + m && z > r.zMin - m && z < r.zMax + m
 
   for (let i = 0; i < positions.count; i++) {
     const x = positions.getX(i)
@@ -30,7 +47,14 @@ function createGroundGeometry() {
       Math.cos(x * 0.31 - z * 0.23) * 0.15
     c.lerpColors(grassA, grassB, 0.5 + n * 0.6)
     if (n > 0.45) c.lerp(dry, (n - 0.45) * 1.4)
-    if (x > SAWAH.xMin - 3 && x < SAWAH.xMax + 3 && z > SAWAH.zMin - 3 && z < SAWAH.zMax) c.lerp(sawah, 0.75)
+    if (inRect(x, z, SAWAH, 2)) c.lerp(sawah, 0.75)
+    if (OPEN_AREAS.some((a) => inRect(x, z, a, 1))) c.lerp(open, 0.7)
+    if (inRect(x, z, TAMAN, 0)) c.lerp(open, 0.3)
+    if (inRect(x, z, PASIR_GULI, 1)) c.lerp(sand, 0.85)
+    if (inRect(x, z, HUTAN, 4)) c.lerp(forest, 0.6)
+    if ((x - LAMAN_GASING.center[0]) ** 2 + (z - LAMAN_GASING.center[1]) ** 2 < (LAMAN_GASING.radius + 1.5) ** 2) c.lerp(dirt, 0.8)
+    const bankDistance = distanceToRiver(x, z)
+    if (bankDistance < 2.5) c.lerp(bank, 0.6)
     const outside = Math.max(BOUNDS.xMin - x, x - BOUNDS.xMax, BOUNDS.zMin - z, z - BOUNDS.zMax, 0)
     if (outside > 0) c.lerp(far, Math.min(outside / 30, 0.8))
     colors[i * 3] = c.r
@@ -41,20 +65,33 @@ function createGroundGeometry() {
   return geometry
 }
 
+/** Roads drawn along their polylines: a flat box per segment and a disc at each bend. */
 function buildRoads() {
   const box = []
-  ROADS.forEach((r) => {
-    box.push(part([r.x, 0.008, r.z], [r.w + 0.9, 0.012, r.d + 0.9], [0, 0, 0], '#a08850'))
-    box.push(part([r.x, 0.018, r.z], [r.w, 0.014, r.d], [0, 0, 0], '#b97b4b'))
+  const cylinder = []
+  ROADS.forEach((road, ri) => {
+    const y = 0.012 + ri * 0.002 // keep crossings from flickering
+    for (let i = 0; i < road.points.length - 1; i++) {
+      const [ax, az] = road.points[i]
+      const [bx, bz] = road.points[i + 1]
+      const len = Math.hypot(bx - ax, bz - az)
+      const yaw = Math.atan2(bx - ax, bz - az)
+      const mid = [(ax + bx) / 2, y, (az + bz) / 2]
+      box.push(part(mid, [road.width + 0.9, 0.012, len], [0, yaw, 0], '#a08850'))
+      box.push(part([mid[0], y + 0.008, mid[2]], [road.width, 0.014, len], [0, yaw, 0], '#b97b4b'))
+      if (road.width >= 3.5) {
+        // tyre ruts
+        for (const off of [-0.75, 0.75]) {
+          box.push(part([mid[0] + Math.cos(yaw) * off, y + 0.016, mid[2] - Math.sin(yaw) * off], [0.35, 0.006, len], [0, yaw, 0], '#a86c40'))
+        }
+      }
+    }
+    for (const [x, z] of road.points) {
+      cylinder.push(part([x, y, z], [road.width + 0.9, 0.012, road.width + 0.9], [0, 0, 0], '#a08850'))
+      cylinder.push(part([x, y + 0.008, z], [road.width, 0.014, road.width], [0, 0, 0], '#b97b4b'))
+    }
   })
-  // tyre ruts along the main road
-  const main = ROADS[0]
-  for (const x of [-0.75, 0.75]) {
-    box.push(part([main.x + x, 0.026, main.z], [0.35, 0.006, main.d], [0, 0, 0], '#a86c40'))
-  }
-  // a patch of sand around the pond edge path
-  box.push(part([POND.center[0] + 5.5, 0.012, POND.center[1]], [2, 0.01, 4], [0, 0.3, 0], '#c7a46b'))
-  return { box }
+  return { box, cylinder }
 }
 
 function buildHills() {
@@ -110,17 +147,12 @@ export function KampungEnvironment() {
   return (
     <group>
       <mesh geometry={groundGeometry} material={MAT.ground} receiveShadow />
-      {/* the padang: a lighter, well-trodden field */}
-      <mesh position={[FIELD.center[0], 0.005, FIELD.center[1]]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <circleGeometry args={[FIELD.radius, 40]} />
-        <meshStandardMaterial color="#9fc463" roughness={1} polygonOffset polygonOffsetFactor={-1} />
-      </mesh>
       <PartsBundle bundle={roads} castShadow={false} />
       <PartsBundle bundle={hills} castShadow={false} receiveShadow={false} />
       <Clouds />
 
-      {/* Golden dust in the evening air, fireflies by the pond */}
-      <Sparkles count={70} scale={[70, 8, 70]} position={[0, 4, -4]} size={2.4} speed={0.25} opacity={0.55} color="#ffd59a" />
+      {/* Golden dust in the evening air, fireflies by the river bend */}
+      <Sparkles count={90} scale={[140, 8, 90]} position={[0, 4, 0]} size={2.4} speed={0.25} opacity={0.55} color="#ffd59a" />
       <Sparkles
         count={30}
         scale={[12, 2.5, 12]}
@@ -130,16 +162,6 @@ export function KampungEnvironment() {
         opacity={0.8}
         color="#fff4a8"
       />
-      <Sparkles
-        count={24}
-        scale={[22, 3, 22]}
-        position={[FIELD.center[0], 1.5, FIELD.center[1]]}
-        size={2.6}
-        speed={0.3}
-        opacity={0.6}
-        color="#ffe2a1"
-      />
-
       {/* Ground and world boundaries */}
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[GROUND_SIZE / 2, 1, GROUND_SIZE / 2]} position={[0, -1, 0]} />
