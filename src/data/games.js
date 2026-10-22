@@ -94,7 +94,7 @@ export const games = [
     modes: ['solo', 'multiplayer'],
     players: '1–4 pemain',
     accent: '#8a6a3c',
-    spot: spotAt(548, 524, 3.4),
+    spot: spotAt(560, 506, 3.4),
     map: [480, 478],
     lines: ['Buah satu… buah dua…', 'Jangan jatuh, jangan jatuh!'],
   },

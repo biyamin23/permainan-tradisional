@@ -1,5 +1,7 @@
 import { clock, setClockHour } from './state/timeOfDay'
 import { GENDERS, SCREENS, playerActions } from './state/playerState'
+import { getGameById } from './data/games'
+import { arrivalFor } from './data/kampungLayout'
 import { worldRuntime } from './state/worldRuntime'
 
 /**
@@ -14,6 +16,10 @@ export function installDebug() {
     teleport(x, z, yaw = 0) {
       worldRuntime.debugCamera = null
       worldRuntime.teleport = { x, z, yaw }
+    },
+    go(id) {
+      worldRuntime.debugCamera = null
+      worldRuntime.teleport = arrivalFor(getGameById(id))
     },
     hour(h) {
       setClockHour(h)

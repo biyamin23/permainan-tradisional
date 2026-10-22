@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { OBJECTIVE_GAME } from '../../data/games'
 import { usePlayerState } from '../../state/playerState'
 import { describeTime, skipClock, timeStore, useTimeState } from '../../state/timeOfDay'
 import { showToast } from '../../state/uiState'
 import { worldRuntime } from '../../state/worldRuntime'
+import { PetaMap } from './PetaMap'
 import { SoundToggle } from './SoundToggle'
 
 function ControlsHelp({ isTouch }) {
@@ -20,7 +21,7 @@ function ControlsHelp({ isTouch }) {
           <span className="hud__help-icon">✋</span> Butang kanan untuk main atau bersembang
         </li>
         <li>
-          <span className="hud__help-icon">📍</span> Setiap permainan ada tempatnya sendiri
+          <span className="hud__help-icon">🗺️</span> Ketik kompas untuk buka peta dan terus ke permainan
         </li>
         <li>
           <span className="hud__help-icon">⏩</span> Ketik jam untuk cepatkan masa
@@ -34,7 +35,7 @@ function ControlsHelp({ isTouch }) {
       <kbd className="keycap keycap--sm">A</kbd>
       <kbd className="keycap keycap--sm">S</kbd>
       <kbd className="keycap keycap--sm">D</kbd> bergerak · <kbd className="keycap keycap--sm">Shift</kbd> lari ·{' '}
-      <kbd className="keycap keycap--sm">E</kbd> main / sembang · seret tetikus untuk pusing kamera · klik jam untuk
+      <kbd className="keycap keycap--sm">E</kbd> main / sembang · <kbd className="keycap keycap--sm">M</kbd> peta · seret tetikus untuk pusing kamera · klik jam untuk
       cepatkan masa
     </span>
   )
@@ -72,6 +73,17 @@ export function HUD({ isTouch }) {
   const distanceRef = useRef(null)
   const labelRef = useRef(null)
   const [showHelp, setShowHelp] = useState(true)
+  const [showMap, setShowMap] = useState(false)
+  const closeMap = useCallback(() => setShowMap(false), [])
+
+  // M opens the map
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.key === 'm' || e.key === 'M') && !e.repeat && !showMap) setShowMap(true)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showMap])
 
   useEffect(() => {
     worldRuntime.hud.arrow = arrowRef.current
@@ -99,7 +111,7 @@ export function HUD({ isTouch }) {
           <ClockLabel />
         </button>
 
-        <div className="hud__objective" aria-live="polite">
+        <button type="button" className="hud__objective" aria-live="polite" onClick={() => setShowMap(true)} title="Buka peta (M)">
           <span className="hud__compass">
             <span ref={arrowRef} className="hud__arrow" aria-hidden="true">
               ▲
@@ -111,7 +123,10 @@ export function HUD({ isTouch }) {
             </span>
             <small ref={distanceRef}>…</small>
           </span>
-        </div>
+          <span className="hud__map-badge" aria-hidden="true">
+            🗺️
+          </span>
+        </button>
 
         <SoundToggle className="hud__icon-btn" announce />
 
@@ -144,6 +159,7 @@ export function HUD({ isTouch }) {
           {showHelp ? <ControlsHelp isTouch={false} /> : <span>? Kawalan</span>}
         </button>
       )}
+      {showMap && <PetaMap onClose={closeMap} />}
     </div>
   )
 }

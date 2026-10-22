@@ -45,154 +45,99 @@
   "hour": 16
  },
  {
+  "name": "01b-peta",
+  "map": true,
+  "pick": "Dam Haji"
+ },
+ {
   "name": "02-congkak",
-  "at": [
-   -29.48,
-   -0.8
-  ],
-  "yaw": 0,
   "hour": 16,
-  "wideOnly": false
+  "wideOnly": false,
+  "game": "congkak"
  },
  {
   "name": "03-dam",
-  "at": [
-   44.88,
-   6.68
-  ],
-  "yaw": 0,
   "hour": 16,
-  "wideOnly": false
+  "wideOnly": false,
+  "game": "dam"
  },
  {
   "name": "04-ting-ting",
-  "at": [
-   39.6,
-   -0.8
-  ],
-  "yaw": 0,
   "hour": 16,
-  "wideOnly": true
+  "wideOnly": true,
+  "game": "ting-ting"
  },
  {
   "name": "05-konda-kondi",
-  "at": [
-   35.64,
-   38.58
-  ],
-  "yaw": 0,
   "hour": 16,
-  "wideOnly": true
+  "wideOnly": true,
+  "game": "konda-kondi"
  },
  {
   "name": "06-batu-seremban",
-  "at": [
-   -24.2,
-   9.32
-  ],
-  "yaw": 0,
   "hour": 16,
-  "wideOnly": true
+  "wideOnly": true,
+  "game": "batu-seremban"
  },
  {
   "name": "07-lumba-basikal",
-  "at": [
-   -61.82,
-   0.52
-  ],
-  "yaw": 0,
   "hour": 16,
-  "wideOnly": false
+  "wideOnly": false,
+  "game": "lumba-basikal"
  },
  {
   "name": "08-kejar-kejar",
-  "at": [
-   8.14,
-   -4.1
-  ],
-  "yaw": 0,
   "hour": 16,
-  "wideOnly": true
+  "wideOnly": true,
+  "game": "kejar-kejar"
  },
  {
   "name": "09-police-thief",
-  "at": [
-   17.6,
-   0.08
-  ],
-  "yaw": 0,
   "hour": 16,
-  "wideOnly": true
+  "wideOnly": true,
+  "game": "police-thief"
  },
  {
   "name": "10-gasing",
-  "at": [
-   -0.88,
-   22.3
-  ],
-  "yaw": 0,
   "hour": 16,
-  "wideOnly": true
+  "wideOnly": true,
+  "game": "gasing"
  },
  {
   "name": "11-galah-panjang",
-  "at": [
-   -55.22,
-   26.7
-  ],
-  "yaw": 0,
   "hour": 16,
-  "wideOnly": true
+  "wideOnly": true,
+  "game": "galah-panjang"
  },
  {
   "name": "12-sepak-raga",
-  "at": [
-   50.38,
-   -16.42
-  ],
-  "yaw": 0,
   "hour": 16,
-  "wideOnly": true
+  "wideOnly": true,
+  "game": "sepak-raga"
  },
  {
   "name": "13-tarik-upih",
-  "at": [
-   -7.48,
-   -28.74
-  ],
-  "yaw": 0,
   "hour": 16,
-  "wideOnly": true
+  "wideOnly": true,
+  "game": "tarik-upih"
  },
  {
   "name": "14-wau",
-  "at": [
-   42.02,
-   -30.72
-  ],
-  "yaw": 0,
   "hour": 16,
-  "wideOnly": true
+  "wideOnly": true,
+  "game": "wau"
  },
  {
   "name": "15-guli",
-  "at": [
-   -46.86,
-   44.74
-  ],
-  "yaw": 0,
   "hour": 16,
-  "wideOnly": true
+  "wideOnly": true,
+  "game": "guli"
  },
  {
   "name": "16-baling-selipar",
-  "at": [
-   -8.58,
-   49.58
-  ],
-  "yaw": 0,
   "hour": 16,
-  "wideOnly": true
+  "wideOnly": true,
+  "game": "baling-selipar"
  },
  {
   "name": "90-waterfall",

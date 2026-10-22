@@ -820,7 +820,13 @@ kbd {
 
 /* objective: compact compass chip on phones, full pill on wider screens */
 .hud__objective {
+  position: relative;
   flex: 0 0 auto;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -831,6 +837,21 @@ kbd {
   backdrop-filter: blur(8px);
   box-shadow: var(--shadow-soft);
   animation: slide-in-right 0.8s 3s var(--ease-out) both;
+}
+
+/* the compass also opens the Peta */
+.hud__map-badge {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 @keyframes slide-in-right {

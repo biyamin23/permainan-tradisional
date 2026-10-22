@@ -177,7 +177,6 @@ export const NEIGHBOUR_HOUSES = [
   { ...at(96, 600, Math.PI / 2), variant: 'kelabu' },
   { ...at(830, 700, Math.PI), variant: 'biru' },
   { ...at(520, 868, Math.PI / 2), variant: 'hijau' },
-  { ...at(880, 470, -Math.PI / 2), variant: 'kelabu' },
 ]
 
 /** Fence around Tok Wan's yard, as [x1, z1, x2, z2] segments (world metres). */
@@ -229,4 +228,25 @@ export function isReserved(x, z, margin = 1) {
   for (const b of BUILDINGS) if (near(x, z, b.position[0], b.position[2], b.r + margin)) return true
   if (near(x, z, PONDOK_SAWAH.position[0], PONDOK_SAWAH.position[2], 4 + margin)) return true
   return false
+}
+
+/**
+ * Where to put the player when travelling to a game from the Peta: a spot on
+ * the ring around the game that is dry and clear of buildings, preferring
+ * the south side. `yaw` puts the camera behind you, looking at the game.
+ */
+export function arrivalFor(game) {
+  const [sx, sz] = game.spot.position
+  for (const dist of [game.spot.radius + 2.5, game.spot.radius + 4.5, game.spot.radius + 7]) {
+    for (let k = 0; k < 16; k++) {
+      const a = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * (Math.PI / 8)
+      const x = sx + Math.sin(a) * dist
+      const z = sz + Math.cos(a) * dist
+      if (x < BOUNDS.xMin + 2 || x > BOUNDS.xMax - 2 || z < BOUNDS.zMin + 2 || z > BOUNDS.zMax - 2) continue
+      if (distanceToRiver(x, z) < 2) continue
+      if (BUILDINGS.some((b) => near(x, z, b.position[0], b.position[2], b.r - 1.5))) continue
+      return { x, z, yaw: a }
+    }
+  }
+  return { x: sx, z: sz + game.spot.radius + 2.5, yaw: 0 }
 }

@@ -21,10 +21,21 @@ for (const viewport of [
   await page.waitForTimeout(6000)
   for (const shot of shots) {
     if (shot.wideOnly && viewport.name !== 'wide') continue
+    if (shot.map) {
+      await page.keyboard.press('m')
+      await page.waitForTimeout(1500)
+      if (shot.pick) await page.getByRole('button', { name: shot.pick, exact: false }).first().click()
+      await page.waitForTimeout(500)
+      await page.screenshot({ path: `screens-out/${viewport.name}-${shot.name}.png` })
+      await page.keyboard.press('Escape')
+      await page.waitForTimeout(500)
+      continue
+    }
     await page.evaluate((s) => {
       const k = window.__kampung
       if (s.hour !== undefined) k.hour(s.hour)
       if (s.camera) k.camera(s.camera.position, s.camera.target)
+      else if (s.game) k.go(s.game)
       else {
         k.camera(null)
         k.teleport(s.at[0], s.at[1], s.yaw ?? 0)

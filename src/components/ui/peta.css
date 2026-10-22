@@ -1,0 +1,267 @@
+/* Peta Kampung: the illustrated map over the 3D kampung. */
+.peta {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  padding: max(10px, env(safe-area-inset-top)) 0 max(10px, env(safe-area-inset-bottom));
+  background: rgba(30, 18, 10, 0.88);
+  backdrop-filter: blur(4px);
+  font-family: var(--font-body);
+  color: #fbf3e2;
+  animation: modal-fade 0.25s ease-out both;
+}
+
+.peta__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px 8px;
+}
+
+.peta__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+}
+
+.peta__close {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 50%;
+  background: #fbf3e2;
+  color: #3b2414;
+  font-size: 1.2rem;
+  font-weight: 900;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.peta__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* the picture fills the height; on a phone you scroll sideways */
+.peta__map {
+  position: relative;
+  height: 100%;
+  min-height: 300px;
+  aspect-ratio: 1536 / 1024;
+  margin: 0 auto;
+}
+
+@media (min-aspect-ratio: 3/2) {
+  .peta__map {
+    height: auto;
+    width: 100%;
+  }
+}
+
+.peta__map img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* invisible tap target over each pin drawn in the picture */
+.peta__pin {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.peta__pin.is-open {
+  border-color: rgba(255, 212, 94, 0.9);
+  box-shadow: 0 0 14px 4px rgba(255, 212, 94, 0.6);
+  animation: peta-glow 1.6s ease-in-out infinite;
+}
+
+.peta__pin.is-selected {
+  border-color: #fff;
+  box-shadow: 0 0 0 4px rgba(63, 155, 79, 0.9);
+  animation: none;
+}
+
+/* a game the picture doesn't show gets its own pin */
+.peta__pin.is-drawn {
+  width: 34px;
+  height: 34px;
+  border: 3px solid #fff;
+  background: #2f5fa8;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+
+.peta__pin-num {
+  font-weight: 900;
+  color: #fff;
+}
+
+@keyframes peta-glow {
+  50% {
+    box-shadow: 0 0 4px 1px rgba(255, 212, 94, 0.3);
+  }
+}
+
+.peta__me {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #e2622b;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 6px rgba(226, 98, 43, 0.35);
+  pointer-events: none;
+  animation: peta-me 1.4s ease-in-out infinite;
+}
+
+.peta__me-label {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e2622b;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+@keyframes peta-me {
+  50% {
+    box-shadow: 0 0 0 12px rgba(226, 98, 43, 0.1);
+  }
+}
+
+.peta__sheet {
+  padding: 10px 12px 0;
+}
+
+.peta__hint {
+  margin: 0 0 8px;
+  font-weight: 700;
+  color: rgba(251, 243, 226, 0.8);
+}
+
+.peta__card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 8px 8px 8px 10px;
+  border-radius: 18px;
+  background: #fbf3e2;
+  color: #3b2414;
+}
+
+.peta__num,
+.peta__chip-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--c);
+  color: #fff;
+  font-weight: 900;
+}
+
+.peta__info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.peta__info strong {
+  font-size: 1.1rem;
+}
+
+.peta__info small {
+  font-weight: 700;
+  color: rgba(59, 36, 20, 0.7);
+}
+
+.peta__go {
+  flex: none;
+  min-height: 48px;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 14px;
+  background: #3f9b4f;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 900;
+  box-shadow: 0 4px 0 #2c7a3b;
+  cursor: pointer;
+}
+
+.peta__go:active {
+  transform: translateY(3px);
+  box-shadow: none;
+}
+
+.peta__list {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.peta__chip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 4px 14px 4px 4px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(251, 243, 226, 0.14);
+  color: #fbf3e2;
+  font-family: var(--font-body);
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.peta__chip .peta__chip-num {
+  width: 32px;
+  height: 32px;
+  border-width: 2px;
+  font-size: 0.85rem;
+}
+
+.peta__chip.is-open {
+  border-color: rgba(255, 212, 94, 0.7);
+}
+
+.peta__chip.is-selected {
+  background: #fbf3e2;
+  color: #3b2414;
+}
