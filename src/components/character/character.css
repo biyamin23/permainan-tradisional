@@ -1,0 +1,329 @@
+/* --------------------------------------------------------------------------
+   Character creation: one cream card over the kampung. Name, two big
+   picture tiles, a wooden JOM! button. Sized to fit a phone without
+   scrolling, with the tap targets big.
+   -------------------------------------------------------------------------- */
+
+.character {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+
+.cc-card {
+  position: relative;
+  z-index: 3;
+  width: min(100%, 440px);
+  padding: 1.1rem 1.2rem 1.3rem;
+  border-radius: 26px;
+  background: linear-gradient(180deg, var(--cream-50), var(--cream-100));
+  border: 2px solid rgba(201, 161, 115, 0.45);
+  box-shadow:
+    0 6px 0 rgba(120, 80, 40, 0.25),
+    0 30px 60px -20px rgba(0, 0, 0, 0.6);
+  font-family: var(--font-body);
+  color: var(--kayu-800);
+  animation: rise 0.6s var(--ease-out) both;
+}
+
+/* ---------------------------------------------------------------- back */
+.cc-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 42px;
+  padding: 0 1rem;
+  border: 2px solid var(--cream-300);
+  border-radius: 999px;
+  background: #fff;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--kayu-700);
+  box-shadow: 0 3px 0 var(--cream-300);
+  cursor: pointer;
+}
+
+.cc-back:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+/* ---------------------------------------------------------------- name */
+.cc-title {
+  position: relative;
+  display: block;
+  width: fit-content;
+  margin: 0.9rem auto 0.9rem;
+  font-family: var(--font-body);
+  font-size: clamp(1.7rem, 7.5vw, 2.1rem);
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+}
+
+/* a gold brush stroke under the question */
+.cc-title::after {
+  content: '';
+  display: block;
+  height: 6px;
+  margin: 0.35rem 8% 0;
+  border-radius: 6px 2px 6px 2px;
+  background: var(--gold);
+  transform: rotate(-1deg);
+}
+
+.cc-field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 58px;
+  padding: 0 1.1rem;
+  border: 2px solid var(--cream-300);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: inset 0 2px 4px rgba(120, 80, 40, 0.12);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.cc-field:focus-within {
+  border-color: var(--sunset);
+  box-shadow: 0 0 0 5px rgba(226, 98, 43, 0.18);
+}
+
+.cc-field.has-error {
+  border-color: var(--red);
+  animation: shake 0.4s;
+}
+
+.cc-field__icon {
+  flex: none;
+  font-size: 1.2rem;
+}
+
+.cc-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 54px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-body);
+  /* 16px or more stops iPhone zooming in on the field */
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--kayu-800);
+}
+
+.cc-field input:focus {
+  outline: none;
+}
+
+.cc-field input::placeholder {
+  color: #b9a089;
+  font-weight: 700;
+}
+
+.cc-error {
+  min-height: 1.2rem;
+  margin: 0.3rem 0 0.2rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--red);
+}
+
+/* ---------------------------------------------------------------- character */
+.cc-tag {
+  width: fit-content;
+  margin: 0.2rem 0 0.75rem;
+  padding: 0.4rem 1.1rem 0.45rem;
+  border-radius: 6px 14px 6px 14px;
+  background: var(--kayu-700);
+  color: var(--cream-50);
+  font-size: 1.05rem;
+  font-weight: 900;
+  box-shadow: 0 3px 0 var(--kayu-900);
+  transform: rotate(-1.5deg);
+}
+
+.cc-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+}
+
+.cc-choice {
+  --tile: linear-gradient(180deg, #a9cdf2, #7fb0e6);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 6px 0;
+  border: 3px solid var(--cream-300);
+  border-radius: 20px;
+  background: var(--cream-50);
+  box-shadow: 0 5px 0 var(--cream-300);
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition:
+    transform 0.25s var(--ease-spring),
+    border-color 0.2s,
+    box-shadow 0.2s,
+    opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cc-choice--perempuan {
+  --tile: linear-gradient(180deg, #f6bcbc, #ec9c9f);
+}
+
+.cc-choice__pic {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  padding: 5px;
+  border-radius: 14px;
+  background: var(--tile);
+}
+
+.cc-choice__pic img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.cc-choice__label {
+  position: relative;
+  z-index: 1;
+  margin: -16px 4px 8px;
+  padding: 0.55rem 0.2rem;
+  border-radius: 12px;
+  background: var(--cream-50);
+  border: 2px solid var(--cream-300);
+  font-size: clamp(0.85rem, 3.6vw, 1rem);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: var(--kayu-800);
+  box-shadow: 0 3px 0 var(--cream-300);
+}
+
+.cc-choice__tick {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #3f9b4f;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 900;
+  box-shadow: 0 3px 0 #2c7a3b;
+  transform: scale(0);
+  transition: transform 0.25s var(--ease-spring);
+}
+
+.cc-choice.is-selected {
+  border-color: #3f9b4f;
+  box-shadow:
+    0 5px 0 #2c7a3b,
+    0 14px 24px -12px rgba(30, 90, 40, 0.6);
+  transform: translateY(-4px);
+}
+
+.cc-choice.is-selected .cc-choice__tick {
+  transform: scale(1);
+}
+
+/* once one is picked, the other steps back a little */
+.cc-choices.has-choice .cc-choice:not(.is-selected) {
+  opacity: 0.6;
+}
+
+.cc-choice:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------- JOM! */
+.cc-go {
+  display: block;
+  width: 100%;
+  min-height: 62px;
+  margin-top: 0.5rem;
+  border: 3px solid #4a2a14;
+  border-radius: 20px;
+  /* a plank of wood */
+  background:
+    repeating-linear-gradient(180deg, rgba(60, 25, 5, 0.12) 0 2px, transparent 2px 7px),
+    linear-gradient(180deg, #a5643a, #7d4522 55%, #5e3218);
+  color: var(--cream-50);
+  font-family: var(--font-body);
+  font-size: 1.7rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-shadow: 0 2px 0 rgba(40, 15, 5, 0.6);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 214, 170, 0.35),
+    0 5px 0 #3a1f0e;
+  opacity: 0.75;
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    opacity 0.2s;
+}
+
+.cc-go.is-ready {
+  opacity: 1;
+  animation: cc-ready 1.8s ease-in-out infinite;
+}
+
+@keyframes cc-ready {
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.cc-go:active {
+  transform: translateY(4px);
+  box-shadow: inset 0 2px 0 rgba(255, 214, 170, 0.35);
+  animation: none;
+}
+
+/* short phones: tighter spacing so JOM! stays on screen */
+@media (max-height: 700px) {
+  .cc-card {
+    padding-top: 0.8rem;
+  }
+
+  .cc-title {
+    margin: 0.5rem auto 0.6rem;
+  }
+
+  .cc-choice__pic {
+    aspect-ratio: 1 / 0.86;
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
