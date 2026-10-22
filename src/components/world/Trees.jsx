@@ -3,6 +3,7 @@ import { CylinderCollider, RigidBody } from '@react-three/rapier'
 import { BOUNDS, HOUSE, HUTAN, KEBUN_KELAPA, isNearGameSpot, isOnRoad, isReserved } from '../../data/kampungLayout'
 import { PartsBundle } from './InstancedParts'
 import { createRandom, makeAlignedMatrix, mergeBundles, part, pick, randomBetween } from './kit'
+import { MODELS } from '../../data/models'
 
 const LEAF_GREENS = ['#4f8a3a', '#5a9440', '#447d35', '#3d7131', '#6a9c45']
 const PALM_GREENS = ['#5f9a3c', '#6aa443', '#58913a', '#7aa84a']
@@ -166,6 +167,21 @@ const HAND_FLOWER_BUSHES = [[hx - 3.2, hz + 9], [hx + 3.4, hz + 9], [hx + 6.5, h
 
 const inRect = (x, z, r) => x > r.xMin && x < r.xMax && z > r.zMin && z < r.zMax
 
+/** The coconut palms of the kebun kelapa (deterministic). */
+export const KEBUN_PALMS = (() => {
+  const random = createRandom(4242)
+  const out = []
+  for (let x = KEBUN_KELAPA.xMin + 2; x < KEBUN_KELAPA.xMax - 1; x += 5.6) {
+    for (let z = KEBUN_KELAPA.zMin + 2; z < KEBUN_KELAPA.zMax - 1; z += 5.6) {
+      const jx = x + randomBetween(random, -0.9, 0.9)
+      const jz = z + randomBetween(random, -0.9, 0.9)
+      if (isNearGameSpot(jx, jz, 1) || isOnRoad(jx, jz, 1.5)) continue
+      out.push({ x: jx, z: jz, yaw: random() * Math.PI * 2, scale: randomBetween(random, 0.95, 1.3) })
+    }
+  }
+  return out
+})()
+
 export function Trees() {
   const { bundle, colliders } = useMemo(() => {
     const random = createRandom(2026)
@@ -180,14 +196,13 @@ export function Trees() {
     }
     const farEnough = (x, z, d) => placed.every(([px, pz]) => (px - x) ** 2 + (pz - z) ** 2 > d * d)
 
-    // Kebun kelapa: rows of coconut palms (an open strip is kept for Tarik Upih)
-    for (let x = KEBUN_KELAPA.xMin + 2; x < KEBUN_KELAPA.xMax - 1; x += 5.2) {
-      for (let z = KEBUN_KELAPA.zMin + 2; z < KEBUN_KELAPA.zMax - 1; z += 5.2) {
-        const jx = x + randomBetween(random, -0.8, 0.8)
-        const jz = z + randomBetween(random, -0.8, 0.8)
-        if (isNearGameSpot(jx, jz, 1) || isOnRoad(jx, jz, 1.5)) continue
-        add(buildCoconutTree(jx, jz, random), jx, jz)
-      }
+    // Kebun kelapa: rows of coconut palms (an open strip is kept for Tarik Upih).
+    // With the GLB palm they are drawn by <CoconutGrove>; here they only get trunks to bump into.
+    for (const palm of KEBUN_PALMS) {
+      if (MODELS.kelapa.url) {
+        colliderList.push({ position: [palm.x, 1, palm.z], radius: 0.35, halfHeight: 1 })
+        placed.push([palm.x, palm.z])
+      } else add(buildCoconutTree(palm.x, palm.z, random), palm.x, palm.z)
     }
     // Hutan kecil: thick trees round the waterfall
     let forest = 0

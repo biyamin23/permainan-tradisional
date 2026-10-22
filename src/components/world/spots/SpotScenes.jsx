@@ -8,6 +8,7 @@ import { ProximityBubble } from '../npc/ProximityBubble'
 import { Bicycle } from '../npc/Npcs'
 import { part } from '../kit'
 import { HOUSE } from '../../../data/kampungLayout'
+import { MODELS } from '../../../data/models'
 import { PartsBundle } from '../InstancedParts'
 import { KedaiKopi } from './KedaiKopi'
 import {
@@ -66,8 +67,10 @@ function KidBubble({ game, position, maxDistance }) {
 // ------------------------------------------------------------------ Congkak
 // On the serambi of Tok Wan's house: Aisyah and a friend at the board.
 const CONGKAK_EXTRAS = buildCongkakOnMat()
-const PORCH_LIFT = 0.65 // the congkak props were built for a wakaf floor; the serambi is higher
-const MAT_AT = { x: -1.45, z: 4.75 }
+// the congkak props were built for a wakaf floor (top at 0.625 m); lift them onto the serambi
+const SERAMBI_Y = MODELS.tokwan.url ? MODELS.tokwan.serambi.y : 1.275
+const PORCH_LIFT = SERAMBI_Y - 0.625
+const MAT_AT = MODELS.tokwan.url ? { x: -1.7, z: 3.1 } : { x: -1.45, z: 4.75 }
 
 export function CongkakScene({ game }) {
   return (
@@ -76,8 +79,8 @@ export function CongkakScene({ game }) {
         <PartsBundle bundle={CONGKAK_EXTRAS} />
       </group>
       {/* Aisyah, who challenges you to a game */}
-      <Kid seed={1} girl pose="toss" position={[MAT_AT.x, 1.275, MAT_AT.z - 0.72]} />
-      <Kid seed={2} girl pose="sit" position={[MAT_AT.x, 1.275, MAT_AT.z + 0.92]} rotationY={Math.PI} phase={0.8} />
+      <Kid seed={1} girl pose="toss" position={[MAT_AT.x, SERAMBI_Y, MAT_AT.z - 0.72]} />
+      <Kid seed={2} girl pose="sit" position={[MAT_AT.x, SERAMBI_Y, MAT_AT.z + 0.92]} rotationY={Math.PI} phase={0.8} />
       <KidBubble game={game} position={[MAT_AT.x, 2.75, MAT_AT.z - 0.72]} maxDistance={game.spot.radius + 9} />
     </group>
   )

@@ -258,10 +258,12 @@ export function House({ position, rotationY = 0, variant = 'tokwan', index = 0 }
   const urls = MODELS.rumah.urls
   const modelUrl = variant === 'tokwan' ? MODELS.tokwan.url : urls.length ? urls[index % urls.length] : null
 
-  return (
-    <RigidBody type="fixed" colliders={false} position={position} rotation={[0, rotationY, 0]}>
-      <CuboidCollider args={HOUSE_COLLIDER.halfExtents} position={HOUSE_COLLIDER.center} />
-      <ModelSlot model={variant === 'tokwan' ? MODELS.tokwan : MODELS.rumah} url={modelUrl} fallback={<PartsBundle bundle={bundle} />} />
+  const model = variant === 'tokwan' ? MODELS.tokwan : MODELS.rumah
+  const colliders = modelUrl ? model.colliders : [[HOUSE_COLLIDER.halfExtents, HOUSE_COLLIDER.center]]
+
+  const standIn = (
+    <>
+      <PartsBundle bundle={bundle} />
       {/* interior seen through doors and windows: lamplit at night */}
       <mesh position={[0, WALL_MID, FRONT_Z - 0.37]} material={MAT.glow}>
         <planeGeometry args={[W - 0.5, WALL_H - 0.1]} />
@@ -274,6 +276,15 @@ export function House({ position, rotationY = 0, variant = 'tokwan', index = 0 }
       <mesh position={[0, WALL_TOP + 1.05, FRONT_Z + 0.16]} rotation={[0, 0, Math.PI / 4]} material={MAT.glow}>
         <planeGeometry args={[0.43, 0.43]} />
       </mesh>
+    </>
+  )
+
+  return (
+    <RigidBody type="fixed" colliders={false} position={position} rotation={[0, rotationY, 0]}>
+      {colliders.map(([half, center], i) => (
+        <CuboidCollider key={i} args={half} position={center} />
+      ))}
+      <ModelSlot model={model} url={modelUrl} fallback={standIn} />
     </RigidBody>
   )
 }

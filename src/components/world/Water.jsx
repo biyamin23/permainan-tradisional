@@ -153,20 +153,43 @@ function buildBridgeParts(b) {
   return { box, cylinder }
 }
 
+// The GLB bridge is arched (deck 0.95 m up at the ends, 1.47 m mid-span), so it
+// is sunk a little and walked over on two gentle ramps.
+const GLB_SINK = 0.78
+
 function Bridge({ bridge }) {
   const parts = useMemo(() => buildBridgeParts(bridge), [bridge])
   const rail = bridge.width / 2 + 0.2
+  const glb = MODELS.jambatan.url
+  const ramps = useMemo(() => {
+    if (!glb) return null
+    const run = bridge.length / 2 + 0.7
+    const rise = MODELS.jambatan.deck.mid - GLB_SINK
+    const angle = Math.atan2(rise, run)
+    const half = Math.hypot(run, rise) / 2
+    return [1, -1].map((side) => ({
+      position: [0, rise / 2 - 0.05, (side * run) / 2],
+      rotation: [side * angle, 0, 0],
+      half: [bridge.width / 2, 0.05, half],
+    }))
+  }, [bridge, glb])
+
   return (
     <group position={[bridge.x, 0, bridge.z]} rotation={[0, bridge.rotationY, 0]}>
       <ModelSlot
         model={MODELS.jambatan}
-        url={MODELS.jambatan.url}
+        scale={[bridge.width / MODELS.jambatan.size[0], 1, bridge.length / MODELS.jambatan.size[1]]}
+        offset={[0, -GLB_SINK, 0]}
         fallback={<PartsBundle bundle={parts} />}
       />
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[bridge.width / 2, 0.05, bridge.length / 2]} position={[0, 0.07, 0]} />
-        <CuboidCollider args={[0.1, 0.6, bridge.length / 2]} position={[-rail, 0.6, 0]} />
-        <CuboidCollider args={[0.1, 0.6, bridge.length / 2]} position={[rail, 0.6, 0]} />
+        {ramps ? (
+          ramps.map((r, i) => <CuboidCollider key={i} args={r.half} position={r.position} rotation={r.rotation} />)
+        ) : (
+          <CuboidCollider args={[bridge.width / 2, 0.05, bridge.length / 2]} position={[0, 0.07, 0]} />
+        )}
+        <CuboidCollider args={[0.1, 1.2, bridge.length / 2]} position={[-rail, 0.9, 0]} />
+        <CuboidCollider args={[0.1, 1.2, bridge.length / 2]} position={[rail, 0.9, 0]} />
       </RigidBody>
     </group>
   )
@@ -191,6 +214,12 @@ function buildWaterfallParts() {
   return { blob }
 }
 
+// the anak sungai leaves the waterfall in this direction
+const FALL_YAW = (() => {
+  const [[ax, az], [bx, bz]] = RIVERS[0].points
+  return Math.atan2(bx - ax, bz - az)
+})()
+
 function Waterfall() {
   const parts = useMemo(buildWaterfallParts, [])
   const foam = useRef()
@@ -198,19 +227,30 @@ function Waterfall() {
   useFrame((state) => {
     if (foam.current) foam.current.scale.setScalar(1 + Math.sin(state.clock.elapsedTime * 6) * 0.06)
   })
-  return (
-    <group>
+  const standIn = (
+    <>
       <PartsBundle bundle={parts} />
       {/* the fall: a sheet of water coming down the rocks */}
       <mesh position={[x, WATERFALL.height / 2, z - 2.6]} rotation={[-0.25, 0, 0]} material={MAT.water}>
         <boxGeometry args={[WATERFALL.width * 0.7, WATERFALL.height, 0.15]} />
       </mesh>
-      <mesh ref={foam} position={[x, 0.12, z - 1.4]}>
+    </>
+  )
+  return (
+    <group>
+      {MODELS.airTerjun.url ? (
+        <group position={[x, 0, z - 1.5]} rotation={[0, FALL_YAW, 0]}>
+          <ModelSlot model={MODELS.airTerjun} scale={1.35} fallback={null} />
+        </group>
+      ) : (
+        standIn
+      )}
+      <mesh ref={foam} position={[x, 0.12, z + 0.6]}>
         <cylinderGeometry args={[2.2, 2.4, 0.08, 18]} />
         <meshBasicMaterial color="#eaf6f4" transparent opacity={0.65} />
       </mesh>
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[5, 3, 3]} position={[x, 3, z - 5]} />
+        <CuboidCollider args={[5, 3, 3]} position={[x, 3, z - 4]} />
       </RigidBody>
     </group>
   )

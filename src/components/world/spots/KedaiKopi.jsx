@@ -24,8 +24,14 @@ const WOOD = '#6e4a2c'
 const WOOD_DARK = '#57391f'
 const TABLE = '#8a6440'
 
-const DAM_TABLE = { x: 0.7, z: 0.5 }
-const TABLES = [DAM_TABLE, { x: -2.4, z: 0.9 }, { x: 2.9, z: -0.7 }]
+// with the GLB warung the tables stand in a row on its open front floor
+const GLB = Boolean(MODELS.warung.url)
+const TABLES = GLB
+  ? [{ x: 0, z: 1.1 }, { x: -2.65, z: 1.1 }, { x: 2.65, z: 1.1 }]
+  : [{ x: 0.7, z: 0.5 }, { x: -2.4, z: 0.9 }, { x: 2.9, z: -0.7 }]
+const DAM_TABLE = TABLES[0]
+// the model is see-through while you stand inside or at its open front
+const insideWarung = (p) => Math.abs(p.x) < 5.4 && p.z > -3.6 && p.z < 5.6
 const BENCH_GAP = 0.78 // table centre to bench centre
 
 function addTable(box, cylinder, { x, z }) {
@@ -227,17 +233,23 @@ export function KedaiKopi({ game }) {
   return (
     <RigidBody type="fixed" colliders={false} position={[x, 0, z]} rotation={[0, game.spot.rotationY ?? 0, 0]}>
       {/* walls, counter and tables are solid; the front stays open */}
-      <CuboidCollider args={[W / 2, 1.45, 0.08]} position={[0, 1.45, -D / 2 + 0.05]} />
-      <CuboidCollider args={[1.55, 0.55, 0.36]} position={[-1.7, 0.55, -D / 2 + 0.55]} />
+      {GLB ? (
+        MODELS.warung.colliders.map(([half, center], i) => <CuboidCollider key={`w${i}`} args={half} position={center} />)
+      ) : (
+        <>
+          <CuboidCollider args={[W / 2, 1.45, 0.08]} position={[0, 1.45, -D / 2 + 0.05]} />
+          <CuboidCollider args={[1.55, 0.55, 0.36]} position={[-1.7, 0.55, -D / 2 + 0.55]} />
+          {[-W / 2 + 0.15, 0, W / 2 - 0.15].map((px) => (
+            <CuboidCollider key={`p${px}`} args={[0.1, 1.4, 0.1]} position={[px, 1.4, D / 2 - 0.15]} />
+          ))}
+        </>
+      )}
       {TABLES.map((t) => (
         <CuboidCollider key={`${t.x}`} args={[0.72, 0.4, BENCH_GAP + 0.16]} position={[t.x, 0.4, t.z]} />
       ))}
-      {[-W / 2 + 0.15, 0, W / 2 - 0.15].map((px) => (
-        <CuboidCollider key={`p${px}`} args={[0.1, 1.4, 0.1]} position={[px, 1.4, D / 2 - 0.15]} />
-      ))}
-
       <ModelSlot
         model={MODELS.warung}
+        fadeWhen={insideWarung}
         fallback={
           <>
             <PartsBundle bundle={PARTS} />
@@ -253,7 +265,7 @@ export function KedaiKopi({ game }) {
       <Elder look={PAK_TAM} pose="sitPlay" position={[tx, SEAT_Y, tz - BENCH_GAP]} rotationY={0} detail />
       <Elder look={FRIENDS[0]} pose="sitThink" position={[tx, SEAT_Y, tz + BENCH_GAP]} rotationY={Math.PI} phase={0.7} />
       {/* a friend standing by, watching the game */}
-      <Elder look={FRIENDS[4]} pose="idle" position={[tx + 1.05, 0.04, tz + 0.1]} rotationY={-Math.PI / 2} phase={1.4} />
+      <Elder look={FRIENDS[4]} pose="idle" position={[tx + 1.15, 0.04, tz + 0.1]} rotationY={-Math.PI / 2} phase={1.4} />
       {/* kopi and sembang at the next tables */}
       <Elder look={FRIENDS[1]} pose="sitDrink" position={[t2.x, SEAT_Y, t2.z - BENCH_GAP]} rotationY={0} phase={0.3} cup />
       <Elder look={FRIENDS[2]} pose="sitDrink" position={[t2.x, SEAT_Y, t2.z + BENCH_GAP]} rotationY={Math.PI} phase={2.1} cup />

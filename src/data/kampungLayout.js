@@ -14,7 +14,7 @@ const rectPx = (u0, v0, u1, v1) => {
 }
 const line = (points) => points.map(([u, v]) => px(u, v))
 
-const [spawnX, spawnZ] = px(650, 492)
+const [spawnX, spawnZ] = px(600, 478)
 export const SPAWN = [spawnX, 1, spawnZ]
 
 export const BOUNDS = rectPx(8, 8, 1528, 1016)
@@ -170,7 +170,7 @@ export const WARUNG = at(1176, 500)
 export const NEIGHBOUR_HOUSES = [
   { ...at(600, 250, 0.15), variant: 'biru' },
   { ...at(262, 236, -0.1), variant: 'kelabu' },
-  { ...at(668, 566, 0.3), variant: 'hijau' },
+  { ...at(694, 586, 0.3), variant: 'hijau' },
   { ...at(1000, 408, -Math.PI / 2), variant: 'biru' },
   { ...at(1248, 396, Math.PI), variant: 'kelabu' },
   { ...at(1290, 650, -Math.PI / 2), variant: 'hijau' },

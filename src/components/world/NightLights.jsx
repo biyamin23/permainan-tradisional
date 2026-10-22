@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { CylinderCollider, RigidBody } from '@react-three/rapier'
 import { DoubleSide } from 'three'
 import { HOUSE, ROADS } from '../../data/kampungLayout'
+import { MODELS } from '../../data/models'
 import { clock } from '../../state/timeOfDay'
 import { worldRuntime } from '../../state/worldRuntime'
 import { MAT } from './kit'
@@ -38,7 +39,9 @@ const POSTS = (() => {
 
 const LAMPS = [
   // Tok Wan's porch post
-  { position: [HOUSE.position[0] + 2.7, 3.0, HOUSE.position[2] + 6.05], light: true },
+  MODELS.tokwan.url
+    ? { position: [HOUSE.position[0] + 3.5, 2.7, HOUSE.position[2] + 4.75], light: true }
+    : { position: [HOUSE.position[0] + 2.7, 3.0, HOUSE.position[2] + 6.05], light: true },
 ]
 
 function LampPost({ x, z }) {

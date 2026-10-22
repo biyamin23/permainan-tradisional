@@ -55,13 +55,18 @@ function buildSchool() {
 }
 
 const PARTS = buildSchool()
+const STAND_IN_COLLIDERS = [
+  [[11.2, 1.6, 4.7], [-3, 1.6, 0.5]],
+  [[4.7, 1.6, 7.2], [11.5, 1.6, 4.5]],
+  [[0.15, 3.5, 0.15], [-15, 3.5, 7.5]],
+]
 
 export function School({ position, rotationY = 0 }) {
   return (
     <RigidBody type="fixed" colliders={false} position={position} rotation={[0, rotationY, 0]}>
-      <CuboidCollider args={[11.2, 1.6, 4.7]} position={[-3, 1.6, 0.5]} />
-      <CuboidCollider args={[4.7, 1.6, 7.2]} position={[11.5, 1.6, 4.5]} />
-      <CuboidCollider args={[0.15, 3.5, 0.15]} position={[-15, 3.5, 7.5]} />
+      {(MODELS.sekolah.url ? MODELS.sekolah.colliders : STAND_IN_COLLIDERS).map(([half, center], i) => (
+        <CuboidCollider key={i} args={half} position={center} />
+      ))}
       <ModelSlot
         model={MODELS.sekolah}
         fallback={

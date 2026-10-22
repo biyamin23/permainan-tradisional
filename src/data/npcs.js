@@ -1,4 +1,8 @@
 import { HOUSE, px } from './kampungLayout'
+import { MODELS } from './models'
+
+// Tok Wan sits at the top of his stairs (GLB house or the stand-in)
+const STAIRS_TOP = MODELS.tokwan.url ? MODELS.tokwan.stairsTop : [0, 1.275, 6.05]
 
 const [kiahX, kiahZ] = px(612, 432)
 const [abuX, abuZ] = px(430, 566)
@@ -29,7 +33,7 @@ export const NPCS = [
     },
     pose: 'sitDangle',
     // sitting at the top of the stairs of his house
-    position: [HOUSE.position[0], 1.275, HOUSE.position[2] + 6.05],
+    position: [HOUSE.position[0] + STAIRS_TOP[0], STAIRS_TOP[1], HOUSE.position[2] + STAIRS_TOP[2]],
     rotationY: 0,
     zone: { position: [HOUSE.position[0], HOUSE.position[2] + 10.3], radius: 3.4 },
     lines: [

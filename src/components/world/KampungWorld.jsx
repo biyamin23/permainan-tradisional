@@ -20,7 +20,24 @@ import { Animals } from './npc/Animals'
 import { NpcColliders } from './npc/NpcColliders'
 import { Npcs } from './npc/Npcs'
 import { Player } from './Player'
+import { Props } from './Props'
 import { School } from './School'
+import { preloadModels } from './ModelSlot'
+import { MODELS } from '../../data/models'
+
+// start fetching the 3D models as soon as this chunk loads (it is prefetched
+// while the player is still on the landing page)
+preloadModels([
+  MODELS.tokwan.url,
+  ...MODELS.rumah.urls,
+  MODELS.warung.url,
+  MODELS.sekolah.url,
+  MODELS.jambatan.url,
+  MODELS.airTerjun.url,
+  MODELS.sampan.url,
+  MODELS.basikal.url,
+  MODELS.kelapa.url,
+])
 import { Trees } from './Trees'
 import { Water } from './Water'
 
@@ -57,6 +74,7 @@ export function KampungWorld({ gender, controlsEnabled }) {
           <School position={SCHOOL.position} rotationY={SCHOOL.rotationY} />
           <Fence segments={YARD_FENCE} />
           <Trees />
+          <Props />
           <Fields />
           <GameSpots />
           <Npcs />
