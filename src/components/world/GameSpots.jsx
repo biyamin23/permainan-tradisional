@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { Component, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { games, isGameAvailable } from '../../data/games'
 import { worldRuntime } from '../../state/worldRuntime'
@@ -6,6 +6,23 @@ import { ProximityBubble } from './npc/ProximityBubble'
 import { SPOT_SCENES, WORLD_SPACE_SCENES } from './spots/SpotScenes'
 
 const VISIBLE_DISTANCE = 58
+
+/** If one spot's scene fails to draw, hide just that scene, never the whole kampung. */
+class SceneBoundary extends Component {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  componentDidCatch(error) {
+    console.warn('[kampung] a game spot scene failed to draw:', error)
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children
+  }
+}
 
 /** Ring on the ground that marks a game spot. Available games pulse gold. */
 function SpotMarker({ game }) {
@@ -60,12 +77,20 @@ function GameSpot({ game }) {
     <group ref={group}>
       <group position={[x, 0, z]} rotation={[0, game.spot.rotationY ?? 0, 0]}>
         <SpotMarker game={game} />
-        {Scene && !worldSpace && <Scene game={game} />}
+        {Scene && !worldSpace && (
+          <SceneBoundary>
+            <Scene game={game} />
+          </SceneBoundary>
+        )}
       </group>
       <group position={[x, 0, z]}>
         <SpotSign game={game} />
       </group>
-      {Scene && worldSpace && <Scene game={game} />}
+      {Scene && worldSpace && (
+        <SceneBoundary>
+          <Scene game={game} />
+        </SceneBoundary>
+      )}
     </group>
   )
 }
