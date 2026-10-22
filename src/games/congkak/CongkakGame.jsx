@@ -5,6 +5,7 @@ import {
   HoldFast,
   IntroPanel,
   NextHint,
+  OsomPanel,
   PlayerCard,
   ResultPanel,
   RulesButton,
@@ -36,6 +37,7 @@ const LEVELS = [
 ]
 
 const RULES = [
+  'Mula-mula osom (batu, air, burung) untuk tentukan siapa main dulu. Batu menang burung, burung menang air, air menang batu.',
   'Setiap lubang kecil ada 7 biji. Rumah (lubang besar) bermula kosong. Rumah kamu di sebelah kiri kamu.',
   'Pilih satu lubang di barisan kamu. Agihkan biji satu demi satu ikut arah jam: ke kiri sepanjang barisan kamu, masuk rumah kamu, kemudian ke barisan Aisyah. Rumah Aisyah dilangkau.',
   'Biji terakhir masuk rumah kamu: main lagi.',
@@ -50,7 +52,7 @@ const START = createBoard()
 const AISYAH_COLOR = '#e9b52f'
 const AISYAH_IMG = '/avatars/aisyah.webp'
 
-function Intro({ level, setLevel, records, player, onStart, onExit }) {
+function Intro({ level, setLevel, records, player, onStart, onExit, osom, onOsomDone }) {
   const [showRules, setShowRules] = useState(false)
   return (
     <Scene
@@ -65,6 +67,9 @@ function Intro({ level, setLevel, records, player, onStart, onExit }) {
       you={<PlayerCard side="you" name={player.name} color={player.color} img={player.img} score={0} unit="guli" />}
       board={<CongkakBoard pits={START} />}
     >
+      {osom ? (
+        <OsomPanel opponent="Aisyah" onDone={onOsomDone} />
+      ) : (
       <IntroPanel
         title="Aisyah ajak kamu main congkak!"
         opponent="Aisyah"
@@ -74,6 +79,7 @@ function Intro({ level, setLevel, records, player, onStart, onExit }) {
         recordsLine={recordsSummary(records, `skor terbaik ${records.best} biji`)}
         onStart={onStart}
       />
+      )}
       {showRules && <RulesSheet game="congkak" rules={RULES} onClose={() => setShowRules(false)} />}
     </Scene>
   )
@@ -104,8 +110,9 @@ function Result({ result, saved, playerName, onAgain, onExit }) {
   )
 }
 
-function Match({ level, player, onExit, onRecords }) {
-  const [starter, setStarter] = useState(PLAYER)
+function Match({ level, player, firstStarter, onExit, onRecords }) {
+  const [starter, setStarter] = useState(firstStarter)
+  const [rematch, setRematch] = useState(false)
   const { pits, turn, animating, hand, flash, banner, speech, result, fast, setFast, playHouse, skip, restart, scores, say } =
     useCongkakMatch({ level, starter })
   const [saved, setSaved] = useState(null)
@@ -160,9 +167,13 @@ function Match({ level, player, onExit, onRecords }) {
         ? { icon: '⏳', text: 'Aisyah sedang mengagih guli…' }
         : { icon: '⏳', text: 'Tunggu, Aisyah sedang berfikir…' }
 
+  // Main lagi: osom again to decide who starts
   const again = () => {
     sfx.select()
-    const nextStarter = 1 - starter
+    setRematch(true)
+  }
+  const startAgain = (nextStarter) => {
+    setRematch(false)
     setStarter(nextStarter)
     setSaved(null)
     restart(nextStarter)
@@ -220,19 +231,21 @@ function Match({ level, player, onExit, onRecords }) {
       }
       bottom={<NextHint next={next} yours={yourTurn && !animating} />}
     >
-      {result && <Result result={result} saved={saved} playerName={player.name} onAgain={again} onExit={onExit} />}
+      {result && !rematch && <Result result={result} saved={saved} playerName={player.name} onAgain={again} onExit={onExit} />}
+      {rematch && <OsomPanel opponent="Aisyah" onDone={startAgain} />}
     </Scene>
   )
 }
 
 export function CongkakGame({ onExit }) {
   const player = usePlayerLook()
-  const [phase, setPhase] = useState('intro')
+  const [phase, setPhase] = useState('intro') // intro → osom → play
+  const [starter, setStarter] = useState(PLAYER)
   const [level, setLevel] = useState('biasa')
   const [records, setRecords] = useState(loadRecords)
   const onRecords = useMemo(() => (next) => setRecords(next), [])
 
-  if (phase === 'intro') {
+  if (phase !== 'play') {
     return (
       <Intro
         level={level}
@@ -242,10 +255,15 @@ export function CongkakGame({ onExit }) {
         onExit={onExit}
         onStart={() => {
           sfx.select()
+          setPhase('osom')
+        }}
+        osom={phase === 'osom'}
+        onOsomDone={(who) => {
+          setStarter(who)
           setPhase('play')
         }}
       />
     )
   }
-  return <Match level={level} player={player} onExit={onExit} onRecords={onRecords} />
+  return <Match level={level} player={player} firstStarter={starter} onExit={onExit} onRecords={onRecords} />
 }

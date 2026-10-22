@@ -727,3 +727,88 @@
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------- osom (batu, air, burung) */
+.gs-osom__picks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.gs-osom__pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 104px;
+  padding: 0.7rem 0.2rem 0.6rem;
+  border: 3px solid var(--cream-2);
+  border-radius: 18px;
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 900;
+  box-shadow: 0 4px 0 var(--cream-2);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gs-osom__pick:active {
+  transform: translateY(3px);
+  box-shadow: none;
+  border-color: var(--go);
+}
+
+.gs-osom__icon {
+  font-size: 2.6rem;
+  line-height: 1.1;
+}
+
+.gs-osom__rules {
+  margin: 0.8rem 0 0.2rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.gs-osom__duel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  margin: 0.2rem 0 0.4rem;
+}
+
+.gs-osom__hand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 6.5rem;
+  font-weight: 800;
+}
+
+.gs-osom__hand .gs-osom__icon {
+  font-size: 3.4rem;
+  animation: gs-pop 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+.gs-osom__duel.is-shaking .gs-osom__icon {
+  animation: gs-osom-shake 0.36s ease-in-out 3;
+}
+
+@keyframes gs-osom-shake {
+  50% {
+    transform: translateY(-14px) rotate(-8deg);
+  }
+}
+
+.gs-osom__who {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.gs-osom__vs {
+  font-weight: 800;
+  color: var(--ink-soft);
+}

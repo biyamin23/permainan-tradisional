@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { sfx } from '../../audio/engine'
 import { GENDERS, usePlayerState } from '../../state/playerState'
 import './gameShell.css'
@@ -262,4 +262,124 @@ export function recordsSummary(records, bestLabel) {
   const played = records.wins + records.losses + records.draws
   if (played === 0) return null
   return `Menang ${records.wins}, kalah ${records.losses}${records.draws ? `, seri ${records.draws}` : ''}${bestLabel ? ` · ${bestLabel}` : ''}`
+}
+
+// ---------------------------------------------------------------- osom
+// Kampung rock-paper-scissors: batu, air, burung.
+// Batu menang burung (hempap), burung menang air (minum), air menang batu (tenggelam).
+const OSOM = [
+  { id: 'batu', label: 'Batu', icon: '🪨', beats: 'burung' },
+  { id: 'air', label: 'Air', icon: '💧', beats: 'batu' },
+  { id: 'burung', label: 'Burung', icon: '🐦', beats: 'air' },
+]
+const osomById = (id) => OSOM.find((o) => o.id === id)
+const WHY_WIN = {
+  batu: 'Batu hempap burung.',
+  air: 'Batu tenggelam dalam air.',
+  burung: 'Burung minum air.',
+}
+
+/**
+ * Osom before every match decides who starts. `onDone(0)` when you start,
+ * `onDone(1)` when the opponent does.
+ */
+export function OsomPanel({ opponent, onDone }) {
+  const [stage, setStage] = useState('choose') // choose | shake | reveal
+  const [mine, setMine] = useState(null)
+  const [theirs, setTheirs] = useState(null)
+  const timer = useRef(null)
+  useEffect(() => () => clearTimeout(timer.current), [])
+
+  const pick = (id) => {
+    if (stage !== 'choose') return
+    sfx.tap()
+    setMine(id)
+    setTheirs(OSOM[Math.floor(Math.random() * OSOM.length)].id)
+    setStage('shake')
+    timer.current = setTimeout(() => {
+      setStage('reveal')
+      sfx.pop()
+    }, 1100)
+  }
+
+  const draw = stage === 'reveal' && mine === theirs
+  const youWin = stage === 'reveal' && !draw && osomById(mine).beats === theirs
+  const winnerPick = youWin ? mine : theirs
+
+  const again = () => {
+    sfx.tap()
+    setMine(null)
+    setTheirs(null)
+    setStage('choose')
+  }
+
+  return (
+    <div className="gs-sheet" role="dialog" aria-label="Osom untuk tentukan siapa mula">
+      <div className="gs-panel gs-osom">
+        <h2 className="gs-panel__title">{stage === 'choose' ? 'Osom! Siapa mula dulu?' : stage === 'shake' ? 'O… som!' : draw ? 'Seri!' : youWin ? 'Kamu menang osom!' : `${opponent} menang osom.`}</h2>
+
+        {stage === 'choose' && (
+          <>
+            <p className="gs-panel__label">Pilih satu</p>
+            <div className="gs-osom__picks">
+              {OSOM.map((o) => (
+                <button key={o.id} type="button" className="gs-osom__pick" onClick={() => pick(o.id)}>
+                  <span className="gs-osom__icon" aria-hidden="true">
+                    {o.icon}
+                  </span>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <p className="gs-osom__rules">Batu menang burung · Burung menang air · Air menang batu</p>
+          </>
+        )}
+
+        {stage !== 'choose' && (
+          <div className={`gs-osom__duel ${stage === 'shake' ? 'is-shaking' : ''}`}>
+            <span className="gs-osom__hand">
+              <span className="gs-osom__icon" aria-hidden="true">
+                {stage === 'shake' ? '✊' : osomById(mine).icon}
+              </span>
+              <span className="gs-osom__who">Kamu{stage === 'reveal' ? ` · ${osomById(mine).label}` : ''}</span>
+            </span>
+            <span className="gs-osom__vs">lawan</span>
+            <span className="gs-osom__hand">
+              <span className="gs-osom__icon" aria-hidden="true">
+                {stage === 'shake' ? '✊' : osomById(theirs).icon}
+              </span>
+              <span className="gs-osom__who">
+                {opponent}
+                {stage === 'reveal' ? ` · ${osomById(theirs).label}` : ''}
+              </span>
+            </span>
+          </div>
+        )}
+
+        {stage === 'reveal' && (
+          <>
+            <p className="gs-panel__note">
+              {draw ? 'Sama pilihan. Osom sekali lagi!' : `${WHY_WIN[winnerPick]} ${youWin ? 'Kamu mula dulu.' : `${opponent} mula dulu.`}`}
+            </p>
+            {draw ? (
+              <button type="button" className="gs-btn gs-btn--go" onClick={again}>
+                Osom lagi
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="gs-btn gs-btn--go"
+                onClick={() => {
+                  sfx.select()
+                  onDone(youWin ? 0 : 1)
+                }}
+              >
+                Jom mula!
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
 }

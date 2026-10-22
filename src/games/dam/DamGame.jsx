@@ -4,6 +4,7 @@ import {
   ExitButton,
   IntroPanel,
   NextHint,
+  OsomPanel,
   PlayerCard,
   ResultPanel,
   RulesButton,
@@ -36,6 +37,7 @@ const LEVELS = [
 ]
 
 const RULES = [
+  'Mula-mula osom (batu, air, burung) untuk tentukan siapa main dulu. Batu menang burung, burung menang air, air menang batu.',
   'Setiap pemain ada 12 buah (penutup botol) di petak gelap. Buah kamu yang biru, di bawah.',
   'Buah bergerak satu petak serong ke depan.',
   'Makan: lompat ke depan atas buah lawan yang bersebelahan ke petak kosong di belakangnya. Buah biasa tak boleh undur atau makan ke belakang.',
@@ -70,7 +72,7 @@ function Result({ result, playerName, onAgain, onExit }) {
   )
 }
 
-function Intro({ level, setLevel, records, player, onStart, onExit }) {
+function Intro({ level, setLevel, records, player, onStart, onExit, osom, onOsomDone }) {
   const [showRules, setShowRules] = useState(false)
   return (
     <Scene
@@ -85,6 +87,9 @@ function Intro({ level, setLevel, records, player, onStart, onExit }) {
       you={<PlayerCard side="you" name={player.name} color={player.color} img={player.img} score={12} unit="buah" />}
       board={null}
     >
+      {osom ? (
+        <OsomPanel opponent="Pak Tam" onDone={onOsomDone} />
+      ) : (
       <IntroPanel
         title="Pak Tam ajak kamu main dam. Kopi dah sampai!"
         opponent="Pak Tam"
@@ -94,6 +99,7 @@ function Intro({ level, setLevel, records, player, onStart, onExit }) {
         recordsLine={recordsSummary(records)}
         onStart={onStart}
       />
+      )}
       {showRules && <RulesSheet game="dam" rules={RULES} onClose={() => setShowRules(false)} />}
     </Scene>
   )
@@ -107,8 +113,9 @@ const WHY = {
   wait: ['Sabar, giliran Pak Tam.', 'them'],
 }
 
-function Match({ level, player, onExit, onRecords }) {
-  const [starter, setStarter] = useState(PLAYER)
+function Match({ level, player, firstStarter, onExit, onRecords }) {
+  const [starter, setStarter] = useState(firstStarter)
+  const [rematch, setRematch] = useState(false)
   const [showRules, setShowRules] = useState(false)
   const m = useDamMatch({ level, starter })
   const yourTurn = m.turn === PLAYER && !m.result
@@ -144,9 +151,13 @@ function Match({ level, player, onExit, onRecords }) {
         ? { icon: '⏳', text: 'Pak Tam sedang bergerak…' }
         : { icon: '☕', text: 'Pak Tam hirup kopi sambil berfikir…' }
 
+  // Main lagi: osom again to decide who starts
   const again = () => {
     sfx.select()
-    const nextStarter = 1 - starter
+    setRematch(true)
+  }
+  const startAgain = (nextStarter) => {
+    setRematch(false)
     setStarter(nextStarter)
     m.restart(nextStarter)
   }
@@ -192,7 +203,8 @@ function Match({ level, player, onExit, onRecords }) {
       }
       bottom={<NextHint next={next} yours={yourTurn && !m.busy} />}
     >
-      {m.result && <Result result={m.result} playerName={player.name} onAgain={again} onExit={onExit} />}
+      {m.result && !rematch && <Result result={m.result} playerName={player.name} onAgain={again} onExit={onExit} />}
+      {rematch && <OsomPanel opponent="Pak Tam" onDone={startAgain} />}
       {showRules && <RulesSheet game="dam" rules={RULES} onClose={() => setShowRules(false)} />}
     </Scene>
   )
@@ -200,12 +212,13 @@ function Match({ level, player, onExit, onRecords }) {
 
 export function DamGame({ onExit }) {
   const player = usePlayerLook()
-  const [phase, setPhase] = useState('intro')
+  const [phase, setPhase] = useState('intro') // intro → osom → play
+  const [starter, setStarter] = useState(PLAYER)
   const [level, setLevel] = useState('biasa')
   const [records, setRecords] = useState(loadRecords)
   const onRecords = useMemo(() => (next) => setRecords(next), [])
 
-  if (phase === 'intro') {
+  if (phase !== 'play') {
     return (
       <Intro
         level={level}
@@ -215,11 +228,16 @@ export function DamGame({ onExit }) {
         onExit={onExit}
         onStart={() => {
           sfx.select()
+          setPhase('osom')
+        }}
+        osom={phase === 'osom'}
+        onOsomDone={(who) => {
+          setStarter(who)
           setPhase('play')
         }}
       />
     )
   }
-  return <Match level={level} player={player} onExit={onExit} onRecords={onRecords} />
+  return <Match level={level} player={player} firstStarter={starter} onExit={onExit} onRecords={onRecords} />
 }
 
