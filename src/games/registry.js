@@ -15,8 +15,8 @@ const LOADERS = {
 
 // pictures a game shows straight away, warmed up with its code
 const PRELOAD_IMAGES = {
-  congkak: ['/avatars/aisyah.webp', '/avatars/pemain-lelaki.webp', '/avatars/pemain-perempuan.webp'],
-  dam: ['/avatars/pak-tam.webp', '/dam/kedai-kopi.webp'],
+  congkak: ['/avatars/aisyah.webp', '/avatars/pemain-lelaki.webp', '/avatars/pemain-perempuan.webp', '/osom/batu.webp', '/osom/burung.webp', '/osom/air.webp'],
+  dam: ['/avatars/pak-tam.webp', '/dam/kedai-kopi.webp', '/osom/batu.webp', '/osom/burung.webp', '/osom/air.webp'],
 }
 
 export const GAME_COMPONENTS = Object.fromEntries(Object.entries(LOADERS).map(([id, load]) => [id, lazy(load)]))

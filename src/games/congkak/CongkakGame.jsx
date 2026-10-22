@@ -43,7 +43,7 @@ const RULES = [
   'Biji terakhir masuk rumah kamu: main lagi.',
   'Biji terakhir jatuh dalam lubang yang berisi: kaut semua dan terus agihkan.',
   'Biji terakhir jatuh dalam lubang kosong di barisan kamu: tembak. Biji itu dan semua biji di lubang bertentangan masuk rumah kamu.',
-  'Tapi tembak hanya dibenarkan selepas kamu cukup satu pusingan, iaitu biji kamu pernah melalui rumah kamu sendiri. Sebelum itu, biji terakhir hanya tinggal di lubang tu dan giliran tamat.',
+  'Tapi tembak hanya dibenarkan selepas satu pusingan dalam giliran yang sama: biji kamu mesti sudah melalui kampung (barisan) Aisyah dan kembali ke barisan kamu. Kalau belum, giliran mati dan biji itu tinggal di situ.',
   'Bila satu pihak tiada biji lagi, pihak satu lagi kutip baki di barisannya. Biji paling banyak dalam rumah menang.',
 ]
 

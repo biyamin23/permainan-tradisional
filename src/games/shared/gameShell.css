@@ -740,8 +740,8 @@
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-  min-height: 104px;
-  padding: 0.7rem 0.2rem 0.6rem;
+  min-height: 118px;
+  padding: 0.5rem 0.2rem 0.6rem;
   border: 3px solid var(--cream-2);
   border-radius: 18px;
   background: #fff;
@@ -760,9 +760,18 @@
   border-color: var(--go);
 }
 
-.gs-osom__icon {
-  font-size: 2.6rem;
-  line-height: 1.1;
+.gs-osom__img {
+  display: block;
+  width: min(84px, 22vw);
+  height: auto;
+  aspect-ratio: 1;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* the other player's hand faces yours */
+.gs-osom__img.is-mirrored {
+  transform: scaleX(-1);
 }
 
 .gs-osom__rules {
@@ -788,18 +797,33 @@
   font-weight: 800;
 }
 
-.gs-osom__hand .gs-osom__icon {
-  font-size: 3.4rem;
+.gs-osom__hand .gs-osom__img {
+  width: min(108px, 28vw);
   animation: gs-pop 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
 }
 
-.gs-osom__duel.is-shaking .gs-osom__icon {
+/* O… som! both fists bounce three times */
+.gs-osom__duel.is-shaking .gs-osom__img {
   animation: gs-osom-shake 0.36s ease-in-out 3;
+}
+
+.gs-osom__duel.is-shaking .gs-osom__img.is-mirrored {
+  animation-name: gs-osom-shake-m;
 }
 
 @keyframes gs-osom-shake {
   50% {
-    transform: translateY(-14px) rotate(-8deg);
+    transform: translateY(-14px) rotate(-10deg);
+  }
+}
+
+@keyframes gs-osom-shake-m {
+  0%,
+  100% {
+    transform: scaleX(-1);
+  }
+  50% {
+    transform: scaleX(-1) translateY(-14px) rotate(-10deg);
   }
 }
 

@@ -13,10 +13,12 @@
  *  3. Last seed in a house that already had seeds → pick them all up and
  *     keep sowing ("main terus").
  *  4. Last seed in an empty house on your side → "tembak": take it and the
- *     seeds in the opposite house into your rumah. Turn ends. You may only
- *     tembak once you've gone round at least once: a seed of yours must have
- *     passed through your own rumah (earlier in the game or earlier in this
- *     move). Before that, the seed just stays and the turn ends.
+ *     seeds in the opposite house into your rumah. Turn ends. As in the
+ *     official rules ("tikam hanya boleh dibuat selepas melalui kampung
+ *     lawan" / only after one full pusingan), you may only tembak when, in
+ *     this same turn, your seeds have gone round through the opponent's
+ *     kampung and come back to your side. Otherwise the turn simply ends
+ *     (mati) and the seed stays where it fell.
  *  5. Last seed in an empty house on the other side → turn ends.
  * The game ends when the player to move has no seeds in their kampung; the
  * other player then collects everything left on their side. Most seeds wins.
@@ -56,7 +58,7 @@ const next = (index, side) => {
  * Events: pickup {pit,count} · drop {pit} · relay {pit,count} · capture {pit,opposite,count,store}
  *         · extraTurn · end
  */
-export function playMove(board, side, house, canTembak = true) {
+export function playMove(board, side, house) {
   const pits = board.slice()
   const events = []
   if (sideOf(house) !== side || isStore(house) || pits[house] === 0) {
@@ -70,12 +72,14 @@ export function playMove(board, side, house, canTembak = true) {
   let laps = 0
   let extraTurn = false
   let passedStore = false
+  let wentRound = false // a seed went into the opponent's kampung this turn
 
   while (hand > 0) {
     pos = next(pos, side)
     pits[pos] += 1
     hand -= 1
     if (pos === STORE[side]) passedStore = true
+    if (!isStore(pos) && sideOf(pos) !== side) wentRound = true
     events.push({ type: 'drop', pit: pos, hand })
     if (hand > 0) continue
 
@@ -99,7 +103,7 @@ export function playMove(board, side, house, canTembak = true) {
     // landed in an empty house
     if (sideOf(pos) === side) {
       const opposite = oppositeOf(pos)
-      if (pits[opposite] > 0 && !(canTembak || passedStore)) {
+      if (pits[opposite] > 0 && !wentRound) {
         events.push({ type: 'noTembak', pit: pos, opposite })
       } else if (pits[opposite] > 0) {
         const count = pits[opposite] + 1
@@ -144,15 +148,15 @@ export function checkGameOver(pits, sideToMove) {
 const storeDiff = (pits, side) => pits[STORE[side]] - pits[STORE[1 - side]]
 
 /** Best result a side can reach this turn (follows extra turns greedily). */
-function bestTurnValue(pits, side, depth, canTembak = true) {
+function bestTurnValue(pits, side, depth) {
   const moves = legalMoves(pits, side)
   if (moves.length === 0) return { value: storeDiff(pits, side), move: null }
   let best = { value: -Infinity, move: moves[0] }
   for (const move of moves) {
-    const result = playMove(pits, side, move, canTembak)
+    const result = playMove(pits, side, move)
     let value
     if (result.extraTurn && depth > 0) {
-      value = bestTurnValue(result.pits, side, depth - 1, canTembak || result.passedStore).value
+      value = bestTurnValue(result.pits, side, depth - 1).value
     } else {
       value = storeDiff(result.pits, side)
     }
@@ -167,23 +171,22 @@ function bestTurnValue(pits, side, depth, canTembak = true) {
  * biasa  — greedy: best store difference after its own turn
  * pakar  — looks one opponent reply ahead (minimax, 2 ply)
  */
-export function chooseMove(pits, side, level = 'biasa', random = Math.random, lapped = [true, true]) {
+export function chooseMove(pits, side, level = 'biasa', random = Math.random) {
   const moves = legalMoves(pits, side)
   if (moves.length === 0) return null
   if (level === 'mudah' && random() < 0.65) return moves[Math.floor(random() * moves.length)]
-  if (level !== 'pakar') return bestTurnValue(pits, side, 3, lapped[side]).move
+  if (level !== 'pakar') return bestTurnValue(pits, side, 3).move
 
   let bestMove = moves[0]
   let bestValue = -Infinity
   for (const move of moves) {
-    const result = playMove(pits, side, move, lapped[side])
-    const mine = lapped[side] || result.passedStore
+    const result = playMove(pits, side, move)
     let value
     if (result.extraTurn) {
-      value = bestTurnValue(result.pits, side, 3, mine).value + 2 // extra turns are worth a little more
+      value = bestTurnValue(result.pits, side, 3).value + 2 // extra turns are worth a little more
     } else {
       // the opponent replies with its best greedy turn
-      const reply = bestTurnValue(result.pits, 1 - side, 2, lapped[1 - side])
+      const reply = bestTurnValue(result.pits, 1 - side, 2)
       value = -reply.value
     }
     if (value > bestValue) {

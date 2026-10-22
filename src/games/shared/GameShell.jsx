@@ -267,12 +267,27 @@ export function recordsSummary(records, bestLabel) {
 // ---------------------------------------------------------------- osom
 // Kampung rock-paper-scissors: batu, air, burung.
 // Batu menang burung (hempap), burung menang air (minum), air menang batu (tenggelam).
-const OSOM = [
-  { id: 'batu', label: 'Batu', icon: '🪨', beats: 'burung' },
-  { id: 'air', label: 'Air', icon: '💧', beats: 'batu' },
-  { id: 'burung', label: 'Burung', icon: '🐦', beats: 'air' },
-]
+// hand signs: batu a fist, burung fingers pinched like a beak, air an open hand
 const osomById = (id) => OSOM.find((o) => o.id === id)
+const OSOM = [
+  { id: 'batu', label: 'Batu', img: '/osom/batu.webp', beats: 'burung' },
+  { id: 'burung', label: 'Burung', img: '/osom/burung.webp', beats: 'air' },
+  { id: 'air', label: 'Air', img: '/osom/air.webp', beats: 'batu' },
+]
+
+function Hand({ id, mirrored = false }) {
+  return (
+    <img
+      className={`gs-osom__img ${mirrored ? 'is-mirrored' : ''}`}
+      src={osomById(id).img}
+      alt=""
+      width="120"
+      height="120"
+      decoding="async"
+      draggable="false"
+    />
+  )
+}
 const WHY_WIN = {
   batu: 'Batu hempap burung.',
   air: 'Batu tenggelam dalam air.',
@@ -324,9 +339,7 @@ export function OsomPanel({ opponent, onDone }) {
             <div className="gs-osom__picks">
               {OSOM.map((o) => (
                 <button key={o.id} type="button" className="gs-osom__pick" onClick={() => pick(o.id)}>
-                  <span className="gs-osom__icon" aria-hidden="true">
-                    {o.icon}
-                  </span>
+                  <Hand id={o.id} />
                   {o.label}
                 </button>
               ))}
@@ -338,16 +351,12 @@ export function OsomPanel({ opponent, onDone }) {
         {stage !== 'choose' && (
           <div className={`gs-osom__duel ${stage === 'shake' ? 'is-shaking' : ''}`}>
             <span className="gs-osom__hand">
-              <span className="gs-osom__icon" aria-hidden="true">
-                {stage === 'shake' ? '✊' : osomById(mine).icon}
-              </span>
+              <Hand id={stage === 'shake' ? 'batu' : mine} />
               <span className="gs-osom__who">Kamu{stage === 'reveal' ? ` · ${osomById(mine).label}` : ''}</span>
             </span>
             <span className="gs-osom__vs">lawan</span>
             <span className="gs-osom__hand">
-              <span className="gs-osom__icon" aria-hidden="true">
-                {stage === 'shake' ? '✊' : osomById(theirs).icon}
-              </span>
+              <Hand id={stage === 'shake' ? 'batu' : theirs} mirrored />
               <span className="gs-osom__who">
                 {opponent}
                 {stage === 'reveal' ? ` · ${osomById(theirs).label}` : ''}
