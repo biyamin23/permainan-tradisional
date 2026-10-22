@@ -52,7 +52,7 @@ export function KampungWorld({ gender, controlsEnabled }) {
           <Water />
           <House position={HOUSE.position} rotationY={HOUSE.rotationY} variant="tokwan" />
           {NEIGHBOUR_HOUSES.map((house, i) => (
-            <House key={i} position={house.position} rotationY={house.rotationY} variant={house.variant} />
+            <House key={i} index={i} position={house.position} rotationY={house.rotationY} variant={house.variant} />
           ))}
           <School position={SCHOOL.position} rotationY={SCHOOL.rotationY} />
           <Fence segments={YARD_FENCE} />

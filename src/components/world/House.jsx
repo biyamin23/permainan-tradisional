@@ -2,6 +2,8 @@ import { useMemo } from 'react'
 import { CuboidCollider, RigidBody } from '@react-three/rapier'
 import { PartsBundle } from './InstancedParts'
 import { MAT, part } from './kit'
+import { MODELS } from '../../data/models'
+import { ModelSlot } from './ModelSlot'
 
 /**
  * A traditional Malay kampung house on stilts: raised floor, plank walls,
@@ -250,13 +252,16 @@ export function buildHouseParts(variantKey = 'tokwan') {
 /** Footprint collider in local space (house body + porch + stairs). */
 export const HOUSE_COLLIDER = { halfExtents: [4.4, 1.6, 5.8], center: [0, 1.6, 2.1] }
 
-export function House({ position, rotationY = 0, variant = 'tokwan' }) {
+export function House({ position, rotationY = 0, variant = 'tokwan', index = 0 }) {
   const bundle = useMemo(() => buildHouseParts(variant), [variant])
+  // neighbours cycle through the house models, when there are any
+  const urls = MODELS.rumah.urls
+  const modelUrl = variant === 'tokwan' ? MODELS.tokwan.url : urls.length ? urls[index % urls.length] : null
 
   return (
     <RigidBody type="fixed" colliders={false} position={position} rotation={[0, rotationY, 0]}>
       <CuboidCollider args={HOUSE_COLLIDER.halfExtents} position={HOUSE_COLLIDER.center} />
-      <PartsBundle bundle={bundle} />
+      <ModelSlot model={variant === 'tokwan' ? MODELS.tokwan : MODELS.rumah} url={modelUrl} fallback={<PartsBundle bundle={bundle} />} />
       {/* interior seen through doors and windows: lamplit at night */}
       <mesh position={[0, WALL_MID, FRONT_Z - 0.37]} material={MAT.glow}>
         <planeGeometry args={[W - 0.5, WALL_H - 0.1]} />

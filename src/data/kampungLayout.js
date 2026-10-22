@@ -245,6 +245,10 @@ export function arrivalFor(game) {
       if (x < BOUNDS.xMin + 2 || x > BOUNDS.xMax - 2 || z < BOUNDS.zMin + 2 || z > BOUNDS.zMax - 2) continue
       if (distanceToRiver(x, z) < 2) continue
       if (BUILDINGS.some((b) => near(x, z, b.position[0], b.position[2], b.r - 1.5))) continue
+      // the camera sits ~9 m further back: keep it out of houses too
+      const cx = sx + Math.sin(a) * (dist + 9)
+      const cz = sz + Math.cos(a) * (dist + 9)
+      if (BUILDINGS.some((b) => near(cx, cz, b.position[0], b.position[2], b.r + 1))) continue
       return { x, z, yaw: a }
     }
   }

@@ -1,7 +1,8 @@
-import { useMemo } from 'react'
 import { CuboidCollider, RigidBody } from '@react-three/rapier'
 import { PartsBundle } from './InstancedParts'
 import { MAT, part } from './kit'
+import { MODELS } from '../../data/models'
+import { ModelSlot } from './ModelSlot'
 
 /**
  * Sekolah Kebangsaan kampung: two single-storey blocks with red roofs and a
@@ -61,8 +62,15 @@ export function School({ position, rotationY = 0 }) {
       <CuboidCollider args={[11.2, 1.6, 4.7]} position={[-3, 1.6, 0.5]} />
       <CuboidCollider args={[4.7, 1.6, 7.2]} position={[11.5, 1.6, 4.5]} />
       <CuboidCollider args={[0.15, 3.5, 0.15]} position={[-15, 3.5, 7.5]} />
-      <PartsBundle bundle={PARTS.bundle} />
-      <PartsBundle bundle={{ box: PARTS.glow }} material={MAT.glow} castShadow={false} />
+      <ModelSlot
+        model={MODELS.sekolah}
+        fallback={
+          <>
+            <PartsBundle bundle={PARTS.bundle} />
+            <PartsBundle bundle={{ box: PARTS.glow }} material={MAT.glow} castShadow={false} />
+          </>
+        }
+      />
     </RigidBody>
   )
 }

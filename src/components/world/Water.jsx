@@ -5,6 +5,8 @@ import { Object3D } from 'three'
 import { BRIDGES, RIVERS, WATERFALL } from '../../data/kampungLayout'
 import { PartsBundle } from './InstancedParts'
 import { GEO, MAT, createRandom, part, pick, randomBetween } from './kit'
+import { MODELS } from '../../data/models'
+import { ModelSlot } from './ModelSlot'
 
 /**
  * The rivers from the map: the anak sungai from the waterfall in the hutan
@@ -156,7 +158,11 @@ function Bridge({ bridge }) {
   const rail = bridge.width / 2 + 0.2
   return (
     <group position={[bridge.x, 0, bridge.z]} rotation={[0, bridge.rotationY, 0]}>
-      <PartsBundle bundle={parts} />
+      <ModelSlot
+        model={MODELS.jambatan}
+        url={MODELS.jambatan.url}
+        fallback={<PartsBundle bundle={parts} />}
+      />
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[bridge.width / 2, 0.05, bridge.length / 2]} position={[0, 0.07, 0]} />
         <CuboidCollider args={[0.1, 0.6, bridge.length / 2]} position={[-rail, 0.6, 0]} />

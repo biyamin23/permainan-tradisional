@@ -8,6 +8,8 @@ import { InstancedParts, PartsBundle } from '../InstancedParts'
 import { GEO, MAT, part } from '../kit'
 import { ProximityBubble } from '../npc/ProximityBubble'
 import { worldRuntime } from '../../../state/worldRuntime'
+import { MODELS } from '../../../data/models'
+import { ModelSlot } from '../ModelSlot'
 
 /**
  * Kedai kopi by the main road: a zinc-roofed shed with a counter at the back
@@ -90,6 +92,13 @@ function buildKedai() {
   box.push(part([0, 2.42, D / 2 - 0.07], [2.5, 0.3, 0.02], [0, 0, 0], '#efe2c6'))
   addCup(cylinder, -0.9, 2.38, D / 2 - 0.02)
 
+  return { box, cylinder }
+}
+
+/** Tables, the dam game and the cups: kept when a GLB warung replaces the shell. */
+function buildFurniture() {
+  const box = []
+  const cylinder = []
   for (const t of TABLES) addTable(box, cylinder, t)
 
   // the dam board and its bottle caps
@@ -141,6 +150,7 @@ function buildRoof() {
 }
 
 const PARTS = buildKedai()
+const FURNITURE = buildFurniture()
 const ROOF = buildRoof()
 const roofMaterial = new MeshStandardMaterial({ color: '#ffffff', roughness: 0.88, flatShading: true, transparent: true, opacity: 1 })
 const _local = new Vector3()
@@ -226,8 +236,16 @@ export function KedaiKopi({ game }) {
         <CuboidCollider key={`p${px}`} args={[0.1, 1.4, 0.1]} position={[px, 1.4, D / 2 - 0.15]} />
       ))}
 
-      <PartsBundle bundle={PARTS} />
-      <FadingRoof />
+      <ModelSlot
+        model={MODELS.warung}
+        fallback={
+          <>
+            <PartsBundle bundle={PARTS} />
+            <FadingRoof />
+          </>
+        }
+      />
+      <PartsBundle bundle={FURNITURE} />
       <InstancedParts geometry={GEO.ball} material={MAT.glow} parts={BULB} castShadow={false} />
       <InstancedParts geometry={GEO.cylinder} parts={CORD} castShadow={false} />
 
