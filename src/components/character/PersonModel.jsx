@@ -12,7 +12,8 @@ import { MathUtils, MeshStandardMaterial } from 'three'
  * pose:       idle | wave | cheer | sit | sitDangle | sitPlay | sitThink | sitDrink |
  *             crouch | kick | throw | holdUp |
  *             sweep | fish | hop | pull | ride | swing | guard | toss | clap |
- *             raga (sepak raga: actionRef.current.kind = kuda | sila | lutut | kepala | lambung)
+ *             raga (sepak raga: actionRef.current.kind = kuda | sila | lutut | kepala | lambung) |
+ *             stand1 | stand2 | bend | balance | throwBack (teng-teng)
  * motionRef:  { current: { speed: 0..1 } } drives the walk cycle
  * actionRef:  { current: { t } } — elapsed time of the last one-shot action
  *             (kick, flick…) so spots can sync props with the animation
@@ -55,7 +56,8 @@ export const DEFAULT_LOOK = {
   bottomType: 'shorts', // shorts | kain | pelikat | seluar
   longTop: false, // baju kurung style top
   hair: '#21140d',
-  hairStyle: 'short', // short | pigtails | curly | none
+  hairStyle: 'short', // short | pigtails | curly | bob (wavy, to the shoulders) | none
+  hairClip: null, // colour of a hair clip
   headwear: null, // tudung | kopiah | songkok | cap
   headwearColor: null,
   capBackward: false,
@@ -63,7 +65,8 @@ export const DEFAULT_LOOK = {
   accent: '#f2c14e',
   beard: false, // Tok Wan's white beard
   facialHair: null, // goatee | beard | mustache (mustache + goatee)
-  top: 'tee', // tee | singlet | kemeja (collared shirt) | baju (baju Melayu, cekak musang)
+  top: 'tee', // tee | singlet | kemeja (collared shirt) | baju (baju Melayu, cekak musang) | blocks (colour-block tee)
+  blocks: null, // [stripe, patch] colours for top: 'blocks'
   mouth: 'line', // line | smile | grin
   bagStrap: null, // colour of a shoulder-bag strap
 }
@@ -133,6 +136,30 @@ function Neckline({ look, b }) {
     <Part color={look.accent} position={[0, y, 0.05]} rotation={[0.3, 0, 0]}>
       <torusGeometry args={[b.torsoR * 0.48, 0.022, 5, 10]} />
     </Part>
+  )
+}
+
+/** Wavy hair to the shoulders, open at the face. */
+function BobHair({ color, r }) {
+  const ends = useMemo(() => {
+    const out = []
+    for (let i = 0; i < 9; i++) {
+      const a = Math.PI / 2 + 0.95 + (i / 8) * (Math.PI * 2 - 1.9)
+      out.push([-Math.cos(a) * r * 1.02, -r * 0.62 - (i % 2) * r * 0.08, Math.sin(a) * r * 1.02])
+    }
+    return out
+  }, [r])
+  return (
+    <>
+      <Part color={color} position={[0, -r * 0.05, -r * 0.04]}>
+        <sphereGeometry args={[r * 1.12, 16, 10, Math.PI / 2 + 0.95, Math.PI * 2 - 1.9, Math.PI * 0.18, Math.PI * 0.62]} />
+      </Part>
+      {ends.map((p, i) => (
+        <Part key={i} color={color} position={p}>
+          <sphereGeometry args={[r * 0.26, 8, 6]} />
+        </Part>
+      ))}
+    </>
   )
 }
 
@@ -232,6 +259,7 @@ export function PersonModel({
     let lL = swing
     let lR = -swing
     let lRz = 0
+    let lLz = 0
     let aLx = -swing * 0.9
     let aRx = swing * 0.9
     let aLz = 0.12
@@ -432,6 +460,48 @@ export function PersonModel({
         }
         break
       }
+      // ---- teng-teng
+      case 'stand1':
+        // on one foot, the other bent back
+        lL = 0.85
+        lR = 0
+        aLz = 0.55
+        aRz = -0.55
+        aLx = aRx = -0.2
+        lean = 0.12
+        break
+      case 'stand2':
+        lLz = 0.16
+        lRz = -0.16
+        aLz = 0.35
+        aRz = -0.35
+        aLx = aRx = -0.1
+        break
+      case 'balance':
+        // gundu on the head: arms wide, chin up, one foot
+        lL = 0.85
+        aLz = 1.35 + Math.sin(time * 3) * 0.08
+        aRz = -1.35 + Math.sin(time * 3 + 1) * 0.08
+        aLx = aRx = 0
+        headX = -0.12
+        break
+      case 'bend':
+        lean = 0.95
+        aLx = aRx = -1.25
+        aLz = 0.15
+        aRz = -0.15
+        lL = 0.7
+        headX = 0.3
+        break
+      case 'throwBack': {
+        // facing away from the court, tossing the gundu back over the shoulder
+        const k = sinceAction < 0.6 ? Math.sin((sinceAction / 0.6) * Math.PI) : 0
+        aRx = 0.4 - k * 3.0
+        aLx = -0.2
+        lean = 0.1 - k * 0.25
+        headX = -k * 0.3
+        break
+      }
       case 'clap': {
         const clapping = time % 4 < 1.6
         aLx = aRx = -1.0
@@ -453,6 +523,7 @@ export function PersonModel({
     lerpRot(legL, 'x', lL)
     lerpRot(legR, 'x', lR)
     lerpRot(legR, 'z', lRz)
+    lerpRot(legL, 'z', lLz)
     lerpRot(armL, 'x', aLx)
     lerpRot(armR, 'x', aRx)
     lerpRot(armL, 'z', aLz)
@@ -508,6 +579,16 @@ export function PersonModel({
           ) : (
             look.headwear !== 'tudung' && <Neckline look={look} b={b} />
           )}
+          {look.top === 'blocks' && look.blocks && (
+            <>
+              <Part color={look.blocks[0]} position={[-b.torsoR * 0.12, b.torsoY - 0.02, b.torsoR * 0.93]} rotation={[0, -0.12, 0]}>
+                <boxGeometry args={[b.torsoR * 0.42, b.torsoLen + b.torsoR * 0.9, 0.03]} />
+              </Part>
+              <Part color={look.blocks[1]} position={[b.torsoR * 0.42, b.torsoY - b.torsoLen * 0.25, b.torsoR * 0.86]} rotation={[0, 0.42, 0]}>
+                <boxGeometry args={[b.torsoR * 0.55, b.torsoLen * 0.75 + b.torsoR * 0.4, 0.03]} />
+              </Part>
+            </>
+          )}
           {look.bagStrap && (
             <>
               <Part color={look.bagStrap} position={[0, b.torsoY + 0.02, 0]} rotation={[0, 0, 0.72]}>
@@ -555,6 +636,16 @@ export function PersonModel({
               )
             )}
 
+            {look.hairStyle === 'bob' && look.headwear !== 'tudung' && <BobHair color={look.hair} r={b.headR} />}
+            {look.hairClip && (
+              <group position={[-b.headR * 0.42, b.headR * 0.8, b.headR * 0.42]} rotation={[0.3, 0, 0.5]}>
+                {['#f2c14e', '#4fb6c9', '#e9779a'].map((c, i) => (
+                  <Part key={c} color={i === 1 ? look.hairClip : c} position={[(i - 1) * b.headR * 0.13, 0, 0]}>
+                    <boxGeometry args={[b.headR * 0.13, b.headR * 0.12, b.headR * 0.1]} />
+                  </Part>
+                ))}
+              </group>
+            )}
             {look.hairStyle === 'curly' && look.headwear !== 'tudung' && (
               <CurlyHair color={look.hair} r={b.headR} />
             )}

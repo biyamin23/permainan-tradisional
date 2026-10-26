@@ -1,0 +1,206 @@
+/* Teng-teng: the 3D lorong fills the screen; cards on top, buttons at the bottom. */
+.tt {
+  background: #f6d7a6;
+}
+
+.tt--intro {
+  background: #6b3f22 url('/landing/kampung-petang.webp') 70% 50% / cover no-repeat;
+}
+
+.tt-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  touch-action: manipulation;
+}
+
+.tt-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.tt-board {
+  width: min(92vw, 520px);
+  height: 36dvh;
+  pointer-events: none;
+}
+
+.tt .gs-bottom {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.tt .gs-next {
+  align-self: center;
+}
+
+.tt-status {
+  position: absolute;
+  left: 50%;
+  top: calc(max(10px, env(safe-area-inset-top)) + 70px);
+  z-index: 3;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(251, 243, 226, 0.92);
+  font-size: 0.82rem;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 3px 0 rgba(60, 30, 10, 0.25);
+  pointer-events: none;
+}
+
+.tt-status b {
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.tt-acts {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+}
+
+.tt-act {
+  min-height: 62px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  font-weight: 900;
+  box-shadow: 0 4px 0 rgba(60, 30, 10, 0.35);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tt-act span {
+  font-size: 1.2rem;
+}
+
+.tt-act:disabled {
+  opacity: 0.55;
+}
+
+.tt-act.is-hot:not(:disabled) {
+  background: #fff6d6;
+  box-shadow:
+    0 0 0 3px var(--glow),
+    0 4px 0 rgba(150, 110, 20, 0.55);
+}
+
+.tt-act:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(60, 30, 10, 0.35);
+}
+
+/* hold-to-throw: a big wooden plank */
+.tt-throw {
+  min-height: 66px;
+  border: 3px solid #4a2a15;
+  border-radius: 18px;
+  background: #8a5129;
+  color: #fff4dc;
+  font-family: 'Lilita One', var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: 0.02em;
+  box-shadow:
+    inset 0 3px 0 rgba(255, 220, 170, 0.28),
+    0 6px 0 #4a2a15;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.tt-throw.is-holding {
+  transform: translateY(4px);
+  background: #a8693a;
+  box-shadow:
+    inset 0 3px 0 rgba(255, 220, 170, 0.28),
+    0 2px 0 #4a2a15;
+}
+
+.tt-acts--lean {
+  grid-template-columns: 1fr 1.4fr 1fr;
+  grid-auto-flow: row;
+  align-items: center;
+}
+
+.tt-balance {
+  position: relative;
+  height: 22px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e0705a 0 12%, #f6e7c8 12% 88%, #e0705a 88%);
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.12);
+}
+
+.tt-balance span {
+  position: absolute;
+  top: -5px;
+  width: 14px;
+  height: 32px;
+  margin-left: -7px;
+  border-radius: 7px;
+  background: var(--ink);
+}
+
+.tt-balance span.is-danger {
+  background: var(--bad);
+}
+
+.tt-skip {
+  min-height: 52px;
+}
+
+.tt-nice {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 5;
+  margin: 0;
+  padding: 0.3rem 1rem;
+  border-radius: 999px;
+  background: var(--go);
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 900;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: sr-nice 0.9s ease-out both;
+}
+
+@keyframes sr-nice {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -30%) scale(0.7);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -110%) scale(1);
+  }
+}
+
+@media (max-width: 420px) {
+  .tt-act {
+    font-size: 0.86rem;
+  }
+  .tt-status {
+    top: calc(max(10px, env(safe-area-inset-top)) + 64px);
+    font-size: 0.74rem;
+  }
+}

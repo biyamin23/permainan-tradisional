@@ -15,6 +15,7 @@ import { PartsBundle } from '../InstancedParts'
 import { KedaiKopi } from './KedaiKopi'
 import { PAK_TEAM } from '../../../games/sepak-raga/cast'
 import { RagaBall } from '../../../games/sepak-raga/RagaBall'
+import { RUKIAH } from '../../../games/teng-teng/cast'
 import {
   DirtPatch,
   DirtRect,
@@ -37,8 +38,8 @@ import {
 const faceTowards = (dx, dz) => Math.atan2(dx, dz)
 
 /** A kid NPC with a physical body. Looks are deterministic per seed. */
-function Kid({ seed, girl = false, pose = 'idle', position = [0, 0, 0], rotationY = 0, groupRef, ...rest }) {
-  const look = useMemo(() => kidLook(seed, girl), [seed, girl])
+function Kid({ seed, girl = false, look: lookOverride, pose = 'idle', position = [0, 0, 0], rotationY = 0, groupRef, ...rest }) {
+  const look = useMemo(() => lookOverride ?? kidLook(seed, girl), [seed, girl, lookOverride])
   const body = useRef(null)
   const setRef = useCallback(
     (el) => {
@@ -409,7 +410,8 @@ export function KondaKondiScene({ game }) {
 }
 
 // ------------------------------------------------------------------ Teng-teng
-const TENG_ROWS = [1, 1, 2, 1, 2, 1, 1]
+// same court as the game: 1, 2, 3 single; 4|5; 6; 7|8; 9 kepala
+const TENG_ROWS = [1, 1, 1, 2, 1, 2, 1]
 const ROW_GAP = 0.84
 const ROW_START = -2.5
 const HOP_TIME = 0.55
@@ -449,9 +451,19 @@ export function TengTengScene({ game }) {
           </group>
         ))
       })}
-      <Kid seed={70} girl pose="hop" groupRef={hopper} />
+      {/* Rukiah hops the court; a friend waits her turn */}
+      <Kid look={RUKIAH.look} pose="hop" groupRef={hopper} />
       <Kid seed={71} girl pose="clap" position={[1.5, 0, -1.6]} rotationY={-Math.PI / 2} phase={2} />
-      <KidBubble game={game} position={[1.5, 1.9, -1.6]} />
+      <group position={[-1.1, 0, -2.4]} rotation={[0, 0.5, 0]}>
+        <ModelSlot model={MODELS.selipar} scale={1.4} fallback={null} />
+      </group>
+      <group position={[-1.25, 0, -1.7]} rotation={[0, -0.4, 0]}>
+        <ModelSlot model={MODELS.selipar} scale={1.4} fallback={null} />
+      </group>
+      <group position={[0.75, 0.01, ROW_START - 0.7]} rotation={[0, 1.2, 0]}>
+        <ModelSlot model={MODELS.kapur} scale={2} fallback={null} />
+      </group>
+      <KidBubble game={game} position={[0, 1.9, ROW_START]} />
     </group>
   )
 }

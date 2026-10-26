@@ -52,4 +52,10 @@ export const MODELS = {
   lampuPadang: { url: '/models/tiang_lampu_padang.glb' },
   // picnic table with its benches, 2.15 m square, top 0.76 m up
   meja: { url: '/models/meja_kayu.glb' },
+  // Teng-teng: the gundu (5–7 cm, lying flat), a pair of selipar and a stick of kapur
+  gunduGenting: { url: '/models/gundu_genting.glb' },
+  gunduBatu: { url: '/models/gundu_batu.glb' },
+  gunduTin: { url: '/models/gundu_tin.glb' },
+  selipar: { url: '/models/selipar_jepun.glb' },
+  kapur: { url: '/models/kapur_tulis.glb' },
 }
