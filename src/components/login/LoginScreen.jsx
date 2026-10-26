@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { sfx } from '../../audio/engine'
-import { authActions, explain, screenAfterLogin, useAuth } from '../../cloud/auth'
+import { authActions, authStore, explain, screenAfterLogin, useAuth } from '../../cloud/auth'
 import { SCREENS, playerActions } from '../../state/playerState'
 import { LandingScenery } from '../landing/LandingScenery'
 import '../character/character.css'
@@ -182,7 +182,8 @@ function NewPassword({ busy, run }) {
 export function LoginScreen() {
   const status = useAuth((s) => s.status)
   const recovery = useAuth((s) => s.recovery)
-  const [view, setView] = useState('pick') // pick | email
+  const [view, setView] = useState(() => authStore.getState().loginView ?? 'pick') // pick | email
+  useEffect(() => () => authStore.setState({ loginView: null }), [])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
 
@@ -217,8 +218,7 @@ export function LoginScreen() {
           className="cc-back"
           onClick={() => {
             sfx.close()
-            if (view === 'email') setView('pick')
-            else playerActions.goTo(SCREENS.LANDING)
+            playerActions.goTo(SCREENS.LANDING)
           }}
         >
           <span aria-hidden="true">←</span> Kembali
@@ -232,7 +232,7 @@ export function LoginScreen() {
         ) : recovery ? (
           <NewPassword busy={busy} run={run} />
         ) : view === 'email' ? (
-          <EmailForm busy={busy} run={run} onBack={() => setView('pick')} />
+          <EmailForm busy={busy} run={run} onBack={() => playerActions.goTo(SCREENS.LANDING)} />
         ) : (
           <div className="lg-options">
             <button type="button" className="lg-btn lg-btn--google" disabled={busy} onClick={() => (sfx.select(), run(authActions.google))}>

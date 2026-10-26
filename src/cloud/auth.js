@@ -16,6 +16,8 @@ export const authStore = createStore({
   profile: null,
   // came from the 'tukar kata laluan' email: ask for a new password
   recovery: false,
+  // the landing's 'guna emel' link opens the login screen on the email form
+  loginView: null,
 })
 export const useAuth = authStore.useStore
 
@@ -69,10 +71,17 @@ export async function initAuth() {
     return
   }
   // the reset email brings people back with ?tukar=1
-  const resetting = new URLSearchParams(window.location.search).has('tukar')
+  const params = new URLSearchParams(window.location.search + window.location.hash.replace('#', '&'))
+  const resetting = params.has('tukar')
+  // a guest tried to add a Google account that already has its own: log in to that one instead
+  const taken = params.get('error_code') === 'identity_already_exists'
   if (resetting) authStore.setState({ recovery: true })
   const { data } = await sb.auth.getSession()
-  if (resetting) window.history.replaceState(null, '', redirectTo())
+  if (resetting || params.has('error')) window.history.replaceState(null, '', redirectTo())
+  if (taken) {
+    authActions.google().catch(() => {})
+    return
+  }
   await applySession(sb, data.session)
   sb.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') authStore.setState({ recovery: true })
