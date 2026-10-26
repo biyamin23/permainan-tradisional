@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { sfx } from '../../audio/engine'
 import { GENDERS, SCREENS, playerActions, usePlayerState } from '../../state/playerState'
 import { LandingScenery } from '../landing/LandingScenery'
+import { authActions, authStore } from '../../cloud/auth'
 import './character.css'
 
 const MAX_NAME_LENGTH = 16
@@ -54,6 +55,7 @@ export function CharacterCreation() {
     }
     sfx.select()
     playerActions.setProfile({ name: name.trim(), gender })
+    authActions.saveProfile({ name, gender })
     playerActions.goTo(SCREENS.KAMPUNG)
   }
 
@@ -77,7 +79,8 @@ export function CharacterCreation() {
           className="cc-back"
           onClick={() => {
             sfx.close()
-            playerActions.goTo(SCREENS.LANDING)
+            // changing the character from the kampung: back to the kampung
+            playerActions.goTo(authStore.getState().profile ? SCREENS.KAMPUNG : SCREENS.LANDING)
           }}
         >
           <span aria-hidden="true">←</span> Kembali

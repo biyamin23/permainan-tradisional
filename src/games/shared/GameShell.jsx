@@ -3,6 +3,7 @@ import { sfx } from '../../audio/engine'
 import { GENDERS, usePlayerState } from '../../state/playerState'
 import './gameShell.css'
 import { Tutorial, hasTutorial, useTutorialGame } from './Tutorial'
+import { logEvent } from '../../cloud/events'
 
 /**
  * The screen every table game shares (Congkak, Dam…): players' cards at the
@@ -220,6 +221,7 @@ export function HowToButton() {
 /** Opening panel: the invitation, level choice and the start button. */
 export function IntroPanel({ title, opponent, levels, level, setLevel, recordsLine, onStart }) {
   const current = levels.find((l) => l.id === level)
+  const gameId = useTutorialGame()
   return (
     <div className="gs-sheet">
       <div className="gs-panel">
@@ -244,7 +246,14 @@ export function IntroPanel({ title, opponent, levels, level, setLevel, recordsLi
         </div>
         <p className="gs-panel__note">{current?.note}</p>
         {recordsLine && <p className="gs-panel__small">{recordsLine}</p>}
-        <button type="button" className="gs-btn gs-btn--go" onClick={onStart}>
+        <button
+          type="button"
+          className="gs-btn gs-btn--go"
+          onClick={() => {
+            logEvent('start', gameId)
+            onStart()
+          }}
+        >
           Mula main
         </button>
         <HowToButton />

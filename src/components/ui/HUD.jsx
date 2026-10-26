@@ -4,6 +4,13 @@ import { usePlayerState } from '../../state/playerState'
 import { worldRuntime } from '../../state/worldRuntime'
 import { PetaMap } from './PetaMap'
 import { SoundToggle } from './SoundToggle'
+import { AccountSheet } from './AccountSheet'
+import { useAuth } from '../../cloud/auth'
+import { logEvent } from '../../cloud/events'
+import { useKampungLive } from '../../cloud/presence'
+
+// one "visit" per page load, counted when the kampung first appears
+let visited = false
 
 function ControlsHelp({ isTouch }) {
   if (isTouch) {
@@ -48,15 +55,43 @@ export function HUD({ isTouch }) {
   const [showHelp, setShowHelp] = useState(true)
   const [showMap, setShowMap] = useState(false)
   const closeMap = useCallback(() => setShowMap(false), [])
+  // the map button glows until the map has been opened once
+  const [mapSeen, setMapSeen] = useState(() => {
+    try {
+      return localStorage.getItem('ptm-map-seen') === '1'
+    } catch {
+      return false
+    }
+  })
+  const openMap = useCallback(() => {
+    setShowMap(true)
+    setMapSeen(true)
+    try {
+      localStorage.setItem('ptm-map-seen', '1')
+    } catch {
+      /* fine */
+    }
+  }, [])
+  const [sheet, setSheet] = useState(null) // null | 'board' | 'me'
+  const closeSheet = useCallback(() => setSheet(null), [])
+  const signedIn = useAuth((s) => s.status === 'in')
+  const live = useKampungLive()
+
+  useEffect(() => {
+    if (signedIn && !visited) {
+      visited = true
+      logEvent('visit')
+    }
+  }, [signedIn])
 
   // M opens the map
   useEffect(() => {
     const onKey = (e) => {
-      if ((e.key === 'm' || e.key === 'M') && !e.repeat && !showMap) setShowMap(true)
+      if ((e.key === 'm' || e.key === 'M') && !e.repeat && !showMap) openMap()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [showMap])
+  }, [showMap, openMap])
 
   useEffect(() => {
     worldRuntime.hud.arrow = arrowRef.current
@@ -77,16 +112,24 @@ export function HUD({ isTouch }) {
   return (
     <div className={`hud ${isTouch ? 'hud--touch' : ''}`}>
       <div className="hud__top">
-        <div className="hud__greeting">
-          <p className="hud__title">
+        <button type="button" className="hud__greeting hud__greeting--btn" onClick={() => setSheet('me')} aria-label="Akaun kamu">
+          <span className="hud__title">
             Selamat kembali, <span>{playerName}</span>
-          </p>
-          <p className="hud__subtitle hud__clock">
-            <span aria-hidden="true">🌇</span> Petang di kampung
-          </p>
-        </div>
+          </span>
+          <span className="hud__subtitle hud__clock">
+            {live ? (
+              <>
+                <span className="hud__live" aria-hidden="true" /> {live} orang di kampung
+              </>
+            ) : (
+              <>
+                <span aria-hidden="true">🌇</span> Petang di kampung
+              </>
+            )}
+          </span>
+        </button>
 
-        <button type="button" className="hud__objective" aria-live="polite" onClick={() => setShowMap(true)} title="Buka peta (M)">
+        <button type="button" className="hud__objective" aria-live="polite" onClick={openMap} title="Arah ke permainan seterusnya">
           <span className="hud__compass">
             <span ref={arrowRef} className="hud__arrow" aria-hidden="true">
               ▲
@@ -98,11 +141,13 @@ export function HUD({ isTouch }) {
             </span>
             <small ref={distanceRef}>…</small>
           </span>
-          <span className="hud__map-badge" aria-hidden="true">
-            🗺️
-          </span>
         </button>
 
+        {signedIn && (
+          <button type="button" className="sound-toggle hud__icon-btn" onClick={() => setSheet('board')} aria-label="Papan pendahulu" title="Papan pendahulu">
+            <span aria-hidden="true">🏆</span>
+          </button>
+        )}
         <SoundToggle className="hud__icon-btn" announce />
 
         {isTouch && (
@@ -134,7 +179,23 @@ export function HUD({ isTouch }) {
           {showHelp ? <ControlsHelp isTouch={false} /> : <span>? Kawalan</span>}
         </button>
       )}
+      <button
+        type="button"
+        className={`hud__map-btn ${mapSeen ? '' : 'is-new'}`}
+        onClick={openMap}
+        aria-label="Buka peta kampung"
+        title="Peta (M)"
+      >
+        <span className="hud__map-btn__icon" aria-hidden="true">
+          🗺️
+        </span>
+        <span className="hud__map-btn__text">
+          Peta
+          {!isTouch && <kbd className="keycap keycap--sm">M</kbd>}
+        </span>
+      </button>
       {showMap && <PetaMap onClose={closeMap} />}
+      {sheet && <AccountSheet live={live} startTab={sheet} onClose={closeSheet} />}
     </div>
   )
 }

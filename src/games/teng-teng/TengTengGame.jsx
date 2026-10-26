@@ -17,6 +17,7 @@ import {
   usePlayerLook,
   useTurnToast,
 } from '../shared/GameShell'
+import { logEvent } from '../../cloud/events'
 import { RUKIAH } from './cast'
 import { PETAK, THEM, YOU, housesOf, reachOf } from './engine'
 import { loadRecords, saveResult } from './records'
@@ -150,7 +151,14 @@ function Intro({ player, level, setLevel, gundu, setGundu, goal, setGoal, record
               ))}
             </div>
             {recordsSummary(records) && <p className="gs-panel__small">{recordsSummary(records)}</p>}
-            <button type="button" className="gs-btn gs-btn--go" onClick={onStart}>
+            <button
+              type="button"
+              className="gs-btn gs-btn--go"
+              onClick={() => {
+                logEvent('start', 'ting-ting')
+                onStart()
+              }}
+            >
               Mula main
             </button>
             <HowToButton />

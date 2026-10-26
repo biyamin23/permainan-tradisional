@@ -1,0 +1,372 @@
+/* Account + leaderboard sheet, opened from your name in the kampung. */
+
+.ac {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: end center;
+  padding: max(12px, env(safe-area-inset-top)) 10px 0;
+  background: rgba(30, 14, 4, 0.55);
+  font-family: var(--font-body);
+  color: #3b2414;
+  animation: ac-fade 0.25s ease-out;
+}
+
+@keyframes ac-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.ac-card {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 460px);
+  max-height: min(86dvh, 680px);
+  padding: 12px 14px max(14px, env(safe-area-inset-bottom));
+  border-radius: 24px 24px 0 0;
+  background: #fbf3e2;
+  box-shadow: 0 -18px 40px -16px rgba(0, 0, 0, 0.6);
+  animation: ac-up 0.32s cubic-bezier(0.2, 1, 0.4, 1);
+}
+
+@keyframes ac-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+
+@media (min-width: 720px) {
+  .ac {
+    place-items: center;
+    padding-bottom: 12px;
+  }
+
+  .ac-card {
+    border-radius: 24px;
+  }
+}
+
+.ac-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ac-tabs {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #efe2c6;
+}
+
+.ac-tab {
+  min-height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 900;
+  color: rgba(59, 36, 20, 0.7);
+  cursor: pointer;
+}
+
+.ac-tab.is-on {
+  background: #fff;
+  color: #3b2414;
+  box-shadow: 0 2px 0 #d9c49c;
+}
+
+.ac-close {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: #efe2c6;
+  font-size: 1rem;
+  font-weight: 900;
+  color: #3b2414;
+  cursor: pointer;
+}
+
+.ac-live {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 2px 4px;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.ac-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3fbf55;
+  box-shadow: 0 0 0 0 rgba(63, 191, 85, 0.6);
+  animation: ac-ping 1.8s infinite;
+}
+
+@keyframes ac-ping {
+  70% {
+    box-shadow: 0 0 0 8px rgba(63, 191, 85, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(63, 191, 85, 0);
+  }
+}
+
+/* ---------------------------------------------------------------- leaderboard */
+.ac-board {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ac-chips {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ac-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.ac-chip {
+  flex: none;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 2px solid #e2cfa8;
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #3b2414;
+  cursor: pointer;
+}
+
+.ac-chip.is-on {
+  border-color: #3f9b4f;
+  background: #3f9b4f;
+  color: #fff;
+}
+
+.ac-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.ac-row {
+  display: grid;
+  grid-template-columns: 2rem 38px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 14px;
+}
+
+.ac-row:nth-child(odd) {
+  background: rgba(239, 226, 198, 0.5);
+}
+
+.ac-row.is-me {
+  background: #fff4cc;
+  box-shadow: inset 0 0 0 2px #f2c14e;
+}
+
+.ac-rank {
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.ac-face {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #efe2c6;
+}
+
+.ac-face--big {
+  width: 64px;
+  height: 64px;
+}
+
+.ac-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.ac-name em {
+  font-style: normal;
+  font-weight: 700;
+  color: rgba(59, 36, 20, 0.6);
+}
+
+.ac-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ac-stat b {
+  font-size: 1.05rem;
+}
+
+.ac-stat__wins {
+  white-space: nowrap;
+}
+
+.ac-stat small {
+  font-size: 0.72rem;
+  color: rgba(59, 36, 20, 0.65);
+}
+
+.ac-gap {
+  text-align: center;
+  color: rgba(59, 36, 20, 0.5);
+}
+
+.ac-empty {
+  margin: 18px 6px;
+  text-align: center;
+  font-weight: 700;
+  color: rgba(59, 36, 20, 0.75);
+}
+
+/* ---------------------------------------------------------------- account */
+.ac-me {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  overflow-y: auto;
+}
+
+.ac-who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ac-who__name {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+
+.ac-who__kind {
+  margin: 2px 0 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: rgba(59, 36, 20, 0.7);
+  word-break: break-all;
+}
+
+.ac-keep {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #fff4cc;
+}
+
+.ac-keep__lead {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.ac-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ac-form input {
+  min-height: 46px;
+  padding: 0 14px;
+  border: 2px solid #e2cfa8;
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.ac-btn {
+  min-height: 48px;
+  border: 2px solid #e2cfa8;
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 900;
+  color: #3b2414;
+  cursor: pointer;
+}
+
+.ac-btn:disabled {
+  opacity: 0.6;
+}
+
+.ac-btn--google {
+  border-color: #dadce0;
+}
+
+.ac-btn--go {
+  border-color: #2c7a3b;
+  background: #3f9b4f;
+  color: #fff;
+}
+
+.ac-btn--out {
+  border-color: transparent;
+  background: transparent;
+  color: #b23a26;
+}
+
+.ac-note {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #e5f4dd;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #2c5a22;
+}
+
+.ac-note.is-bad {
+  background: #fbe3dc;
+  color: #9c2f1d;
+}
+
+.ac-small {
+  margin: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(59, 36, 20, 0.6);
+}

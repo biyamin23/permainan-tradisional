@@ -4,6 +4,7 @@ import { getGameById } from '../../data/games'
 import { GAME_COMPONENTS } from '../../games/registry'
 import { Tutorial, TutorialGame, hasTutorial } from '../../games/shared/Tutorial'
 import { markTutorialSeen, tutorialSeen } from '../../games/shared/tutorials'
+import { logEvent } from '../../cloud/events'
 import { playerActions, usePlayerState } from '../../state/playerState'
 import { GamePlaceholder } from './GamePlaceholder'
 
@@ -23,6 +24,10 @@ export function GameScreen() {
     sfx.close()
     playerActions.backToKampung()
   }, [])
+
+  useEffect(() => {
+    if (gameId) logEvent('open', gameId)
+  }, [gameId])
 
   useEffect(() => {
     const onKeyDown = (event) => {

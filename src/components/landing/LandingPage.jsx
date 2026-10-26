@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { initAudio, sfx, startAmbience } from '../../audio/engine'
 import { setSoundMode, useAudioState } from '../../state/audioState'
 import { SCREENS, playerActions } from '../../state/playerState'
+import { authActions, authStore, explain, screenAfterLogin, useAuth } from '../../cloud/auth'
 import './landing.css'
 
 const LEAVE_DURATION = 750
@@ -130,6 +131,84 @@ function Settings({ reduced, setReduced, onClose }) {
 }
 
 /** A few motes of dust drifting in the warm light. */
+function GoogleLogo() {
+  return (
+    <svg viewBox="0 0 48 48" width="22" height="22" aria-hidden="true">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+    </svg>
+  )
+}
+
+/**
+ * Logging in, right on the landing: Google (or email, on its own screen).
+ * Already logged in with an account: who you are, and a way out.
+ */
+function AuthPanel({ onSignOut }) {
+  const status = useAuth((s) => s.status)
+  const kind = useAuth((s) => s.kind)
+  const name = useAuth((s) => s.profile?.name ?? s.email ?? '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+
+  if (status === 'off') return null
+  if (status === 'in' && kind !== 'guest') {
+    return (
+      <div className="ls-auth ls-auth--in">
+        <p className="ls-auth__who">
+          <span aria-hidden="true">{kind === 'google' ? '🟢' : '✉️'}</span> Log masuk sebagai <b>{name}</b>
+        </p>
+        <button type="button" className="ls-auth__link" onClick={onSignOut}>
+          Bukan kamu? Log keluar
+        </button>
+      </div>
+    )
+  }
+
+  const google = async () => {
+    if (busy) return
+    initAudio()
+    sfx.select()
+    setBusy(true)
+    setError(null)
+    try {
+      // a guest keeps their records by adding Google to the same account
+      if (kind === 'guest') await authActions.guestToGoogle()
+      else await authActions.google()
+    } catch (err) {
+      setError(explain(err))
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="ls-auth">
+      <button type="button" className="ls-google" onClick={google} disabled={busy || status === 'loading'}>
+        <GoogleLogo />
+        {busy ? 'Sebentar…' : 'Log masuk dengan Google'}
+      </button>
+      <button
+        type="button"
+        className="ls-auth__link"
+        onClick={() => {
+          sfx.tap()
+          authStore.setState({ loginView: 'email' })
+          playerActions.goTo(SCREENS.LOGIN)
+        }}
+      >
+        atau guna emel &amp; kata laluan
+      </button>
+      {error && (
+        <p className="ls-auth__error" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
 function Dust({ count }) {
   return (
     <div className="ls-dust" aria-hidden="true">
@@ -180,13 +259,38 @@ export function LandingPage() {
     } else setSoundMode('off')
   }
 
-  const start = () => {
+  const status = useAuth((s) => s.status)
+  const kind = useAuth((s) => s.kind)
+  // not logged in yet: MULAKAN plays as a guest
+  const asGuest = status === 'out' || status === 'loading'
+
+  const start = async () => {
     if (leaving) return
     initAudio()
     if (mode !== 'off') startAmbience()
     sfx.select()
     setLeaving(true)
-    timer.current = setTimeout(() => playerActions.goTo(SCREENS.CHARACTER), LEAVE_DURATION)
+    const fade = new Promise((done) => {
+      timer.current = setTimeout(done, LEAVE_DURATION)
+    })
+    let next = screenAfterLogin()
+    if (authStore.getState().status !== 'in' && authStore.getState().status !== 'off') {
+      try {
+        await authActions.guest()
+        next = SCREENS.CHARACTER
+      } catch (err) {
+        // no connection or guests switched off: play anyway, just not saved
+        console.warn('[cloud] tetamu', explain(err))
+        next = SCREENS.CHARACTER
+      }
+    }
+    await fade
+    playerActions.goTo(next)
+  }
+
+  const signOut = () => {
+    sfx.close()
+    authActions.signOut()
   }
 
   return (
@@ -238,13 +342,18 @@ export function LandingPage() {
       </div>
 
       <p className="ls-subtitle">Jom kembali ke zaman kanak-kanak.</p>
+      <AuthPanel onSignOut={signOut} />
       </div>
 
       <button type="button" className="ls-cta ls-wood-btn" onClick={start}>
         <svg viewBox="0 0 24 24" aria-hidden="true" className="ls-cta__play">
           <path d="M7 4.5v15l12-7.5z" fill="currentColor" />
         </svg>
-        Mulakan
+        <span className="ls-cta__label">
+          Mulakan
+          {asGuest && <small>sebagai Guest</small>}
+          {kind === 'guest' && status === 'in' && <small>sebagai Guest</small>}
+        </span>
         <span className="ls-cta__arrow" aria-hidden="true">
           →
         </span>
