@@ -1,0 +1,771 @@
+/* --------------------------------------------------------------------------
+   Landing: a kampung at golden hour, as a living memory.
+   Layers drift with --px/--py (parallax, -1..1) by their --depth.
+   -------------------------------------------------------------------------- */
+
+.ls {
+  --wood: #8a5129;
+  --wood-dark: #4a2a15;
+  --wood-light: #a8693a;
+  --cream: #fff4dc;
+  --gold: #ffc53d;
+  --ink: #3b2414;
+  --px: 0;
+  --py: 0;
+
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #f3c588;
+  font-family: var(--font-body);
+  color: var(--cream);
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    opacity 0.75s var(--ease-out),
+    transform 0.75s var(--ease-out),
+    filter 0.75s;
+}
+
+.ls.is-leaving {
+  opacity: 0;
+  transform: scale(1.06);
+  filter: brightness(1.3) blur(3px);
+}
+
+/* the sky: one soft gradient, with the sun's glow on top */
+.ls-sky {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 34% at 50% 62%, rgba(255, 222, 150, 0.85), rgba(255, 222, 150, 0) 70%),
+    linear-gradient(180deg, #74a9d6 0%, #a8c4d6 30%, #f2cf98 56%, #ffb266 70%, #f9a35a 100%);
+  animation: ls-fade 0.7s ease-out both;
+}
+
+.ls-sky::after {
+  /* the glow breathes slowly as the sun sets */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 45% 26% at 50% 63%, rgba(255, 240, 196, 0.7), rgba(255, 240, 196, 0) 70%);
+  animation: ls-glow 14s ease-in-out infinite alternate;
+}
+
+.ls-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: translate3d(calc(var(--px) * var(--depth) * -14px), calc(var(--py) * var(--depth) * -6px), 0);
+  will-change: transform;
+  animation: ls-fade 0.9s ease-out both;
+}
+
+.ls-band {
+  top: auto;
+  height: 80%;
+}
+
+.ls-band svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* the sun sinks a little, slowly; the river glints */
+.ls-sun {
+  animation: ls-sun 48s ease-in-out infinite alternate;
+}
+
+.ls-birds {
+  animation: ls-birds 40s linear infinite;
+}
+
+.ls-glint {
+  animation: ls-glint 5s ease-in-out infinite;
+}
+
+.ls-window {
+  animation: ls-window 6s ease-in-out infinite alternate;
+}
+
+/* palm fronds and leaves in the breeze */
+.ls-sway {
+  transform-box: view-box;
+  animation: ls-sway 5.5s ease-in-out infinite alternate;
+}
+
+.ls-sway.is-slow {
+  animation-duration: 8s;
+}
+
+.ls-sway.is-leaf {
+  transform-box: view-box;
+  animation-duration: 4.2s;
+}
+
+.ls-sway.is-late {
+  animation-delay: -2s;
+}
+
+/* the kids: breathing, and a ponytail that moves with the wind */
+.ls-kids {
+  animation: ls-kids 0.8s 0.9s var(--ease-out) both;
+}
+
+.ls-breathe {
+  transform-box: view-box;
+  animation: ls-breathe 4.6s ease-in-out infinite;
+}
+
+.ls-breathe.is-late {
+  animation-delay: -1.7s;
+}
+
+.ls-pony {
+  transform-box: view-box;
+  animation: ls-sway 3.6s ease-in-out infinite alternate;
+}
+
+.ls-deck {
+  top: auto;
+  height: 13.6%;
+}
+
+.ls-deck svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ls-fg {
+  top: auto;
+}
+
+.ls-fg svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ls-fg--left {
+  right: auto;
+  width: min(44vw, 300px);
+  height: min(44vw, 300px);
+  left: -4%;
+  bottom: -2%;
+}
+
+.ls-fg--right {
+  left: auto;
+  right: 0;
+  width: min(12vw, 96px);
+  height: 62%;
+}
+
+.ls-lantern {
+  transform-box: view-box;
+  animation: ls-lantern-swing 6s ease-in-out infinite alternate;
+}
+
+.ls-lantern-glow {
+  opacity: 0.9;
+  animation: ls-flicker 3.1s ease-in-out infinite;
+}
+
+.ls-lantern-flame {
+  animation: ls-flicker-flame 2.6s ease-in-out infinite;
+}
+
+/* ---------- clouds */
+.ls-clouds {
+  bottom: auto;
+  height: 50%;
+}
+
+.ls-cloud {
+  position: absolute;
+  left: 0;
+  color: #fff3e2;
+  animation: ls-cloud linear infinite;
+}
+
+.ls-cloud svg {
+  display: block;
+  width: 100%;
+}
+
+.ls-cloud.c1 {
+  top: 18%;
+  width: 34vw;
+  max-width: 240px;
+  opacity: 0.75;
+  animation-duration: 60s;
+  animation-delay: -18s;
+}
+
+.ls-cloud.c2 {
+  top: 38%;
+  width: 46vw;
+  max-width: 320px;
+  opacity: 0.5;
+  color: #ffe4c6;
+  animation-duration: 90s;
+  animation-delay: -60s;
+}
+
+.ls-cloud.c3 {
+  top: 58%;
+  width: 26vw;
+  max-width: 180px;
+  opacity: 0.6;
+  color: #ffd9b0;
+  animation-duration: 120s;
+  animation-delay: -30s;
+}
+
+/* ---------- dust in the light */
+.ls-dust {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ls-dust span {
+  position: absolute;
+  left: calc(12% + var(--i) * 12%);
+  bottom: 18%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff6dc;
+  opacity: 0;
+  animation: ls-dust calc(14s + var(--i) * 1.7s) linear infinite;
+  animation-delay: calc(var(--i) * -2.3s);
+}
+
+/* ---------- top buttons: small wooden badges */
+.ls-top {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: max(12px, env(safe-area-inset-top));
+  z-index: 6;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 max(14px, env(safe-area-inset-right)) 0 max(14px, env(safe-area-inset-left));
+  pointer-events: none;
+  animation: ls-fade 0.6s 0.2s ease-out both;
+}
+
+.ls-badge {
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 2px solid var(--wood-dark);
+  border-radius: 50%;
+  background: var(--wood);
+  color: var(--cream);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 220, 170, 0.25),
+    0 3px 0 var(--wood-dark),
+    0 6px 12px rgba(60, 25, 5, 0.35);
+  cursor: pointer;
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ls-badge svg {
+  width: 24px;
+  height: 24px;
+}
+
+.ls-badge:hover {
+  transform: scale(1.05);
+}
+
+.ls-badge:active {
+  transform: translateY(2px) scale(0.94);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 220, 170, 0.2),
+    0 1px 0 var(--wood-dark);
+}
+
+/* ---------- the hanging sign (ropes swing with it) */
+.ls-head {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.ls-sign-rig {
+  width: min(90vw, 520px);
+  transform-origin: 50% 0;
+  animation:
+    ls-sign-drop 1s 0.25s cubic-bezier(0.22, 1.25, 0.4, 1) both,
+    ls-sign-sway 5s 1.3s ease-in-out infinite alternate;
+}
+
+.ls-ropes {
+  display: block;
+  width: 100%;
+  height: calc(max(12px, env(safe-area-inset-top)) + clamp(44px, 8vh, 72px));
+}
+
+.ls-sign {
+  position: relative;
+  margin-top: -6px;
+  padding: clamp(14px, 4.4vw, 26px) clamp(16px, 5vw, 30px) clamp(26px, 7vw, 40px);
+  text-align: center;
+  filter: drop-shadow(0 12px 14px rgba(60, 25, 5, 0.45));
+}
+
+.ls-sign__board {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ls-kicker {
+  position: relative;
+  margin: 0 0 0.35em;
+  font-family: 'Lilita One', var(--font-display);
+  font-size: clamp(0.72rem, 3.3vw, 1rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #f5dfb4;
+}
+
+.ls-title {
+  position: relative;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Lilita One', var(--font-display);
+  font-weight: 400;
+  line-height: 0.98;
+  text-transform: uppercase;
+  color: var(--cream);
+  -webkit-text-stroke: 0.06em #4a2410;
+  paint-order: stroke fill;
+  text-shadow: 0 0.07em 0 #4a2410;
+}
+
+.ls-title span {
+  font-size: min(10.4vw, 58px);
+}
+
+.ls-title .is-gold {
+  font-size: min(11.6vw, 66px);
+  color: var(--gold);
+}
+
+.ls-hibiscus {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(6px, 1.8vw, 12px);
+  width: clamp(22px, 6vw, 32px);
+  transform: translateX(-50%);
+}
+
+.ls-subtitle {
+  margin: 0.9rem auto 0;
+  padding: 0 1.5rem;
+  max-width: 22em;
+  font-family: 'Lilita One', var(--font-display);
+  font-size: clamp(1.1rem, 5vw, 1.6rem);
+  line-height: 1.2;
+  text-align: center;
+  color: var(--ink);
+  text-shadow: 0 1px 0 rgba(255, 240, 210, 0.7);
+  animation: ls-fade-up 0.6s 0.9s ease-out both;
+}
+
+/* ---------- wooden buttons: press like real planks */
+.ls-wood-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  border: 3px solid var(--wood-dark);
+  border-radius: 18px;
+  background: var(--wood);
+  color: var(--cream);
+  font-family: 'Lilita One', var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow:
+    inset 0 3px 0 rgba(255, 220, 170, 0.28),
+    inset 0 -4px 0 rgba(60, 25, 5, 0.25),
+    0 6px 0 var(--wood-dark),
+    0 12px 22px rgba(60, 25, 5, 0.4);
+  cursor: pointer;
+  transition:
+    transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.15s ease-out,
+    filter 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.ls-wood-btn:hover {
+  transform: scale(1.02);
+  filter: brightness(1.06);
+}
+
+.ls-wood-btn:active {
+  transform: translateY(4px) scale(0.96);
+  filter: brightness(0.95);
+  transition-duration: 0.08s;
+  box-shadow:
+    inset 0 3px 0 rgba(255, 220, 170, 0.2),
+    inset 0 -2px 0 rgba(60, 25, 5, 0.25),
+    0 2px 0 var(--wood-dark),
+    0 4px 10px rgba(60, 25, 5, 0.35);
+}
+
+.ls-wood-btn:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 4px;
+}
+
+.ls-cta {
+  position: absolute;
+  left: 50%;
+  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 4vh);
+  z-index: 6;
+  width: min(80vw, 400px);
+  min-height: 68px;
+  margin-left: calc(min(80vw, 400px) / -2);
+  font-size: clamp(1.4rem, 6.4vw, 2rem);
+  animation: ls-cta-in 0.7s 1.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.ls-cta__play {
+  width: 0.95em;
+  height: 0.95em;
+}
+
+.ls-cta__arrow {
+  font-family: var(--font-body);
+  font-weight: 900;
+}
+
+/* ---------- settings */
+.ls-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(40, 18, 6, 0.45);
+  animation: ls-fade 0.2s ease-out both;
+}
+
+.ls-panel {
+  width: min(100%, 360px);
+  padding: 1.25rem 1.25rem 1.1rem;
+  border: 3px solid var(--wood-dark);
+  border-radius: 20px;
+  background: #f6e6c6;
+  color: var(--ink);
+  box-shadow: 0 8px 0 var(--wood-dark), 0 18px 36px rgba(40, 18, 6, 0.45);
+  animation: ls-cta-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.ls-panel__title {
+  margin: 0 0 0.6rem;
+  font-family: 'Lilita One', var(--font-display);
+  font-weight: 400;
+  font-size: 1.6rem;
+  text-align: center;
+}
+
+.ls-panel__label {
+  margin: 0.8rem 0 0.4rem;
+  font-weight: 900;
+}
+
+.ls-choice {
+  display: flex;
+  gap: 6px;
+}
+
+.ls-choice button {
+  flex: 1 1 0;
+  min-height: 46px;
+  padding: 0 0.4rem;
+  border: 2px solid #c9a676;
+  border-radius: 12px;
+  background: #fff8e8;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ls-choice button.is-on {
+  border-color: var(--wood-dark);
+  background: var(--wood);
+  color: var(--cream);
+}
+
+.ls-panel__done {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 1.1rem;
+  font-size: 1.25rem;
+}
+
+/* ---------- keyframes */
+@keyframes ls-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ls-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes ls-glow {
+  from {
+    opacity: 0.75;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ls-sun {
+  from {
+    transform: translateY(-14px);
+  }
+  to {
+    transform: translateY(22px);
+  }
+}
+
+@keyframes ls-birds {
+  from {
+    transform: translateX(-120px);
+  }
+  to {
+    transform: translateX(260px);
+  }
+}
+
+@keyframes ls-glint {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes ls-window {
+  to {
+    opacity: 0.88;
+  }
+}
+
+@keyframes ls-sway {
+  from {
+    transform: rotate(-2deg);
+  }
+  to {
+    transform: rotate(2.2deg);
+  }
+}
+
+@keyframes ls-breathe {
+  50% {
+    transform: scaleY(1.012);
+  }
+}
+
+@keyframes ls-kids {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+}
+
+@keyframes ls-lantern-swing {
+  from {
+    transform: rotate(-1.5deg);
+  }
+  to {
+    transform: rotate(1.5deg);
+  }
+}
+
+@keyframes ls-flicker {
+  0%,
+  100% {
+    opacity: 0.86;
+  }
+  30% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.88;
+  }
+  80% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes ls-flicker-flame {
+  0%,
+  100% {
+    filter: brightness(0.95);
+  }
+  40% {
+    filter: brightness(1);
+  }
+  70% {
+    filter: brightness(0.96);
+  }
+}
+
+@keyframes ls-cloud {
+  from {
+    transform: translateX(-50vw);
+  }
+  to {
+    transform: translateX(110vw);
+  }
+}
+
+@keyframes ls-dust {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  15% {
+    opacity: 0.45;
+  }
+  85% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(40px, -46vh);
+  }
+}
+
+@keyframes ls-sign-drop {
+  from {
+    transform: translateY(-110%);
+  }
+}
+
+@keyframes ls-sign-sway {
+  from {
+    transform: rotate(-0.6deg);
+  }
+  to {
+    transform: rotate(0.6deg);
+  }
+}
+
+@keyframes ls-cta-in {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ---------- calm: the user asked for less motion, or the OS did */
+.ls.is-calm *,
+.ls.is-calm *::before,
+.ls.is-calm *::after {
+  animation-duration: 0.01s !important;
+  animation-iteration-count: 1 !important;
+  animation-delay: 0s !important;
+}
+
+.ls.is-paused *,
+.ls.is-paused *::before,
+.ls.is-paused *::after {
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ls *,
+  .ls *::before,
+  .ls *::after {
+    animation-duration: 0.01s !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+  }
+}
+
+/* wide screens: the sign and button keep a sensible size; the subtitle follows the sign */
+@media (min-aspect-ratio: 4/5) {
+  .ls-sign-rig {
+    width: min(64vh, 520px);
+  }
+  .ls-title span {
+    font-size: min(7.2vh, 58px);
+  }
+  .ls-title .is-gold {
+    font-size: min(8vh, 66px);
+  }
+  .ls-kicker {
+    font-size: min(2.2vh, 1rem);
+  }
+  .ls-subtitle {
+    font-size: min(3.6vh, 1.6rem);
+  }
+  .ls-fg--right {
+    width: min(9vh, 110px);
+  }
+}
+
+/* phones on their side: everything a size smaller so the scene still shows */
+@media (max-height: 500px) and (orientation: landscape) {
+  .ls-sign-rig {
+    width: min(52vh, 360px);
+  }
+  .ls-ropes {
+    height: calc(max(8px, env(safe-area-inset-top)) + 22px);
+  }
+  .ls-title span {
+    font-size: min(6.4vh, 40px);
+  }
+  .ls-title .is-gold {
+    font-size: min(7.2vh, 46px);
+  }
+  .ls-subtitle {
+    margin-top: 0.4rem;
+    font-size: min(4.4vh, 1.1rem);
+  }
+  .ls-cta {
+    width: min(46vw, 320px);
+    margin-left: calc(min(46vw, 320px) / -2);
+    min-height: 54px;
+    font-size: 1.3rem;
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}

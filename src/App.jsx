@@ -45,7 +45,8 @@ export default function App() {
         {screen === SCREENS.CHARACTER && <CharacterCreation />}
         {isWorldScreen(screen) && <KampungExperience />}
       </Suspense>
-      {!isWorldScreen(screen) && <SoundToggle className="sound-toggle--floating" />}
+      {/* the landing has its own sound button */}
+      {!isWorldScreen(screen) && screen !== SCREENS.LANDING && <SoundToggle className="sound-toggle--floating" />}
     </main>
   )
 }

@@ -9,6 +9,15 @@ const browser = await chromium.launch({
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
 })
 const log = []
+// the landing screen at common phone sizes (real fonts load here)
+for (const [name, width, height] of [['se', 375, 667], ['i14', 390, 844], ['a360', 360, 780], ['tab', 820, 1180], ['wide', 1280, 720]]) {
+  const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 2, isMobile: width < 900, hasTouch: width < 900 })
+  page.on('pageerror', (e) => log.push(`[landing ${name}] pageerror: ${e.message}`))
+  await page.goto('http://localhost:4173/', { waitUntil: 'networkidle' })
+  await page.waitForTimeout(3000)
+  await page.screenshot({ path: `screens-out/landing-${name}.png` })
+  await page.close()
+}
 for (const viewport of [
   { name: 'phone', width: 390, height: 760, isMobile: true, hasTouch: true },
   { name: 'wide', width: 1280, height: 720 },
