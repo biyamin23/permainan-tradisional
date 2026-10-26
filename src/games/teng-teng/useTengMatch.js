@@ -42,6 +42,24 @@ export function standPoint(move) {
   return [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length]
 }
 
+/**
+ * Your timing ring pulses PULSES times: it starts wide, closes on the target,
+ * opens again, closes again… Press while it's closed (green) on any pulse; if
+ * all pulses pass, it's a foul.
+ */
+export const PULSES = 3
+export function makeRing(kind, toClose, w) {
+  return { kind, start: now(), half: toClose, w }
+}
+/** The closing moment nearest to time t. */
+export function ringClose(ring, t = now()) {
+  const k = Math.min(PULSES - 1, Math.max(0, Math.round(((t - ring.start) / ring.half - 1) / 2)))
+  return ring.start + ring.half * (2 * k + 1)
+}
+/** Ring size: 3.2× wide at the start of a pulse, 1× when closed. */
+export const ringScale = (ring, t = now()) => 1 + 2.2 * Math.abs(1 - (((t - ring.start) / ring.half) % 2))
+const ringLife = (ring) => ring.half * (2 * PULSES - 1) + ring.w
+
 export function useTengMatch({ level, starter, goal }) {
   const [, setV] = useState(0)
   const bump = useCallback(() => setV((v) => v + 1), [])
@@ -54,7 +72,7 @@ export function useTengMatch({ level, starter, goal }) {
       phase: 'start', // start | aim | fly | hop | timbang | catch | dead | done
       plan: null, // { moves, turnAt, pickAt }
       step: -1, // index of the move just completed (-1 = at the start line)
-      ring: null, // { tc, w, kind, start } your timing ring
+      ring: null, // { kind, start, half, w } your timing ring (see makeRing)
       aim: null, // { t0, blind } while you hold the throw button
       gunduAt: null, // petak the gundu lies in (this turn)
       gunduFly: null, // { from, to, start, dur }
@@ -209,8 +227,8 @@ export function useTengMatch({ level, starter, goal }) {
     if (i >= moves.length) return fx.exitCourt()
     if (isYou()) {
       const beat = TIMING[s.level].beat
-      s.ring = { kind: moves[i].kind, start: now(), tc: now() + beat, w: TIMING[s.level].w }
-      s.ring.missId = soon(beat + s.ring.w, () => fx.youFoul('pijak'))
+      s.ring = makeRing(moves[i].kind, beat, TIMING[s.level].w)
+      s.ring.missId = soon(ringLife(s.ring), () => fx.youFoul('pijak'))
       bump()
     } else {
       soon(AI_PAUSE + 0.32, () => {
@@ -242,8 +260,8 @@ export function useTengMatch({ level, starter, goal }) {
   fx.askPick = () => {
     if (isYou()) {
       const beat = TIMING[s.level].beat * 1.15
-      s.ring = { kind: 'ambil', start: now(), tc: now() + beat, w: TIMING[s.level].w * 1.2 }
-      s.ring.missId = soon(beat + s.ring.w, () => fx.youFoul('ambil'))
+      s.ring = makeRing('ambil', beat, TIMING[s.level].w * 1.2)
+      s.ring.missId = soon(ringLife(s.ring), () => fx.youFoul('ambil'))
       bump()
     } else {
       soon(0.5, () => {
@@ -326,8 +344,8 @@ export function useTengMatch({ level, starter, goal }) {
     me().pose = 'bend'
     if (isYou()) {
       const beat = 0.75
-      s.ring = { kind: 'sambut', start: now(), tc: now() + beat, w: TIMING[s.level].w * 1.1 }
-      s.ring.missId = soon(beat + s.ring.w, () => fx.youFoul('sambut'))
+      s.ring = makeRing('sambut', beat, TIMING[s.level].w * 1.1)
+      s.ring.missId = soon(ringLife(s.ring), () => fx.youFoul('sambut'))
       bump()
     } else {
       soon(0.7, () => {
@@ -433,8 +451,9 @@ export function useTengMatch({ level, starter, goal }) {
   const press = useCallback((kind) => {
     const ring = s.ring
     if (!ring || !isYou()) return 'wait'
-    const d = now() - ring.tc
-    if (d < -0.55) return 'early'
+    const d = now() - ringClose(ring)
+    // a press well before the first close is ignored (finger slipped early)
+    if (now() - ring.start < ring.half - 0.55) return 'early'
     window.clearTimeout(ring.missId)
     s.ring = null
     if (Math.abs(d) > ring.w) {

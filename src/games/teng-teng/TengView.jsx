@@ -5,7 +5,7 @@ import { PersonModel } from '../../components/character/PersonModel'
 import { ModelSlot } from '../../components/world/ModelSlot'
 import { MODELS } from '../../data/models'
 import { PETAK, SIZE, START_GAP, centreOf, halfOf } from './engine'
-import { AIM_LAP, aimReach, now, standPoint } from './useTengMatch'
+import { AIM_LAP, aimReach, now, ringClose, ringScale, standPoint } from './useTengMatch'
 
 /**
  * The teng-teng court on the lorong: nine petak chalked on red earth, the
@@ -154,8 +154,8 @@ function Kid({ r, index, look }) {
   })
   const s = r.current
   const b = s.body[index]
-  // on the way back the player faces the camera and would hide the petak: see-through
-  const back = s.game.turn === index && s.plan && s.step >= s.plan.turnAt && ['hop', 'timbang', 'catch'].includes(s.phase)
+  // throwing: the player stands at the start line facing the camera and would hide the petak
+  const back = s.game.turn === index && (s.phase === 'aim' || s.phase === 'fly')
   return (
     <group ref={ref}>
       <PersonModel build="kid" look={look} pose={b.pose} actionRef={{ current: b.act }} ghost={back} />
@@ -266,10 +266,9 @@ function TimingRing({ r }) {
       pos = [p[0], 0.03, p[1]]
     }
     g.position.set(pos[0], pos[1], pos[2])
-    const left = ring.tc - now()
-    const u = MathUtils.clamp(left / Math.max(0.3, ring.tc - ring.start), 0, 1)
-    if (closing.current) closing.current.scale.setScalar(1 + u * 2.2)
-    if (mat.current) mat.current.color.set(Math.abs(left) <= ring.w ? '#3fd16a' : '#ffd45e')
+    const t = now()
+    if (closing.current) closing.current.scale.setScalar(ringScale(ring, t))
+    if (mat.current) mat.current.color.set(Math.abs(t - ringClose(ring, t)) <= ring.w ? '#3fd16a' : '#ffd45e')
   })
   return (
     <group ref={group} visible={false}>
