@@ -4,6 +4,7 @@ import { CHILD_LOOKS } from '../../components/character/ChildModel'
 import { GENDERS, usePlayerState } from '../../state/playerState'
 import {
   ExitButton,
+  HowToButton,
   NextHint,
   OsomPanel,
   PlayerCard,
@@ -152,6 +153,7 @@ function Intro({ player, level, setLevel, gundu, setGundu, goal, setGoal, record
             <button type="button" className="gs-btn gs-btn--go" onClick={onStart}>
               Mula main
             </button>
+            <HowToButton />
           </div>
         </div>
       )}

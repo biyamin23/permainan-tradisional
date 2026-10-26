@@ -836,3 +836,25 @@
   font-weight: 800;
   color: var(--ink-soft);
 }
+
+/* "Cara main" inside the opening panel */
+.gs-howto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 2px solid var(--cream-2);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.gs-howto:active {
+  background: var(--cream-2);
+}

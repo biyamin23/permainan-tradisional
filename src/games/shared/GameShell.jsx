@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { sfx } from '../../audio/engine'
 import { GENDERS, usePlayerState } from '../../state/playerState'
 import './gameShell.css'
+import { Tutorial, hasTutorial, useTutorialGame } from './Tutorial'
 
 /**
  * The screen every table game shares (Congkak, Dam…): players' cards at the
@@ -140,6 +141,8 @@ export function RulesButton({ onOpen }) {
 }
 
 export function RulesSheet({ game, rules, onClose }) {
+  const gameId = useTutorialGame()
+  if (hasTutorial(gameId)) return <Tutorial gameId={gameId} rules={rules} onClose={onClose} />
   return (
     <div className="gs-sheet" role="dialog" aria-label={`Cara main ${game}`}>
       <div className="gs-panel gs-panel--rules">
@@ -192,6 +195,28 @@ export function HoldFast({ fast, setFast, active }) {
   )
 }
 
+/** "Cara main" link inside the opening panel: opens the step-by-step tutorial. */
+export function HowToButton() {
+  const gameId = useTutorialGame()
+  const [open, setOpen] = useState(false)
+  if (!hasTutorial(gameId)) return null
+  return (
+    <>
+      <button
+        type="button"
+        className="gs-howto"
+        onClick={() => {
+          sfx.tap()
+          setOpen(true)
+        }}
+      >
+        <span aria-hidden="true">❓</span> Cara main
+      </button>
+      {open && <Tutorial gameId={gameId} onClose={() => setOpen(false)} />}
+    </>
+  )
+}
+
 /** Opening panel: the invitation, level choice and the start button. */
 export function IntroPanel({ title, opponent, levels, level, setLevel, recordsLine, onStart }) {
   const current = levels.find((l) => l.id === level)
@@ -222,6 +247,7 @@ export function IntroPanel({ title, opponent, levels, level, setLevel, recordsLi
         <button type="button" className="gs-btn gs-btn--go" onClick={onStart}>
           Mula main
         </button>
+        <HowToButton />
       </div>
     </div>
   )

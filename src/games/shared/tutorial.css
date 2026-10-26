@@ -1,0 +1,376 @@
+/* Pop-up tutorial ("Cara main") shared by every game. Mobile first. */
+
+.tut {
+  --cream: #fbf3e2;
+  --cream-2: #efe2c6;
+  --ink: #3b2414;
+  --ink-soft: rgba(59, 36, 20, 0.66);
+  --go: #3f9b4f;
+  --go-dark: #2c7a3b;
+  --glow: #ffd45e;
+
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+  background: rgba(30, 14, 4, 0.62);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  font-family: var(--font-body);
+  color: var(--ink);
+  user-select: none;
+  -webkit-user-select: none;
+  animation: tut-fade 0.25s ease-out;
+}
+
+@keyframes tut-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.tut__card {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 440px);
+  min-height: min(100%, 580px);
+  max-height: 100%;
+  padding: 12px 14px 10px;
+  border-radius: 24px;
+  background: var(--cream);
+  box-shadow:
+    0 5px 0 rgba(60, 30, 10, 0.35),
+    0 24px 50px -16px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+  animation: tut-pop 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+@keyframes tut-pop {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+.tut__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tut__kicker {
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+}
+
+.tut__skip {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--cream-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tut__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+
+.tut__art {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 2px rgba(59, 36, 20, 0.12);
+  animation: tut-slide 0.3s ease-out;
+}
+
+.tut__art-svg,
+.tut-art__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 38dvh;
+}
+
+.tut__count {
+  font-variant-numeric: tabular-nums;
+}
+
+.tut__text {
+  padding: 12px 4px 2px;
+  animation: tut-slide 0.3s 0.05s ease-out both;
+}
+
+@keyframes tut-slide {
+  from {
+    transform: translateX(14px);
+    opacity: 0;
+  }
+}
+
+.tut__title {
+  margin: 0 0 6px;
+  font-size: 1.3rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.tut__copy {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.tut__tip {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #fff4cc;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.tut__dots {
+  margin-top: auto !important;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin: 10px 0 8px;
+}
+
+.tut__dot {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.tut__dot::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 999px;
+  background: rgba(59, 36, 20, 0.22);
+  transition:
+    inset 0.2s,
+    background 0.2s;
+}
+
+.tut__dot.is-done::after {
+  background: rgba(63, 155, 79, 0.55);
+}
+
+.tut__dot.is-on::after {
+  inset: 5px 1px;
+  background: var(--go);
+}
+
+.tut__foot {
+  display: flex;
+  gap: 8px;
+}
+
+.tut__btn {
+  flex: 1;
+  min-height: 48px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 1.02rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.tut__btn:active {
+  transform: translateY(2px);
+}
+
+.tut__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tut__btn--soft {
+  flex: 0.8;
+  background: var(--cream-2);
+  color: var(--ink);
+}
+
+.tut__btn--next,
+.tut__btn--go {
+  background: var(--go);
+  color: #fff;
+  box-shadow: 0 4px 0 var(--go-dark);
+}
+
+.tut__btn--go {
+  animation: tut-beat 1.4s ease-in-out infinite;
+}
+
+@keyframes tut-beat {
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+.tut__more {
+  align-self: center;
+  margin-top: 6px;
+  padding: 6px 10px;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.tut__rules {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+.tut__rules h3 {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.tut__rules ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.tut__rules li {
+  margin-bottom: 0.5rem;
+}
+
+/* ------------------------------------------------------------------ inside the pictures */
+.tut-art__text {
+  font-family: var(--font-body);
+}
+
+.tut-tap__ring {
+  fill: rgba(255, 255, 255, 0.55);
+  stroke: #fff;
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tut-ripple 1.3s ease-out infinite;
+}
+
+.tut-tap__hand {
+  animation: tut-press 1.3s ease-in-out infinite;
+}
+
+@keyframes tut-ripple {
+  0% {
+    transform: scale(0.4);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+@keyframes tut-press {
+  0%,
+  100% {
+    transform: translateY(4px);
+  }
+  20% {
+    transform: translateY(0);
+  }
+}
+
+.tut-glow {
+  animation: tut-glow 1.1s ease-in-out infinite;
+}
+
+@keyframes tut-glow {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.tut-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tut-bob 1.6s ease-in-out infinite;
+}
+
+@keyframes tut-bob {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.tut-btn.is-hot rect {
+  animation: tut-glow 1.1s ease-in-out infinite;
+}
+
+/* short landscape phones: picture beside the words */
+@media (orientation: landscape) and (max-height: 520px) {
+  .tut__card {
+    width: min(100%, 760px);
+    min-height: 0;
+  }
+
+  .tut__body {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .tut-art__svg {
+    max-height: 60dvh;
+  }
+
+  .tut__text {
+    padding-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tut,
+  .tut__card,
+  .tut__art,
+  .tut__text,
+  .tut__btn--go,
+  .tut-tap__ring,
+  .tut-tap__hand,
+  .tut-glow,
+  .tut-pop {
+    animation: none;
+  }
+}
