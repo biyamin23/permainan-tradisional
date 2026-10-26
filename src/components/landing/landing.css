@@ -16,7 +16,7 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: #f3c588;
+  background: #e9b679;
   font-family: var(--font-body);
   color: var(--cream);
   user-select: none;
@@ -33,195 +33,30 @@
   filter: brightness(1.3) blur(3px);
 }
 
-/* the sky: one soft gradient, with the sun's glow on top */
-.ls-sky {
+/* the wallpaper covers the screen; on a phone it shows the right side: sun, sawah and the pondok */
+.ls-wall {
   position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 60% 34% at 50% 62%, rgba(255, 222, 150, 0.85), rgba(255, 222, 150, 0) 70%),
-    linear-gradient(180deg, #74a9d6 0%, #a8c4d6 30%, #f2cf98 56%, #ffb266 70%, #f9a35a 100%);
-  animation: ls-fade 0.7s ease-out both;
+  inset: -3%;
+  transform: translate3d(calc(var(--px) * -10px), calc(var(--py) * -6px), 0);
+  animation: ls-fade 0.8s ease-out both;
 }
 
-.ls-sky::after {
-  /* the glow breathes slowly as the sun sets */
-  content: '';
+.ls-wall__img {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 45% 26% at 50% 63%, rgba(255, 240, 196, 0.7), rgba(255, 240, 196, 0) 70%);
-  animation: ls-glow 14s ease-in-out infinite alternate;
+  background: url('/landing/kampung-petang.webp') 96% 50% / cover no-repeat;
+  animation: ls-drift 40s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
-.ls-layer {
+/* the sunset light breathes very slowly */
+.ls-warmth {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  transform: translate3d(calc(var(--px) * var(--depth) * -14px), calc(var(--py) * var(--depth) * -6px), 0);
-  will-change: transform;
-  animation: ls-fade 0.9s ease-out both;
-}
-
-.ls-band {
-  top: auto;
-  height: 80%;
-}
-
-.ls-band svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-/* the sun sinks a little, slowly; the river glints */
-.ls-sun {
-  animation: ls-sun 48s ease-in-out infinite alternate;
-}
-
-.ls-birds {
-  animation: ls-birds 40s linear infinite;
-}
-
-.ls-glint {
-  animation: ls-glint 5s ease-in-out infinite;
-}
-
-.ls-window {
-  animation: ls-window 6s ease-in-out infinite alternate;
-}
-
-/* palm fronds and leaves in the breeze */
-.ls-sway {
-  transform-box: view-box;
-  animation: ls-sway 5.5s ease-in-out infinite alternate;
-}
-
-.ls-sway.is-slow {
-  animation-duration: 8s;
-}
-
-.ls-sway.is-leaf {
-  transform-box: view-box;
-  animation-duration: 4.2s;
-}
-
-.ls-sway.is-late {
-  animation-delay: -2s;
-}
-
-/* the kids: breathing, and a ponytail that moves with the wind */
-.ls-kids {
-  animation: ls-kids 0.8s 0.9s var(--ease-out) both;
-}
-
-.ls-breathe {
-  transform-box: view-box;
-  animation: ls-breathe 4.6s ease-in-out infinite;
-}
-
-.ls-breathe.is-late {
-  animation-delay: -1.7s;
-}
-
-.ls-pony {
-  transform-box: view-box;
-  animation: ls-sway 3.6s ease-in-out infinite alternate;
-}
-
-.ls-deck {
-  top: auto;
-  height: 13.6%;
-}
-
-.ls-deck svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.ls-fg {
-  top: auto;
-}
-
-.ls-fg svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.ls-fg--left {
-  right: auto;
-  width: min(44vw, 300px);
-  height: min(44vw, 300px);
-  left: -4%;
-  bottom: -2%;
-}
-
-.ls-fg--right {
-  left: auto;
-  right: 0;
-  width: min(12vw, 96px);
-  height: 62%;
-}
-
-.ls-lantern {
-  transform-box: view-box;
-  animation: ls-lantern-swing 6s ease-in-out infinite alternate;
-}
-
-.ls-lantern-glow {
-  opacity: 0.9;
-  animation: ls-flicker 3.1s ease-in-out infinite;
-}
-
-.ls-lantern-flame {
-  animation: ls-flicker-flame 2.6s ease-in-out infinite;
-}
-
-/* ---------- clouds */
-.ls-clouds {
-  bottom: auto;
-  height: 50%;
-}
-
-.ls-cloud {
-  position: absolute;
-  left: 0;
-  color: #fff3e2;
-  animation: ls-cloud linear infinite;
-}
-
-.ls-cloud svg {
-  display: block;
-  width: 100%;
-}
-
-.ls-cloud.c1 {
-  top: 18%;
-  width: 34vw;
-  max-width: 240px;
-  opacity: 0.75;
-  animation-duration: 60s;
-  animation-delay: -18s;
-}
-
-.ls-cloud.c2 {
-  top: 38%;
-  width: 46vw;
-  max-width: 320px;
-  opacity: 0.5;
-  color: #ffe4c6;
-  animation-duration: 90s;
-  animation-delay: -60s;
-}
-
-.ls-cloud.c3 {
-  top: 58%;
-  width: 26vw;
-  max-width: 180px;
-  opacity: 0.6;
-  color: #ffd9b0;
-  animation-duration: 120s;
-  animation-delay: -30s;
+  background: radial-gradient(ellipse 70% 40% at 62% 52%, rgba(255, 214, 140, 0.35), rgba(255, 214, 140, 0) 70%);
+  mix-blend-mode: soft-light;
+  animation: ls-glow 12s ease-in-out infinite alternate;
 }
 
 /* ---------- dust in the light */
@@ -388,8 +223,10 @@
   font-size: clamp(1.1rem, 5vw, 1.6rem);
   line-height: 1.2;
   text-align: center;
-  color: var(--ink);
-  text-shadow: 0 1px 0 rgba(255, 240, 210, 0.7);
+  color: var(--cream);
+  text-shadow:
+    0 2px 0 rgba(74, 36, 16, 0.85),
+    0 0 18px rgba(74, 36, 16, 0.55);
   animation: ls-fade-up 0.6s 0.9s ease-out both;
 }
 
@@ -546,111 +383,21 @@
   }
 }
 
+@keyframes ls-drift {
+  from {
+    transform: scale(1.02) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.07) translate3d(-1.2%, -0.6%, 0);
+  }
+}
+
 @keyframes ls-glow {
   from {
     opacity: 0.75;
   }
   to {
     opacity: 1;
-  }
-}
-
-@keyframes ls-sun {
-  from {
-    transform: translateY(-14px);
-  }
-  to {
-    transform: translateY(22px);
-  }
-}
-
-@keyframes ls-birds {
-  from {
-    transform: translateX(-120px);
-  }
-  to {
-    transform: translateX(260px);
-  }
-}
-
-@keyframes ls-glint {
-  50% {
-    opacity: 0.45;
-  }
-}
-
-@keyframes ls-window {
-  to {
-    opacity: 0.88;
-  }
-}
-
-@keyframes ls-sway {
-  from {
-    transform: rotate(-2deg);
-  }
-  to {
-    transform: rotate(2.2deg);
-  }
-}
-
-@keyframes ls-breathe {
-  50% {
-    transform: scaleY(1.012);
-  }
-}
-
-@keyframes ls-kids {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 14px, 0);
-  }
-}
-
-@keyframes ls-lantern-swing {
-  from {
-    transform: rotate(-1.5deg);
-  }
-  to {
-    transform: rotate(1.5deg);
-  }
-}
-
-@keyframes ls-flicker {
-  0%,
-  100% {
-    opacity: 0.86;
-  }
-  30% {
-    opacity: 1;
-  }
-  55% {
-    opacity: 0.88;
-  }
-  80% {
-    opacity: 0.95;
-  }
-}
-
-@keyframes ls-flicker-flame {
-  0%,
-  100% {
-    filter: brightness(0.95);
-  }
-  40% {
-    filter: brightness(1);
-  }
-  70% {
-    filter: brightness(0.96);
-  }
-}
-
-@keyframes ls-cloud {
-  from {
-    transform: translateX(-50vw);
-  }
-  to {
-    transform: translateX(110vw);
   }
 }
 
@@ -737,9 +484,6 @@
   }
   .ls-subtitle {
     font-size: min(3.6vh, 1.6rem);
-  }
-  .ls-fg--right {
-    width: min(9vh, 110px);
   }
 }
 

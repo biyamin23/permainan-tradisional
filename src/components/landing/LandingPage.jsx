@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { initAudio, sfx, startAmbience } from '../../audio/engine'
 import { setSoundMode, useAudioState } from '../../state/audioState'
 import { SCREENS, playerActions } from '../../state/playerState'
-import { Clouds, DeckLayer, Dust, FieldsLayer, ForegroundLayer, HillsLayer, HouseLayer, KidsLayer, SunLayer } from './KampungSunset'
 import './landing.css'
 
 const LEAVE_DURATION = 750
@@ -130,6 +129,17 @@ function Settings({ reduced, setReduced, onClose }) {
   )
 }
 
+/** A few motes of dust drifting in the warm light. */
+function Dust({ count }) {
+  return (
+    <div className="ls-dust" aria-hidden="true">
+      {Array.from({ length: count }, (_, i) => (
+        <span key={i} style={{ '--i': i }} />
+      ))}
+    </div>
+  )
+}
+
 export function LandingPage() {
   const [leaving, setLeaving] = useState(false)
   const [settings, setSettings] = useState(false)
@@ -181,15 +191,11 @@ export function LandingPage() {
 
   return (
     <section ref={scene} className={`landing ls ${leaving ? 'is-leaving' : ''} ${calm ? 'is-calm' : ''} ${hidden ? 'is-paused' : ''}`}>
-      <div className="ls-sky" aria-hidden="true" />
-      <Clouds />
-      <SunLayer />
-      <HillsLayer />
-      <FieldsLayer />
-      <HouseLayer />
-      <DeckLayer />
-      <KidsLayer />
-      <ForegroundLayer />
+      {/* the painting: a kampung petang, drifting very slowly */}
+      <div className="ls-wall" aria-hidden="true">
+        <div className="ls-wall__img" />
+      </div>
+      <div className="ls-warmth" aria-hidden="true" />
       {!calm && <Dust count={lowEnd ? 4 : 7} />}
 
       <div className="ls-top">
