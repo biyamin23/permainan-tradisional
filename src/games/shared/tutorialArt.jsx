@@ -438,7 +438,7 @@ function RingArt({ buttons, label, pulses = false }) {
         <animate attributeName="opacity" values="0;1;0" keyTimes="0;0.4;0.6" calcMode="discrete" dur="1.8s" repeatCount="indefinite" />
       </g>
       {buttons.map((b, i) => (
-        <Btn key={b.text} x={184} y={46 + i * 36} w={116} hot={b.hot}>
+        <Btn key={b.text} x={184} y={(buttons.length === 1 ? 76 : 46) + i * 36} w={116} hot={b.hot}>
           {b.text}
         </Btn>
       ))}
@@ -641,7 +641,7 @@ export function TengFeet() {
 }
 
 export function TengRing() {
-  return <RingArt label="Pilih kaki, tekan bila hijau" pulses buttons={[{ text: '🦶 Sebelah kaki', hot: true }, { text: '👣 Dua kaki' }, { text: '⤴ Langkau' }]} />
+  return <RingArt label="Tekan Lompat bila hijau" pulses buttons={[{ text: '🦶 Lompat!', hot: true }]} />
 }
 
 export function TengBack() {
@@ -657,7 +657,7 @@ export function TengBack() {
         </text>
       </Court>
       <Btn x={176} y={14} w={124} hot>
-        🤲 Ambil gundu
+        🤲 Ambil!
       </Btn>
       <Label x={20} y={30} anchor="start" size={10.5}>
         Berhenti sebelum gundu

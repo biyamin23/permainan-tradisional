@@ -107,19 +107,14 @@ export const TUTORIALS = {
       tip: 'Sasaran bermula petak 1, kemudian 2, 3… hingga 9.',
     },
     {
-      art: Art.TengFeet,
-      title: 'Pilih kaki yang betul',
-      body: '🦶 Sebelah kaki di petak seorang (1, 2, 3, 6). 👣 Dua kaki di petak berpasangan (4·5, 7·8) dan petak 9. ⤴ Langkau petak yang ada gundu dan rumah orang lain.',
-    },
-    {
       art: Art.TengRing,
-      title: 'Tekan bila gelang jadi hijau',
-      body: 'Setiap lompatan, gelang mengecil dan mengembang 3 kali. Tekan butang kaki yang betul bila gelang jadi hijau. Salah kaki atau tak sempat: mati.',
+      title: 'Tekan Lompat bila gelang jadi hijau',
+      body: 'Setiap lompatan, gelang mengecil dan mengembang 3 kali. Tekan butang Lompat bila gelang jadi hijau. Kaki dipilih sendiri: sebelah kaki, dua kaki atau langkau petak bergundu. Tak sempat tekan: mati.',
     },
     {
       art: Art.TengBack,
       title: 'Balik dan ambil gundu',
-      body: 'Masa balik, berhenti sebelum petak gundu. Tekan 🤲 Ambil gundu bila gelang jadi hijau, kemudian lompat keluar.',
+      body: 'Masa balik, kamu berhenti sendiri sebelum petak gundu. Butang bertukar jadi 🤲 Ambil: tekan bila gelang jadi hijau, kemudian lompat keluar.',
     },
     {
       art: Art.TengTimbang,

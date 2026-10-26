@@ -38,9 +38,9 @@ const LEVELS = [
 ]
 
 const GUNDU_CHOICES = [
-  { id: 'genting', label: 'Genting' },
-  { id: 'batu', label: 'Batu sungai' },
-  { id: 'tin', label: 'Penutup tin' },
+  { id: 'genting', label: 'Genting', img: '/teng/gundu-genting.webp', note: 'Pecahan genting bumbung' },
+  { id: 'batu', label: 'Batu sungai', img: '/teng/gundu-batu.webp', note: 'Leper dan licin' },
+  { id: 'tin', label: 'Penutup tin', img: '/teng/gundu-tin.webp', note: 'Diketuk sampai leper' },
 ]
 
 const GOALS = [1, 2, 3]
@@ -56,14 +56,16 @@ const RULES = [
   'Habis 9 petak: timbang. Letak gundu atas kepala, lompat seluruh petak, kemudian jatuhkan dan sambut.',
   'Lulus timbang: baling gundu tanpa lihat. Petak kosong yang dikenanya jadi rumah kamu. Rumah orang lain mesti dilangkau.',
   'Rumah paling banyak menang. (Permainan penuh sampai semua petak berpunya; di sini kita main sampai sasaran rumah.)',
-  'Di telefon: tekan dan tahan untuk baling. Meter kuasa dan anak panah naik dari petak 1 ke 9, kemudian turun balik. Lepas bila anak panah di petak yang betul. Masa lompat, tekan butang yang betul bila gelang jadi hijau.',
+  'Di telefon: tekan dan tahan untuk baling. Meter kuasa dan anak panah naik dari petak 1 ke 9, kemudian turun balik. Lepas bila anak panah di petak yang betul. Masa lompat, tekan Lompat bila gelang jadi hijau: kaki yang betul dipilih sendiri.',
 ]
 
-const HOP_BUTTONS = [
-  { kind: 'sebelah', icon: '🦶', label: 'Sebelah kaki' },
-  { kind: 'dua', icon: '👣', label: 'Dua kaki' },
-  { kind: 'langkau', icon: '⤴', label: 'Langkau' },
-]
+// one Lompat button: the right move is picked for you, the timing is yours
+const MOVES = {
+  sebelah: { icon: '🦶', note: 'sebelah kaki' },
+  dua: { icon: '👣', note: 'dua kaki' },
+  langkau: { icon: '⤴', note: 'langkau petak' },
+  ambil: { icon: '🤲', note: 'ambil gundu' },
+}
 
 /** Power meter while you hold: fills from petak 1 up to 9, then back down. */
 function PowerMeter({ r, level, target }) {
@@ -135,10 +137,14 @@ function Intro({ player, level, setLevel, gundu, setGundu, goal, setGoal, record
             </div>
             <p className="gs-panel__note">{note}</p>
             <p className="gs-panel__label">Gundu kamu</p>
-            <div className="gs-levels" role="radiogroup" aria-label="Gundu">
+            <div className="tt-gundus" role="radiogroup" aria-label="Gundu">
               {GUNDU_CHOICES.map((g) => (
-                <button key={g.id} type="button" role="radio" aria-checked={gundu === g.id} className={`gs-level ${gundu === g.id ? 'is-selected' : ''}`} onClick={() => (sfx.tap(), setGundu(g.id))}>
-                  {g.label}
+                <button key={g.id} type="button" role="radio" aria-checked={gundu === g.id} className={`tt-gundu ${gundu === g.id ? 'is-selected' : ''}`} onClick={() => (sfx.tap(), setGundu(g.id))}>
+                  <span className="tt-gundu__pic">
+                    <img src={g.img} alt="" width="300" height="300" />
+                  </span>
+                  <span className="tt-gundu__name">{g.label}</span>
+                  <span className="tt-gundu__note">{g.note}</span>
                 </button>
               ))}
             </div>
@@ -204,7 +210,7 @@ function Match({ level, starter, goal, gundu, player, look, onExit, onRecords, o
     if (s.result) onRecords(saveResult(s.result))
   }, [s.result, onRecords])
 
-  // keyboard: Space (hold) to throw; 1 2 3 hop; A ambil; S sambut; ← → lean
+  // keyboard: Space (hold) to throw; Space / Enter to hop, pick up and catch; ← → lean
   useEffect(() => {
     const down = (e) => {
       if (e.repeat) return
@@ -212,11 +218,8 @@ function Match({ level, starter, goal, gundu, player, look, onExit, onRecords, o
         e.preventDefault()
         if (s.phase === 'aim') m.holdThrow()
       }
-      if (e.key === '1') m.press('sebelah')
-      if (e.key === '2') m.press('dua')
-      if (e.key === '3') m.press('langkau')
-      if (e.key === 'a' || e.key === 'A') m.press('ambil')
-      if (e.key === 's' || e.key === 'S') m.press('sambut')
+      if (e.key === ' ' && s.ring) m.press(s.ring.kind)
+      if (e.key === 'Enter' && s.ring) m.press(s.ring.kind)
       if (e.key === 'ArrowLeft') m.lean(-1)
       if (e.key === 'ArrowRight') m.lean(1)
     }
@@ -235,7 +238,6 @@ function Match({ level, starter, goal, gundu, player, look, onExit, onRecords, o
   const rukiahGundu = gundu === 'tin' ? 'genting' : 'tin'
   const stage = g.players[g.turn]
   const status = stage.stage === 'timbang' ? 'Timbang' : stage.stage === 'rumah' ? 'Cari rumah' : `Petak ${stage.target}`
-  const easy = level === 'mudah'
 
   let next = null
   let actions = null
@@ -289,15 +291,6 @@ function Match({ level, starter, goal, gundu, player, look, onExit, onRecords, o
           </button>
         </div>
       )
-    } else if (s.ring?.kind === 'ambil') {
-      next = { icon: '🤲', text: 'Tunduk dan ambil gundu bila gelang jadi hijau!' }
-      actions = (
-        <div className="tt-acts">
-          <button type="button" className="tt-act is-hot" onPointerDown={() => m.press('ambil')}>
-            🤲 Ambil gundu
-          </button>
-        </div>
-      )
     } else if (s.phase === 'catch') {
       next = { icon: '🙌', text: 'Gundu jatuh dari kepala. Sambut!' }
       actions = (
@@ -308,21 +301,18 @@ function Match({ level, starter, goal, gundu, player, look, onExit, onRecords, o
         </div>
       )
     } else if (s.phase === 'hop' || s.phase === 'fly') {
-      next = s.ring ? { icon: '🦶', text: 'Pilih kaki yang betul, tekan bila gelang jadi hijau.' } : { icon: '⏳', text: 'Bersedia…' }
+      const move = MOVES[s.ring?.kind] ?? null
+      next = move ? { icon: move.icon, text: 'Tekan Lompat bila gelang jadi hijau.' } : { icon: '⏳', text: 'Bersedia…' }
       actions = (
-        <div className="tt-acts">
-          {HOP_BUTTONS.map((b) => (
-            <button
-              key={b.kind}
-              type="button"
-              className={`tt-act ${easy && s.ring?.kind === b.kind ? 'is-hot' : ''}`}
-              disabled={!s.ring}
-              onPointerDown={() => m.press(b.kind)}
-            >
-              <span aria-hidden="true">{b.icon}</span> {b.label}
-            </button>
-          ))}
-        </div>
+        <button type="button" className={`tt-jump ${move ? 'is-ready' : ''}`} disabled={!move} onPointerDown={() => move && m.press(s.ring.kind)}>
+          <span className="tt-jump__icon" aria-hidden="true">
+            {move?.icon ?? '🦶'}
+          </span>
+          <span className="tt-jump__text">
+            {s.ring?.kind === 'ambil' ? 'Ambil!' : 'Lompat!'}
+            <small>{move?.note ?? 'bersedia…'}</small>
+          </span>
+        </button>
       )
     }
   }

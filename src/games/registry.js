@@ -19,7 +19,7 @@ const LOADERS = {
 const PRELOAD_IMAGES = {
   congkak: ['/avatars/aisyah.webp', '/avatars/pemain-lelaki.webp', '/avatars/pemain-perempuan.webp', '/osom/batu.webp', '/osom/burung.webp', '/osom/air.webp'],
   dam: ['/avatars/pak-tam.webp', '/dam/kedai-kopi.webp', '/osom/batu.webp', '/osom/burung.webp', '/osom/air.webp'],
-  'ting-ting': ['/avatars/rukiah.webp', '/osom/batu.webp', '/osom/burung.webp', '/osom/air.webp'],
+  'ting-ting': ['/avatars/rukiah.webp', '/teng/gundu-genting.webp', '/teng/gundu-batu.webp', '/teng/gundu-tin.webp', '/osom/batu.webp', '/osom/burung.webp', '/osom/air.webp'],
   'sepak-raga': ['/avatars/pak-nyaa.webp', '/avatars/pak-dil.webp', '/avatars/pok-pa.webp', '/avatars/pak-mi.webp', '/avatars/pak-ming.webp'],
 }
 

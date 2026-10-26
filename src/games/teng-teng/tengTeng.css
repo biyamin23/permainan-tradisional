@@ -274,3 +274,157 @@
   font-size: 0.7rem;
   font-weight: 900;
 }
+
+/* one big Lompat button: the move is chosen for you, you just time it */
+.tt-jump {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  width: 100%;
+  min-height: 72px;
+  border: 3px solid #4a2a15;
+  border-radius: 20px;
+  background: #8a5129;
+  color: #fff4dc;
+  font-family: 'Lilita One', var(--font-display);
+  font-size: 1.6rem;
+  letter-spacing: 0.03em;
+  box-shadow:
+    inset 0 3px 0 rgba(255, 220, 170, 0.28),
+    0 6px 0 #4a2a15;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition: transform 0.08s;
+}
+
+.tt-jump:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.tt-jump.is-ready {
+  background: #3f9b4f;
+  border-color: #1f5c2a;
+  box-shadow:
+    inset 0 3px 0 rgba(220, 255, 210, 0.3),
+    0 6px 0 #1f5c2a,
+    0 0 0 4px rgba(255, 212, 94, 0.55);
+}
+
+.tt-jump:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #1f5c2a;
+}
+
+.tt-jump__icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #fff4dc;
+  color: #3b2414;
+  font-family: var(--font-body);
+  font-size: 1.6rem;
+  font-weight: 900;
+}
+
+.tt-jump__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+}
+
+.tt-jump__text small {
+  margin-top: 4px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  opacity: 0.9;
+}
+
+/* choosing your gundu: three picture cards on chalked ground */
+.tt-gundus {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 0.9rem;
+}
+
+.tt-gundu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px 10px;
+  border: 3px solid transparent;
+  border-radius: 18px;
+  background: #f1e2c4;
+  color: var(--ink);
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.tt-gundu__pic {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 55%, #d8a56c 0 52%, #c98f55 53% 64%, transparent 65%);
+}
+
+/* a chalk ring on the ground */
+.tt-gundu__pic::before {
+  content: '';
+  position: absolute;
+  inset: 12%;
+  border: 2px dashed rgba(255, 255, 255, 0.75);
+  border-radius: 50%;
+}
+
+.tt-gundu__pic img {
+  position: relative;
+  width: 86%;
+  height: auto;
+  transition: transform 0.25s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+
+.tt-gundu__name {
+  margin-top: 4px;
+  font-size: 0.95rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.tt-gundu__note {
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: rgba(59, 36, 20, 0.65);
+}
+
+.tt-gundu.is-selected {
+  border-color: #3f9b4f;
+  background: #fff8e6;
+  box-shadow: 0 4px 0 rgba(44, 122, 59, 0.35);
+}
+
+.tt-gundu.is-selected .tt-gundu__pic img {
+  transform: translateY(-6px) rotate(-8deg) scale(1.08);
+}
+
+.tt-gundu:active {
+  transform: scale(0.96);
+}
