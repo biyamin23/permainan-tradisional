@@ -34,7 +34,7 @@ preloadModels([
   MODELS.sekolah.url,
   MODELS.jambatan.url,
   MODELS.airTerjun.url,
-  MODELS.raga.url,
+  MODELS.ragaLama.url,
   MODELS.bangku.url,
   MODELS.lampuPadang.url,
   MODELS.sampan.url,

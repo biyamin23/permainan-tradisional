@@ -152,6 +152,7 @@ function Bench({ x }) {
 }
 
 /** Papan mata: the two teams' points, chalked on a board. */
+const FACE = MODELS.papanMata.url ? MODELS.papanMata.face : null
 function Scoreboard({ mine, theirs, round }) {
   const tex = useMemo(() => {
     const c = document.createElement('canvas')
@@ -180,7 +181,7 @@ function Scoreboard({ mine, theirs, round }) {
     tex.needsUpdate = true
   }, [tex, mine, theirs, round])
   return (
-    <group position={[-5, 0, -R - 1.4]} rotation={[0, 0.5, 0]}>
+    <group position={[-5, 0, -R - 1.4]} rotation={[0, 0.5, 0]} scale={FACE ? 1.3 : 1}>
       <ModelSlot
         model={MODELS.papanMata}
         fallback={
@@ -198,10 +199,17 @@ function Scoreboard({ mine, theirs, round }) {
           </>
         }
       />
-      <mesh position={[0, 1.5, 0.04]}>
-        <planeGeometry args={[1.6, 1.0]} />
-        <meshBasicMaterial map={tex} toneMapped={false} />
-      </mesh>
+      {FACE ? (
+        <mesh position={FACE.position} rotation={[FACE.tilt, 0, 0]}>
+          <planeGeometry args={FACE.size} />
+          <meshBasicMaterial map={tex} toneMapped={false} />
+        </mesh>
+      ) : (
+        <mesh position={[0, 1.5, 0.04]}>
+          <planeGeometry args={[1.6, 1.0]} />
+          <meshBasicMaterial map={tex} toneMapped={false} />
+        </mesh>
+      )}
     </group>
   )
 }

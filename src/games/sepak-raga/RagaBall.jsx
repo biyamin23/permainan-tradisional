@@ -4,8 +4,8 @@ import { MODELS } from '../../data/models'
 import { ModelSlot } from '../../components/world/ModelSlot'
 
 /**
- * Bola raga: a woven rattan ball. Until the GLB arrives it is a sphere with a
- * painted weave (crossing rattan strips over dark gaps).
+ * Bola raga: a woven rattan ball (`old` = the darker, well-used rotan lama).
+ * If the GLB can't load it is a sphere with a painted weave.
  */
 
 let weave = null
@@ -41,7 +41,7 @@ function weaveMaterial() {
   return weave
 }
 
-export function RagaBall({ radius = 0.1 }) {
+export function RagaBall({ radius = 0.1, old = false }) {
   const material = useMemo(() => weaveMaterial(), [])
   const fallback = (
     <mesh castShadow material={material}>
@@ -49,5 +49,5 @@ export function RagaBall({ radius = 0.1 }) {
     </mesh>
   )
   // the GLB is ~14 cm across; scale it to the radius asked for
-  return <ModelSlot model={MODELS.raga} fallback={fallback} scale={radius / 0.07} />
+  return <ModelSlot model={old ? MODELS.ragaLama : MODELS.raga} fallback={fallback} scale={radius / 0.07} />
 }

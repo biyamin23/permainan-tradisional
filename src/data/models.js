@@ -41,10 +41,14 @@ export const MODELS = {
   basikal: { url: '/models/basikal_tua.glb' },
   kelapa: { url: '/models/pokok_kelapa.glb' },
   // Sepak Raga (url: null = the stand-in until the model files arrive)
-  raga: { url: '/models/bola_raga.glb' }, // bola rotan anyaman, 14 cm across, centred
-  bangku: { url: '/models/bangku_kayu_panjang.glb' }, // 2.87 × 0.39 m, seat 0.45 m up
-  papanMata: { url: null }, // papan mata kayu (the scores are drawn on top)
-  // street lamp, 5.55 m; pole at the origin, the lamp head reaches 5.4 m towards -z
+  // bola raga: rotan asli (new, light) and rotan lama (old, dark); 14 cm across, centred
+  raga: { url: '/models/bola_raga.glb' },
+  ragaLama: { url: '/models/bola_raga_lama.glb' },
+  bangku: { url: '/models/bangku_kayu_panjang.glb' }, // 2.5 × 0.37 m, seat 0.45 m up
+  // easel scoreboard, 1.15 × 1.56 m; the chalk face (scores drawn on it) is 1.04 × 0.72 m,
+  // centred at y 1.09, z 0.16, leaning back 0.106 rad
+  papanMata: { url: '/models/papan_mata_kayu.glb', face: { position: [0, 1.089, 0.166], tilt: -0.106, size: [1.0, 0.69] } },
+  // padang lamp post, 5.45 m, two lamps on a cross-arm
   lampuPadang: { url: '/models/tiang_lampu_padang.glb' },
   // picnic table with its benches, 2.15 m square, top 0.76 m up
   meja: { url: '/models/meja_kayu.glb' },

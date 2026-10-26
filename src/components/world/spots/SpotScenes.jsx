@@ -181,11 +181,11 @@ export function SepakRagaScene({ game }) {
         <PakPlayer key={pak.id} pak={pak} at={RAGA_SPOTS[i]} actionRef={actions.current[i]} phase={i * 0.7} />
       ))}
       <group ref={ball}>
-        <RagaBall radius={0.1} />
+        <RagaBall radius={0.1} old />
       </group>
       {/* a bench for whoever's resting, and a lamp for playing on after Maghrib */}
       <RigidBody type="fixed" colliders={false} position={[0, 0, RAGA_R + 2.3]}>
-        <CuboidCollider args={[1.43, 0.25, 0.2]} position={[0, 0.25, 0]} />
+        <CuboidCollider args={[1.25, 0.25, 0.19]} position={[0, 0.25, 0]} />
         <ModelSlot model={MODELS.bangku} fallback={null} />
       </RigidBody>
       <RigidBody type="fixed" colliders={false} position={[RAGA_R + 2.6, 0, -1.5]}>
