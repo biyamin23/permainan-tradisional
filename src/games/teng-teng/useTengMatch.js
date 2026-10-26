@@ -4,6 +4,7 @@ import {
   AI,
   COURT_LENGTH,
   SIZE,
+  START_GAP,
   THEM,
   TIMING,
   WHY,
@@ -516,10 +517,21 @@ export function useTengMatch({ level, starter, goal }) {
 /** Seconds for the aim marker to run up the court and back. */
 export const AIM_LAP = { mudah: 3.2, biasa: 2.6, pakar: 2.0 }
 
-/** Aim marker distance while holding: runs up the court and back. */
+/** The power meter's range: from the bottom of petak 1 to the top of petak 9. */
+export const AIM_MIN = START_GAP
+export const AIM_MAX = COURT_LENGTH
+
+/** Power 0..1 while holding: min to max, then back down to min. */
+export function aimPower(t0, lap = 2.6) {
+  const p = ((now() - t0) / lap) % 1
+  return p < 0.5 ? p * 2 : 2 - p * 2
+}
+
+/** Distance from the start line the gundu would go at that power. */
+export const reachForPower = (u) => AIM_MIN + u * (AIM_MAX - AIM_MIN)
+export const powerForReach = (reach) => (reach - AIM_MIN) / (AIM_MAX - AIM_MIN)
+
+/** Aim distance while holding. */
 export function aimReach(t0, lap = 2.6) {
-  const t = (now() - t0) / lap
-  const p = t % 1
-  const u = p < 0.5 ? p * 2 : 2 - p * 2
-  return 0.15 + u * (COURT_LENGTH - 0.05)
+  return reachForPower(aimPower(t0, lap))
 }

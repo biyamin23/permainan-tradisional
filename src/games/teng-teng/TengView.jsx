@@ -152,10 +152,13 @@ function Kid({ r, index, look }) {
     while (diff < -Math.PI) diff += Math.PI * 2
     g.rotation.y += diff * 0.18
   })
-  const b = r.current.body[index]
+  const s = r.current
+  const b = s.body[index]
+  // on the way back the player faces the camera and would hide the petak: see-through
+  const back = s.game.turn === index && s.plan && s.step >= s.plan.turnAt && ['hop', 'timbang', 'catch'].includes(s.phase)
   return (
     <group ref={ref}>
-      <PersonModel build="kid" look={look} pose={b.pose} actionRef={{ current: b.act }} />
+      <PersonModel build="kid" look={look} pose={b.pose} actionRef={{ current: b.act }} ghost={back} />
     </group>
   )
 }
@@ -203,8 +206,12 @@ function Gundu({ r, index, kind }) {
   )
 }
 
-/** The aim marker while you hold the throw button (hidden for the blind rumah throw). */
-function AimMarker({ r }) {
+/**
+ * The aim arrow while you hold the throw button: it climbs from the bottom of
+ * petak 1 to petak 9 with your power, then back down. Hidden for the blind
+ * rumah throw (the power meter still shows).
+ */
+function AimArrow({ r }) {
   const ref = useRef()
   useFrame(() => {
     const s = r.current
@@ -212,17 +219,25 @@ function AimMarker({ r }) {
     if (!g) return
     const show = Boolean(s.aim && !s.aim.blind)
     g.visible = show
-    if (show) g.position.set(0, 0.02, -aimReach(s.aim.t0, AIM_LAP[s.level]))
+    if (!show) return
+    const target = s.game.players[s.game.turn].target
+    const x = centreOf(target)[0]
+    g.position.set(x, 0.05, -aimReach(s.aim.t0, AIM_LAP[s.level]))
   })
   return (
     <group ref={ref} visible={false}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.1, 0.15, 32]} />
-        <meshBasicMaterial color="#ffd45e" />
+      {/* arrow head pointing up the court, with a short tail */}
+      <mesh position={[0, 0.04, -0.06]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={12}>
+        <coneGeometry args={[0.16, 0.26, 3]} />
+        <meshBasicMaterial color="#ffd45e" depthTest={false} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.05, 16]} />
-        <meshBasicMaterial color="#ffd45e" />
+      <mesh position={[0, 0.04, 0.16]} renderOrder={12}>
+        <boxGeometry args={[0.08, 0.02, 0.24]} />
+        <meshBasicMaterial color="#ffd45e" depthTest={false} />
+      </mesh>
+      <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[halfOf(1)[0] * 2 - 0.06, 0.05]} />
+        <meshBasicMaterial color="#ffd45e" transparent opacity={0.8} />
       </mesh>
     </group>
   )
@@ -331,7 +346,7 @@ export function TengView({ r, looks, gundu, houses, colors }) {
       <Kid r={r} index={1} look={looks[1]} />
       <Gundu r={r} index={0} kind={gundu[0]} />
       <Gundu r={r} index={1} kind={gundu[1]} />
-      <AimMarker r={r} />
+      <AimArrow r={r} />
       <TimingRing r={r} />
     </Canvas>
   )

@@ -17,10 +17,10 @@ import {
   useTurnToast,
 } from '../shared/GameShell'
 import { RUKIAH } from './cast'
-import { THEM, YOU, housesOf } from './engine'
+import { PETAK, THEM, YOU, housesOf, reachOf } from './engine'
 import { loadRecords, saveResult } from './records'
 import { TengView } from './TengView'
-import { useTengMatch } from './useTengMatch'
+import { AIM_LAP, aimPower, powerForReach, useTengMatch } from './useTengMatch'
 import './tengTeng.css'
 
 /**
@@ -54,7 +54,7 @@ const RULES = [
   'Habis 9 petak: timbang. Letak gundu atas kepala, lompat seluruh petak, kemudian jatuhkan dan sambut.',
   'Lulus timbang: baling gundu tanpa lihat. Petak kosong yang dikenanya jadi rumah kamu. Rumah orang lain mesti dilangkau.',
   'Rumah paling banyak menang. (Permainan penuh sampai semua petak berpunya; di sini kita main sampai sasaran rumah.)',
-  'Di telefon: tekan dan tahan untuk baling, lepas bila bulatan kuning di petak yang betul. Masa lompat, tekan butang yang betul bila gelang jadi hijau.',
+  'Di telefon: tekan dan tahan untuk baling. Meter kuasa dan anak panah naik dari petak 1 ke 9, kemudian turun balik. Lepas bila anak panah di petak yang betul. Masa lompat, tekan butang yang betul bila gelang jadi hijau.',
 ]
 
 const HOP_BUTTONS = [
@@ -62,6 +62,44 @@ const HOP_BUTTONS = [
   { kind: 'dua', icon: '👣', label: 'Dua kaki' },
   { kind: 'langkau', icon: '⤴', label: 'Langkau' },
 ]
+
+/** Power meter while you hold: fills from petak 1 up to 9, then back down. */
+function PowerMeter({ r, level, target }) {
+  const fill = useRef(null)
+  const arrow = useRef(null)
+  useEffect(() => {
+    let raf = 0
+    const tick = () => {
+      const aim = r.current.aim
+      if (aim) {
+        const u = aimPower(aim.t0, AIM_LAP[level])
+        if (fill.current) fill.current.style.transform = `scaleY(${u})`
+        if (arrow.current) arrow.current.style.bottom = `${u * 100}%`
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [r, level])
+  // one tick per row of petak
+  const rows = [1, 2, 3, 4, 6, 7, 9]
+  return (
+    <div className="tt-meter" aria-hidden="true">
+      <div className="tt-meter__bar">
+        <div className="tt-meter__fill" ref={fill} />
+        {rows.map((id) => (
+          <span key={id} className={`tt-meter__tick ${target && PETAK.find((p) => p.id === target)?.row === PETAK.find((p) => p.id === id).row ? 'is-target' : ''}`} style={{ bottom: `${powerForReach(reachOf(id)) * 100}%` }}>
+            {id === 4 ? '4·5' : id === 7 ? '7·8' : id}
+          </span>
+        ))}
+        <span className="tt-meter__arrow" ref={arrow}>
+          ▶
+        </span>
+      </div>
+      <p className="tt-meter__label">Kuasa</p>
+    </div>
+  )
+}
 
 function Intro({ player, level, setLevel, gundu, setGundu, goal, setGoal, records, onStart, onExit, osom, onOsomDone }) {
   const [showRules, setShowRules] = useState(false)
@@ -203,7 +241,7 @@ function Match({ level, starter, goal, gundu, player, look, onExit, onRecords, o
       const blind = stage.stage === 'rumah'
       next = blind
         ? { icon: '🙈', text: 'Baling tanpa lihat. Petak kosong yang kena jadi rumah kamu!' }
-        : { icon: '🎯', text: `Tahan, lepas bila bulatan kuning di petak ${stage.target}.` }
+        : { icon: '🎯', text: `Tahan: anak panah naik dari petak 1 ke 9, kemudian turun. Lepas bila tepat di petak ${stage.target}.` }
       actions = (
         <button
           type="button"
@@ -312,6 +350,7 @@ function Match({ level, starter, goal, gundu, player, look, onExit, onRecords, o
         <b>{status}</b>
         <span>· sasaran {goal} rumah</span>
       </div>
+      {yourTurn && s.aim && <PowerMeter r={m.r} level={level} target={stage.stage === 'petak' ? stage.target : null} />}
       {s.lastGood?.perfect && (
         <p className="tt-nice" key={s.lastGood.key}>
           Cantik!

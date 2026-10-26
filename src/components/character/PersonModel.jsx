@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { createContext, useContext, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { MathUtils, MeshStandardMaterial } from 'three'
 
@@ -18,6 +18,7 @@ import { MathUtils, MeshStandardMaterial } from 'three'
  * actionRef:  { current: { t } } — elapsed time of the last one-shot action
  *             (kick, flick…) so spots can sync props with the animation
  * rightHand / leftHand: optional element held in the hand
+ * ghost:      draw see-through (so the character doesn't hide the ground behind)
  */
 
 const BUILDS = {
@@ -72,16 +73,27 @@ export const DEFAULT_LOOK = {
 }
 
 const materialCache = new Map()
-export function getMaterial(color) {
-  if (!materialCache.has(color)) {
-    materialCache.set(color, new MeshStandardMaterial({ color, roughness: 0.78, flatShading: true }))
+export function getMaterial(color, ghost = false) {
+  const key = ghost ? `${color}|ghost` : color
+  if (!materialCache.has(key)) {
+    const m = new MeshStandardMaterial({ color, roughness: 0.78, flatShading: true })
+    if (ghost) {
+      // see-through, so a character never hides what's behind them (teng-teng petak)
+      m.transparent = true
+      m.opacity = 0.3
+      m.depthWrite = false
+    }
+    materialCache.set(key, m)
   }
-  return materialCache.get(color)
+  return materialCache.get(key)
 }
 
+const GhostContext = createContext(false)
+
 function Part({ color, children, shadow = false, ...props }) {
+  const ghost = useContext(GhostContext)
   return (
-    <mesh castShadow={shadow} material={getMaterial(color)} {...props}>
+    <mesh castShadow={shadow} material={getMaterial(color, ghost)} {...props}>
       {children}
     </mesh>
   )
@@ -222,6 +234,7 @@ export function PersonModel({
   shadows = true,
   rightHand = null,
   leftHand = null,
+  ghost = false,
 }) {
   const b = BUILDS[build] ?? BUILDS.kid
   const look = useMemo(() => ({ ...DEFAULT_LOOK, ...lookOverride }), [lookOverride])
@@ -539,6 +552,7 @@ export function PersonModel({
   const isKain = look.bottomType === 'kain' || look.bottomType === 'pelikat'
 
   return (
+    <GhostContext.Provider value={ghost}>
     <group ref={root}>
       {/* Legs (pivot at the hip) */}
       {[
@@ -715,5 +729,6 @@ export function PersonModel({
         </group>
       </group>
     </group>
+    </GhostContext.Provider>
   )
 }
