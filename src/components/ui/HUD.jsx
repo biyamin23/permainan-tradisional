@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { OBJECTIVE_GAME } from '../../data/games'
 import { usePlayerState } from '../../state/playerState'
-import { describeTime, skipClock, timeStore, useTimeState } from '../../state/timeOfDay'
-import { showToast } from '../../state/uiState'
 import { worldRuntime } from '../../state/worldRuntime'
 import { PetaMap } from './PetaMap'
 import { SoundToggle } from './SoundToggle'
@@ -35,31 +33,9 @@ function ControlsHelp({ isTouch }) {
       <kbd className="keycap keycap--sm">A</kbd>
       <kbd className="keycap keycap--sm">S</kbd>
       <kbd className="keycap keycap--sm">D</kbd> bergerak · <kbd className="keycap keycap--sm">Shift</kbd> lari ·{' '}
-      <kbd className="keycap keycap--sm">E</kbd> main / sembang · <kbd className="keycap keycap--sm">M</kbd> peta · seret tetikus untuk pusing kamera · klik jam untuk
-      cepatkan masa
+      <kbd className="keycap keycap--sm">E</kbd> main / sembang · <kbd className="keycap keycap--sm">M</kbd> peta · seret tetikus untuk pusing kamera
     </span>
   )
-}
-
-/** Kampung clock, e.g. "🌇 Petang · 5:42". Re-renders once per in-game minute. */
-function ClockLabel() {
-  const minute = useTimeState((s) => s.minute)
-  const time = describeTime(minute)
-  return (
-    <p className="hud__subtitle hud__clock">
-      <span aria-hidden="true">{time.icon}</span> {time.name} · {time.label}
-      <span className="hud__clock-skip" aria-hidden="true">
-        ⏩
-      </span>
-    </p>
-  )
-}
-
-/** Tap the clock to jump three hours ahead. */
-function fastForward() {
-  skipClock(3)
-  const time = describeTime(timeStore.getState().minute)
-  showToast(`⏩ ${time.icon} ${time.name} · ${time.label}`)
 }
 
 /**
@@ -104,12 +80,14 @@ export function HUD({ isTouch }) {
   return (
     <div className={`hud ${isTouch ? 'hud--touch' : ''}`}>
       <div className="hud__top">
-        <button type="button" className="hud__greeting" onClick={fastForward} title="Ketik untuk cepatkan masa">
+        <div className="hud__greeting">
           <p className="hud__title">
             Selamat kembali, <span>{playerName}</span>
           </p>
-          <ClockLabel />
-        </button>
+          <p className="hud__subtitle hud__clock">
+            <span aria-hidden="true">🌇</span> Petang di kampung
+          </p>
+        </div>
 
         <button type="button" className="hud__objective" aria-live="polite" onClick={() => setShowMap(true)} title="Buka peta (M)">
           <span className="hud__compass">

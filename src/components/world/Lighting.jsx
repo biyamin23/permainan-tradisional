@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Sky, Stars } from '@react-three/drei'
 import { Vector3 } from 'three'
-import { SUNRISE, SUNSET, advanceClock, clock, daylightAt, sampleSky } from '../../state/timeOfDay'
+import { SUNRISE, SUNSET, clock, daylightAt, sampleSky } from '../../state/timeOfDay'
 import { worldRuntime } from '../../state/worldRuntime'
 import { MAT } from './kit'
 
@@ -37,7 +37,6 @@ export function Lighting() {
   const moon = useRef()
 
   useFrame((_, delta) => {
-    advanceClock(Math.min(delta, 0.1))
     const hour = clock.hour
     const daylight = daylightAt(hour)
     clock.daylight = daylight

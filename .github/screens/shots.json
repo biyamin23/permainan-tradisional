@@ -13,7 +13,6 @@
     2
    ]
   },
-  "hour": 13,
   "wait": 5000,
   "wideOnly": true
  },
@@ -31,7 +30,6 @@
     0
    ]
   },
-  "hour": 16,
   "wait": 3000,
   "wideOnly": true
  },
@@ -41,8 +39,7 @@
    -18.48,
    -3.74
   ],
-  "yaw": 0.0,
-  "hour": 16
+  "yaw": 0.0
  },
  {
   "name": "01b-peta",
@@ -51,97 +48,81 @@
  },
  {
   "name": "02-congkak",
-  "hour": 16,
   "wideOnly": false,
   "game": "congkak"
  },
  {
   "name": "03-dam",
-  "hour": 16,
   "wideOnly": false,
   "game": "dam"
  },
  {
   "name": "04-ting-ting",
-  "hour": 16,
   "wideOnly": true,
   "game": "ting-ting"
  },
  {
   "name": "05-konda-kondi",
-  "hour": 16,
   "wideOnly": true,
   "game": "konda-kondi"
  },
  {
   "name": "06-batu-seremban",
-  "hour": 16,
   "wideOnly": true,
   "game": "batu-seremban"
  },
  {
   "name": "07-lumba-basikal",
-  "hour": 16,
   "wideOnly": false,
   "game": "lumba-basikal"
  },
  {
   "name": "08-kejar-kejar",
-  "hour": 16,
   "wideOnly": true,
   "game": "kejar-kejar"
  },
  {
   "name": "09-police-thief",
-  "hour": 16,
   "wideOnly": true,
   "game": "police-thief"
  },
  {
   "name": "10-gasing",
-  "hour": 16,
   "wideOnly": true,
   "game": "gasing"
  },
  {
   "name": "11-galah-panjang",
-  "hour": 16,
   "wideOnly": true,
   "game": "galah-panjang"
  },
  {
   "name": "12-sepak-raga",
-  "hour": 16,
   "wideOnly": true,
   "game": "sepak-raga"
  },
  {
   "name": "13-tarik-upih",
-  "hour": 16,
   "wideOnly": true,
   "game": "tarik-upih"
  },
  {
   "name": "14-wau",
-  "hour": 16,
   "wideOnly": true,
   "game": "wau"
  },
  {
   "name": "15-guli",
-  "hour": 16,
   "wideOnly": true,
   "game": "guli"
  },
  {
   "name": "16-baling-selipar",
-  "hour": 16,
   "wideOnly": true,
   "game": "baling-selipar"
  },
  {
   "name": "90-waterfall",
-  "hour": 12,
   "wideOnly": true,
   "camera": {
    "position": [
@@ -164,17 +145,6 @@
    -20.02
   ],
   "yaw": 0,
-  "hour": 12,
-  "wideOnly": true
- },
- {
-  "name": "92-night",
-  "at": [
-   -18.48,
-   -3.74
-  ],
-  "yaw": 0,
-  "hour": 21,
   "wideOnly": true
  },
  {
@@ -184,12 +154,10 @@
    22.88
   ],
   "yaw": 0.9,
-  "hour": 12,
   "wideOnly": true
  },
  {
   "name": "94-kebun",
-  "hour": 12,
   "wideOnly": true,
   "camera": {
    "position": [
@@ -219,7 +187,6 @@
     -14.5
    ]
   },
-  "hour": 16,
   "wait": 3000,
   "wideOnly": true
  },
@@ -237,7 +204,6 @@
     -2.2
    ]
   },
-  "hour": 12,
   "wait": 6000,
   "wideOnly": true
  }

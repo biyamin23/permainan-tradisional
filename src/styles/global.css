@@ -652,7 +652,7 @@ kbd {
   border-top: 0;
   border-right: 0;
   border-bottom: 0;
-  cursor: pointer;
+  cursor: default;
   -webkit-tap-highlight-color: transparent;
   padding: 0.55rem 0.8rem 0.6rem 0.75rem;
   border-radius: var(--radius-sm);
@@ -1201,17 +1201,6 @@ kbd {
   display: flex;
   align-items: center;
   gap: 0.3rem;
-}
-
-.hud__clock-skip {
-  margin-left: auto;
-  padding-left: 0.4rem;
-  font-size: 0.7rem;
-  opacity: 0.55;
-}
-
-.hud__greeting:active {
-  transform: scale(0.98);
 }
 
 /* keep dark HUD controls readable against the night sky */

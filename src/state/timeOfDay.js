@@ -2,14 +2,10 @@ import { Color } from 'three'
 import { createStore } from './createStore'
 
 /**
- * Kampung clock. One in-game hour lasts SECONDS_PER_HOUR real seconds, so a
- * full day and night takes 12 minutes. The visit starts late afternoon.
- *
- * The exact hour changes every frame and lives in `clock.hour` (no React
- * re-renders); `timeStore` only updates once per in-game minute for the HUD.
+ * Kampung time: always 5 petang (no day/night cycle). The sky keyframes below
+ * still describe the whole day, so the debug helper can show other hours.
  */
-export const START_HOUR = 17.6
-export const SECONDS_PER_HOUR = 30
+export const START_HOUR = 17
 
 export const clock = { hour: START_HOUR, daylight: 1, night: 0 }
 
@@ -21,21 +17,10 @@ export function resetClock() {
   timeStore.setState({ minute: Math.floor(START_HOUR * 60) })
 }
 
-export function advanceClock(dt) {
-  clock.hour = (clock.hour + dt / SECONDS_PER_HOUR) % 24
-  const minute = Math.floor(clock.hour * 60)
-  if (minute !== timeStore.getState().minute) timeStore.setState({ minute })
-}
-
-/** Set the clock to an hour (debug and screenshots). */
+/** Set the clock to an hour (debug only). */
 export function setClockHour(hour) {
   clock.hour = hour % 24
   timeStore.setState({ minute: Math.floor(clock.hour * 60) })
-}
-
-/** Jump ahead (the player tapped the clock). */
-export function skipClock(hours) {
-  advanceClock(hours * SECONDS_PER_HOUR)
 }
 
 const PERIODS = [
