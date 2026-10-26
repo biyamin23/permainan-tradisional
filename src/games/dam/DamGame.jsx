@@ -109,7 +109,7 @@ const WHY = {
   'must-capture': ['Wajib makan! Pilih buah yang bercahaya.', 'bad'],
   blocked: ['Buah tu tak boleh gerak. Pilih buah yang bercahaya.', 'bad'],
   theirs: ['Itu buah Pak Tam. Buah kamu yang biru.', 'bad'],
-  chain: ['Teruskan makan! Ketik bulatan kuning.', 'bad'],
+  chain: ['Teruskan makan! Tekan bulatan kuning.', 'bad'],
   wait: ['Sabar, giliran Pak Tam.', 'them'],
 }
 
@@ -141,9 +141,9 @@ function Match({ level, player, firstStarter, onExit, onRecords }) {
       ? m.busy
         ? { icon: '✋', text: 'Buah sedang bergerak…' }
         : m.path.length
-          ? { icon: '👆', text: 'Teruskan makan! Ketik bulatan kuning.' }
+          ? { icon: '👆', text: 'Teruskan makan! Tekan bulatan kuning.' }
           : m.selected !== null
-            ? { icon: '👆', text: 'Ketik bulatan kuning untuk gerak. Ketik buah lain untuk tukar.' }
+            ? { icon: '👆', text: 'Tekan bulatan kuning untuk gerak. Tekan buah lain untuk tukar.' }
             : m.mustCapture
               ? { icon: '⚠️', text: 'Wajib makan! Pilih buah yang bercahaya.' }
               : { icon: '👆', text: 'Pilih buah biru yang bercahaya.' }

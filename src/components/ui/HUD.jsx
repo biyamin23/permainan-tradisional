@@ -19,10 +19,7 @@ function ControlsHelp({ isTouch }) {
           <span className="hud__help-icon">✋</span> Butang kanan untuk main atau bersembang
         </li>
         <li>
-          <span className="hud__help-icon">🗺️</span> Ketik kompas untuk buka peta dan terus ke permainan
-        </li>
-        <li>
-          <span className="hud__help-icon">⏩</span> Ketik jam untuk cepatkan masa
+          <span className="hud__help-icon">🗺️</span> Tekan kompas untuk buka peta dan terus ke permainan
         </li>
       </ul>
     )

@@ -30,9 +30,9 @@ import './sepakRaga.css'
  */
 
 const LEVELS = [
-  { id: 'mudah', label: 'Mudah', note: 'Pak-pak baru balik kerja, kaki masih penat. Masa ketik lebih panjang.' },
+  { id: 'mudah', label: 'Mudah', note: 'Pak-pak baru balik kerja, kaki masih penat. Masa tekan lebih panjang.' },
   { id: 'biasa', label: 'Biasa', note: 'Geng Pak-pak main macam biasa petang-petang.' },
-  { id: 'pakar', label: 'Pakar', note: 'Bekas juara sepak raga daerah. Masa ketik pendek.' },
+  { id: 'pakar', label: 'Pakar', note: 'Bekas juara sepak raga daerah. Masa tekan pendek.' },
 ]
 
 const RULES = [
@@ -47,7 +47,7 @@ const RULES = [
   'Bola mati bila jatuh ke tanah, disentuh lebih 3 kali, atau hantaran tak melintasi bulatan kecil.',
   'Setiap pasukan ada 3 lambungan dalam satu pusingan, dan main 3 pusingan. Masa setiap giliran dipendekkan kepada 90 saat (peraturan rasmi 10 minit).',
   'Mata paling banyak menang. Kalau seri, pasukan yang lebih lama mengawal bola menang.',
-  'Cara main di telefon: bila bola datang kepada kamu, ketik butang tepat ketika gelang kuning bertemu gelang putih (jadi hijau).',
+  'Cara main di telefon: bila bola datang kepada kamu, tekan butang tepat ketika gelang kuning bertemu gelang putih (jadi hijau).',
 ]
 
 const TEAM_NAMES = ['Pasukan kamu', 'Geng Pak-pak']
@@ -205,7 +205,7 @@ function Match({ level, starter, teams, player, onExit, onRecords, onRematch }) 
     } else {
       const touchNo = s.rally.touches + 1
       next = m.yourBall
-        ? { icon: '🎯', text: `Bola datang! Ketik bila gelang jadi hijau · sentuhan ${touchNo}/${MAX_TOUCHES}${touchNo === MAX_TOUCHES ? ' (mesti hantar)' : ''}` }
+        ? { icon: '🎯', text: `Bola datang! Tekan bila gelang jadi hijau · sentuhan ${touchNo}/${MAX_TOUCHES}${touchNo === MAX_TOUCHES ? ' (mesti hantar)' : ''}` }
         : s.phase === 'live'
           ? { icon: '⏳', text: `Bersedia… bola pada ${mates[s.rally.holder]?.name ?? ''}` }
           : null

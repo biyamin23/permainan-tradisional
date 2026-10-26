@@ -161,8 +161,8 @@ function Match({ level, player, firstStarter, onExit, onRecords }) {
     ? null
     : yourTurn
       ? animating
-        ? { icon: '👆', text: 'Ketik papan untuk langkau' }
-        : { icon: '👆', text: 'Ketik lubang yang bercahaya untuk ambil guli' }
+        ? { icon: '👆', text: 'Tekan papan untuk langkau' }
+        : { icon: '👆', text: 'Tekan lubang yang bercahaya untuk ambil guli' }
       : animating
         ? { icon: '⏳', text: 'Aisyah sedang mengagih guli…' }
         : { icon: '⏳', text: 'Tunggu, Aisyah sedang berfikir…' }

@@ -261,7 +261,7 @@ export function PetaMap({ onClose }) {
             </button>
           </div>
         ) : (
-          <p className="peta__card peta__card--hint">Ketik permainan pada peta atau senarai di bawah.</p>
+          <p className="peta__card peta__card--hint">Tekan permainan pada peta atau senarai di bawah.</p>
         )}
         <div className="peta__list">
           {games.map((g) => (
