@@ -55,6 +55,23 @@ export function HUD({ isTouch }) {
   const [showHelp, setShowHelp] = useState(true)
   const [showMap, setShowMap] = useState(false)
   const closeMap = useCallback(() => setShowMap(false), [])
+  // the map button glows until the map has been opened once
+  const [mapSeen, setMapSeen] = useState(() => {
+    try {
+      return localStorage.getItem('ptm-map-seen') === '1'
+    } catch {
+      return false
+    }
+  })
+  const openMap = useCallback(() => {
+    setShowMap(true)
+    setMapSeen(true)
+    try {
+      localStorage.setItem('ptm-map-seen', '1')
+    } catch {
+      /* fine */
+    }
+  }, [])
   const [sheet, setSheet] = useState(null) // null | 'board' | 'me'
   const closeSheet = useCallback(() => setSheet(null), [])
   const signedIn = useAuth((s) => s.status === 'in')
@@ -70,11 +87,11 @@ export function HUD({ isTouch }) {
   // M opens the map
   useEffect(() => {
     const onKey = (e) => {
-      if ((e.key === 'm' || e.key === 'M') && !e.repeat && !showMap) setShowMap(true)
+      if ((e.key === 'm' || e.key === 'M') && !e.repeat && !showMap) openMap()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [showMap])
+  }, [showMap, openMap])
 
   useEffect(() => {
     worldRuntime.hud.arrow = arrowRef.current
@@ -112,7 +129,7 @@ export function HUD({ isTouch }) {
           </span>
         </button>
 
-        <button type="button" className="hud__objective" aria-live="polite" onClick={() => setShowMap(true)} title="Buka peta (M)">
+        <button type="button" className="hud__objective" aria-live="polite" onClick={openMap} title="Arah ke permainan seterusnya">
           <span className="hud__compass">
             <span ref={arrowRef} className="hud__arrow" aria-hidden="true">
               ▲
@@ -123,9 +140,6 @@ export function HUD({ isTouch }) {
               Jom main {OBJECTIVE_GAME.name}
             </span>
             <small ref={distanceRef}>…</small>
-          </span>
-          <span className="hud__map-badge" aria-hidden="true">
-            🗺️
           </span>
         </button>
 
@@ -165,6 +179,21 @@ export function HUD({ isTouch }) {
           {showHelp ? <ControlsHelp isTouch={false} /> : <span>? Kawalan</span>}
         </button>
       )}
+      <button
+        type="button"
+        className={`hud__map-btn ${mapSeen ? '' : 'is-new'}`}
+        onClick={openMap}
+        aria-label="Buka peta kampung"
+        title="Peta (M)"
+      >
+        <span className="hud__map-btn__icon" aria-hidden="true">
+          🗺️
+        </span>
+        <span className="hud__map-btn__text">
+          Peta
+          {!isTouch && <kbd className="keycap keycap--sm">M</kbd>}
+        </span>
+      </button>
       {showMap && <PetaMap onClose={closeMap} />}
       {sheet && <AccountSheet live={live} startTab={sheet} onClose={closeSheet} />}
     </div>
