@@ -1,3 +1,6 @@
+import { pushRecord } from '../../cloud/records'
+import { logEvent } from '../../cloud/events'
+
 /** Solo records for Congkak, remembered per browser ("cuba pecahkan rekod"). */
 const KEY = 'ptm-congkak-records'
 const EMPTY = { wins: 0, losses: 0, draws: 0, best: 0 }
@@ -28,5 +31,7 @@ export function saveResult(result) {
   } catch {
     // storage unavailable — records just won't persist
   }
+  pushRecord('congkak', next)
+  logEvent('finish', 'congkak')
   return { records: next, newBest }
 }

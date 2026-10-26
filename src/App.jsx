@@ -1,13 +1,15 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { LandingPage } from './components/landing/LandingPage'
 import { SoundToggle } from './components/ui/SoundToggle'
-import { SCREENS, isWorldScreen, usePlayerState } from './state/playerState'
+import { authStore, initAuth, screenAfterLogin, takeReturnFlag } from './cloud/auth'
+import { SCREENS, isWorldScreen, playerActions, playerStore, usePlayerState } from './state/playerState'
 
 // The landing page loads on its own. Three.js, physics and the kampung come in
 // separate chunks, fetched in the background while the player reads the landing.
 const loadCharacter = () => import('./components/character/CharacterCreation')
 const loadKampung = () => import('./components/world/KampungExperience')
 const CharacterCreation = lazy(() => loadCharacter().then((m) => ({ default: m.CharacterCreation })))
+const LoginScreen = lazy(() => import('./components/login/LoginScreen').then((m) => ({ default: m.LoginScreen })))
 const KampungExperience = lazy(() => loadKampung().then((m) => ({ default: m.KampungExperience })))
 
 function whenIdle(fn) {
@@ -31,6 +33,17 @@ function Loading() {
 export default function App() {
   const screen = usePlayerState((s) => s.currentScreen)
 
+  // who is logged in; coming back from Google (or a password email) carries straight on
+  useEffect(() => {
+    const back = takeReturnFlag()
+    initAuth().then(() => {
+      const { status, recovery } = authStore.getState()
+      if (playerStore.getState().currentScreen !== SCREENS.LANDING) return
+      if (recovery) playerActions.goTo(SCREENS.LOGIN)
+      else if (back && status === 'in') playerActions.goTo(screenAfterLogin())
+    })
+  }, [])
+
   useEffect(() => {
     whenIdle(() => {
       loadCharacter()
@@ -42,6 +55,7 @@ export default function App() {
     <main className="app">
       {screen === SCREENS.LANDING && <LandingPage />}
       <Suspense fallback={<Loading />}>
+        {screen === SCREENS.LOGIN && <LoginScreen />}
         {screen === SCREENS.CHARACTER && <CharacterCreation />}
         {isWorldScreen(screen) && <KampungExperience />}
       </Suspense>

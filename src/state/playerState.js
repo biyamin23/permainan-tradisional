@@ -2,6 +2,7 @@ import { createStore } from './createStore'
 
 export const SCREENS = {
   LANDING: 'landing',
+  LOGIN: 'login',
   CHARACTER: 'character',
   KAMPUNG: 'kampung',
   GAME_MODE: 'gameMode',

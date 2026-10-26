@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { initAudio, sfx, startAmbience } from '../../audio/engine'
 import { setSoundMode, useAudioState } from '../../state/audioState'
-import { SCREENS, playerActions } from '../../state/playerState'
+import { playerActions } from '../../state/playerState'
+import { screenAfterLogin } from '../../cloud/auth'
 import './landing.css'
 
 const LEAVE_DURATION = 750
@@ -186,7 +187,7 @@ export function LandingPage() {
     if (mode !== 'off') startAmbience()
     sfx.select()
     setLeaving(true)
-    timer.current = setTimeout(() => playerActions.goTo(SCREENS.CHARACTER), LEAVE_DURATION)
+    timer.current = setTimeout(() => playerActions.goTo(screenAfterLogin()), LEAVE_DURATION)
   }
 
   return (

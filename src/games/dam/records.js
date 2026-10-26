@@ -1,3 +1,6 @@
+import { pushRecord } from '../../cloud/records'
+import { logEvent } from '../../cloud/events'
+
 /** Solo records against Pak Tam, remembered per browser. */
 const KEY = 'ptm-dam-records'
 const EMPTY = { wins: 0, losses: 0, draws: 0 }
@@ -22,5 +25,7 @@ export function saveResult(result) {
   } catch {
     // storage unavailable: records just won't persist
   }
+  pushRecord('dam', next)
+  logEvent('finish', 'dam')
   return next
 }

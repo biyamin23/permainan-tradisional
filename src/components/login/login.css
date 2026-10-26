@@ -1,0 +1,203 @@
+/* Login: the same cream card as the character screen, three big ways in. */
+
+.lg-card .cc-title {
+  margin-bottom: 0.6rem;
+}
+
+.lg-lead {
+  margin: 0 0 1rem;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--kayu-700);
+}
+
+.lg-wait {
+  padding: 2rem 0;
+}
+
+.lg-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.lg-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 1rem;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 1.08rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.lg-btn:active {
+  transform: translateY(3px);
+  box-shadow: none !important;
+}
+
+.lg-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.lg-btn--google {
+  border: 2px solid #dadce0;
+  background: #fff;
+  color: #1f1f1f;
+  box-shadow: 0 4px 0 #c9c9c9;
+}
+
+.lg-btn--email {
+  border: 2px solid var(--kayu-700);
+  background: #8a5129;
+  color: #fff3dc;
+  box-shadow: 0 4px 0 #4a2a15;
+}
+
+.lg-btn--guest {
+  border: 2px dashed var(--cream-300);
+  background: transparent;
+  color: var(--kayu-800);
+}
+
+.lg-or {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0.2rem 0;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--kayu-700);
+  opacity: 0.7;
+}
+
+.lg-or::before,
+.lg-or::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--cream-300);
+}
+
+.lg-small {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--kayu-700);
+  opacity: 0.85;
+}
+
+/* ---------------------------------------------------------------- email form */
+.lg-email {
+  display: flex;
+  flex-direction: column;
+}
+
+.lg-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 0.8rem;
+  border-radius: 999px;
+  background: var(--cream-200, #f1e2c4);
+}
+
+.lg-tab {
+  min-height: 42px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  font-weight: 900;
+  color: var(--kayu-700);
+  cursor: pointer;
+}
+
+.lg-tab.is-on {
+  background: #fff;
+  color: var(--kayu-800);
+  box-shadow: 0 2px 0 var(--cream-300);
+}
+
+.lg-label {
+  margin: 0.3rem 0 0.35rem 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.lg-field {
+  min-height: 52px;
+  margin-bottom: 0.5rem;
+}
+
+.lg-field input {
+  height: 48px;
+  font-size: 1.05rem;
+}
+
+.lg-eye {
+  flex: none;
+  border: 0;
+  background: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.lg-note {
+  margin: 0.3rem 0 0.4rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 14px;
+  background: #e5f4dd;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #2c5a22;
+}
+
+.lg-note.is-bad {
+  background: #fbe3dc;
+  color: #9c2f1d;
+}
+
+.lg-submit {
+  margin-top: 0.6rem;
+}
+
+.lg-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+.lg-link {
+  min-height: 36px;
+  padding: 0 0.3rem;
+  border: 0;
+  background: none;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--kayu-700);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.lg-offline {
+  align-self: center;
+}

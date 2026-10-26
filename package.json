@@ -2,7 +2,7 @@
   "name": "permainan-tradisional",
   "private": true,
   "version": "0.1.0",
-  "description": "Permainan Tradisional Malaysia — a nostalgic 3D kampung for traditional Malaysian games.",
+  "description": "Permainan Tradisional Malaysia \u2014 a nostalgic 3D kampung for traditional Malaysian games.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,7 @@
     "@react-three/drei": "^9.115.0",
     "@react-three/fiber": "^8.17.10",
     "@react-three/rapier": "^1.4.0",
+    "@supabase/supabase-js": "^2.45.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "three": "^0.169.0"

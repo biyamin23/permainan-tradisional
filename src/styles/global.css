@@ -1776,3 +1776,24 @@ kbd {
   font-size: 1.1rem;
   font-weight: 800;
 }
+
+/* your name in the kampung opens the account sheet */
+.hud__greeting--btn {
+  cursor: pointer;
+}
+
+.hud__greeting--btn .hud__title,
+.hud__greeting--btn .hud__subtitle {
+  display: block;
+}
+
+.hud__live {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 2px;
+  border-radius: 50%;
+  background: #4ee06a;
+  box-shadow: 0 0 6px #4ee06a;
+  vertical-align: 1px;
+}

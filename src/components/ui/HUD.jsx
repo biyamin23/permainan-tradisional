@@ -4,6 +4,13 @@ import { usePlayerState } from '../../state/playerState'
 import { worldRuntime } from '../../state/worldRuntime'
 import { PetaMap } from './PetaMap'
 import { SoundToggle } from './SoundToggle'
+import { AccountSheet } from './AccountSheet'
+import { useAuth } from '../../cloud/auth'
+import { logEvent } from '../../cloud/events'
+import { useKampungLive } from '../../cloud/presence'
+
+// one "visit" per page load, counted when the kampung first appears
+let visited = false
 
 function ControlsHelp({ isTouch }) {
   if (isTouch) {
@@ -48,6 +55,17 @@ export function HUD({ isTouch }) {
   const [showHelp, setShowHelp] = useState(true)
   const [showMap, setShowMap] = useState(false)
   const closeMap = useCallback(() => setShowMap(false), [])
+  const [sheet, setSheet] = useState(null) // null | 'board' | 'me'
+  const closeSheet = useCallback(() => setSheet(null), [])
+  const signedIn = useAuth((s) => s.status === 'in')
+  const live = useKampungLive()
+
+  useEffect(() => {
+    if (signedIn && !visited) {
+      visited = true
+      logEvent('visit')
+    }
+  }, [signedIn])
 
   // M opens the map
   useEffect(() => {
@@ -77,14 +95,22 @@ export function HUD({ isTouch }) {
   return (
     <div className={`hud ${isTouch ? 'hud--touch' : ''}`}>
       <div className="hud__top">
-        <div className="hud__greeting">
-          <p className="hud__title">
+        <button type="button" className="hud__greeting hud__greeting--btn" onClick={() => setSheet('me')} aria-label="Akaun kamu">
+          <span className="hud__title">
             Selamat kembali, <span>{playerName}</span>
-          </p>
-          <p className="hud__subtitle hud__clock">
-            <span aria-hidden="true">🌇</span> Petang di kampung
-          </p>
-        </div>
+          </span>
+          <span className="hud__subtitle hud__clock">
+            {live ? (
+              <>
+                <span className="hud__live" aria-hidden="true" /> {live} orang di kampung
+              </>
+            ) : (
+              <>
+                <span aria-hidden="true">🌇</span> Petang di kampung
+              </>
+            )}
+          </span>
+        </button>
 
         <button type="button" className="hud__objective" aria-live="polite" onClick={() => setShowMap(true)} title="Buka peta (M)">
           <span className="hud__compass">
@@ -103,6 +129,11 @@ export function HUD({ isTouch }) {
           </span>
         </button>
 
+        {signedIn && (
+          <button type="button" className="sound-toggle hud__icon-btn" onClick={() => setSheet('board')} aria-label="Papan pendahulu" title="Papan pendahulu">
+            <span aria-hidden="true">🏆</span>
+          </button>
+        )}
         <SoundToggle className="hud__icon-btn" announce />
 
         {isTouch && (
@@ -135,6 +166,7 @@ export function HUD({ isTouch }) {
         </button>
       )}
       {showMap && <PetaMap onClose={closeMap} />}
+      {sheet && <AccountSheet live={live} startTab={sheet} onClose={closeSheet} />}
     </div>
   )
 }

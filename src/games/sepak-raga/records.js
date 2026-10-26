@@ -1,3 +1,6 @@
+import { pushRecord } from '../../cloud/records'
+import { logEvent } from '../../cloud/events'
+
 /** Solo records against Geng Pak-pak, remembered per browser. */
 const KEY = 'ptm-sepak-raga-records'
 const EMPTY = { wins: 0, losses: 0, draws: 0, best: 0 }
@@ -23,5 +26,7 @@ export function saveResult(result) {
   } catch {
     // storage unavailable: records just won't persist
   }
+  pushRecord('sepak-raga', next)
+  logEvent('finish', 'sepak-raga')
   return next
 }
