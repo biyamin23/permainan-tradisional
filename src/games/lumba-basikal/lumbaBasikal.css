@@ -967,3 +967,27 @@
   width: 100%;
   margin: 0.3rem 0 0;
 }
+
+/* ---------------------------------------------------------------- mastery & locked litar */
+.lb-mastery {
+  width: min(100%, 340px);
+  padding: 0.45rem 0.8rem 0.55rem;
+  border-radius: 14px;
+  background: rgba(251, 243, 226, 0.92);
+}
+
+.lb-lock {
+  position: absolute;
+  inset: auto 10px 10px;
+  padding: 0.35rem 0.6rem;
+  border-radius: 12px;
+  background: rgba(40, 22, 10, 0.78);
+  color: #fff;
+  font-weight: 900;
+  text-align: center;
+}
+
+.lb-card .lb-track__go.is-locked {
+  background: #b9ab92;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+}

@@ -23,6 +23,19 @@ What's in the kampung:
 - **Collisions** with everything solid: houses, fences, trees, water, lamp posts, and every kid and villager (Pak Mat's bicycle will nudge you aside).
 - **Sound**, all synthesised in the browser (no audio files): wind, birds, crickets, frogs, the stream, chickens, bicycle bell, footsteps, UI sounds and a gentle kampung tune. Use the 🔊 button to switch between sound + music, sound only and silent.
 
+## Progression: XP, mastery and a game that grows with you
+
+There's no Mudah / Biasa / Pakar to pick. Every game reads your progress and sets its own challenge:
+
+- **XP** for every finished game (more for playing well, winning, a tougher opponent, a personal record, challenges). Repeats of the same game on the same day give a bit less (never under half), so variety pays.
+- **Overall level** (Budak Baru → Murid Kampung → Mahir → Jaguh Kampung → Legenda Kampung) and **mastery per game** (Mula → Mahir → Hebat → Jaguh → Legenda), each with its own XP.
+- **Skill rating** (0–1000) and **recent form** (last 10 games, the latest counting most) track how well you're actually playing; **difficulty** combines XP, skill and form, moves at most a little each game, and has a per-game ceiling that stays humanly beatable. It's never shown as a number.
+- Each game turns difficulty into its own terms (`src/progression/adapters.js`): Aisyah and Pak Tam look further ahead and slip less, Sepak Raga and Teng-Teng tighten the timing a little, Kamarul corners, brakes, spots hazards and uses shortcuts better (only a little faster). Nobody cheats.
+- **Cabaran hari ini** (one per game, rotating), **Daily 5** (all five in a day, optional), **Cabaran minggu ini**, a gentle **streak**, **personal records** ("REKOD BARU!"), **achievements** and cosmetic **unlocks** (titles, avatar frames, badges; Lumba Basikal's litar open with mastery).
+- **PROFIL PEMAIN**: tap your name in the kampung.
+
+All numbers live in `src/progression/config.js`. Progress is kept on the device and copied to the account (Supabase `progress_events` / `player_progress`, checked by the database). Run `npm run test:progression` for the checks; in `npm run dev` a 🧪 panel shows and simulates the numbers.
+
 ## Run it
 
 ```bash

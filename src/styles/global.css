@@ -1882,3 +1882,25 @@ kbd {
     animation: none;
   }
 }
+
+/* overall level beside your name (tap for PROFIL PEMAIN) */
+.hud__lvl {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--kayu-800);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 900;
+  vertical-align: 2px;
+}
+
+.mode-panel__mastery {
+  margin: 0.2rem 0 0.4rem;
+  padding: 0.5rem 0.8rem 0.6rem;
+  border-radius: 14px;
+  background: rgba(255, 250, 240, 0.85);
+  color: var(--kayu-800);
+}

@@ -21,6 +21,8 @@ import { LAMBUNGAN, MAX_TOUCHES, PLAYERS, ROUNDS, TEAM_THEM, TEAM_YOU, TURN_SECO
 import { loadRecords, saveResult } from './records'
 import { RagaView } from './RagaView'
 import { useRagaMatch } from './useRagaMatch'
+import { useProgressSession } from '../../components/progress/Progress'
+import { completeGame } from '../../progression/engine'
 import './sepakRaga.css'
 
 /**
@@ -29,11 +31,6 @@ import './sepakRaga.css'
  * ring meets the white one: Timang to keep it, or pass across the circle.
  */
 
-const LEVELS = [
-  { id: 'mudah', label: 'Mudah', note: 'Pak-pak baru balik kerja, kaki masih penat. Masa tekan lebih panjang.' },
-  { id: 'biasa', label: 'Biasa', note: 'Geng Pak-pak main macam biasa petang-petang.' },
-  { id: 'pakar', label: 'Pakar', note: 'Bekas juara sepak raga daerah. Masa tekan pendek.' },
-]
 
 const RULES = [
   'Osom dahulu (batu, air, burung). Yang menang, pasukannya main dulu dalam setiap pusingan.',
@@ -69,7 +66,7 @@ function useStillView() {
   return useRef({ acts: [0, 1].map(() => Array.from({ length: PLAYERS }, () => ({ t: -99, kind: 'sila' }))), flight: null, window: null, clockNow: () => 0 })
 }
 
-function Intro({ level, setLevel, records, player, teams, onStart, onExit, osom, onOsomDone }) {
+function Intro({ records, player, teams, onStart, onExit, osom, onOsomDone }) {
   const [showRules, setShowRules] = useState(false)
   const still = useStillView()
   return (
@@ -94,9 +91,6 @@ function Intro({ level, setLevel, records, player, teams, onStart, onExit, osom,
         <IntroPanel
           title="Geng Pak-pak cabar budak-budak main sepak raga!"
           opponent="Geng Pak-pak"
-          levels={LEVELS}
-          level={level}
-          setLevel={setLevel}
           recordsLine={recordsSummary(records, records.best ? `mata terbaik ${records.best}` : null)}
           onStart={onStart}
         />
@@ -106,7 +100,7 @@ function Intro({ level, setLevel, records, player, teams, onStart, onExit, osom,
   )
 }
 
-function Result({ result, onAgain, onExit }) {
+function Result({ result, reward, onAgain, onExit }) {
   const win = result.winner === TEAM_YOU
   const title = win ? 'Pasukan kamu menang!' : result.winner === TEAM_THEM ? 'Geng Pak-pak menang!' : 'Seri!'
   const line = win
@@ -125,6 +119,7 @@ function Result({ result, onAgain, onExit }) {
       theirName={TEAM_NAMES[1]}
       line={line}
       extra={extra}
+      reward={reward}
       onAgain={onAgain}
       onExit={onExit}
     />
@@ -146,17 +141,23 @@ function Mate({ m, num, onClick, disabled, hot, note }) {
   )
 }
 
-function Match({ level, starter, teams, player, onExit, onRecords, onRematch }) {
+function Match({ starter, teams, player, onExit, onRecords, onRematch }) {
   const [rematch, setRematch] = useState(false)
   const [showRules, setShowRules] = useState(false)
-  const m = useRagaMatch({ level, starter, teams })
+  // timing room and Geng Pak-pak's form for this match follow your Sepak Raga progress
+  const session = useProgressSession('sepak-raga')
+  const [reward, setReward] = useState(null)
+  const m = useRagaMatch({ level: session.tuning, starter, teams })
   const s = m.state
   const yourTeam = s.team === TEAM_YOU
   const toast = useTurnToast({ yourTurn: yourTeam, finished: Boolean(s.result), banner: s.banner, theirName: 'Geng Pak-pak' })
 
   useEffect(() => {
-    if (s.result) onRecords(saveResult(s.result))
-  }, [s.result, onRecords])
+    if (!s.result) return
+    onRecords(saveResult(s.result))
+    const [mine, theirs] = s.result.scores
+    setReward(completeGame(session, { won: s.result.winner === TEAM_YOU, draw: s.result.winner === null, score: mine, theirs }))
+  }, [s.result, onRecords, session])
 
   // keyboard: Space = timang, ← / → = pass across
   useEffect(() => {
@@ -277,7 +278,7 @@ function Match({ level, starter, teams, player, onExit, onRecords, onRematch }) 
           Cantik!
         </p>
       )}
-      {s.result && !rematch && <Result result={s.result} onAgain={again} onExit={onExit} />}
+      {s.result && !rematch && <Result result={s.result} reward={reward} onAgain={again} onExit={onExit} />}
       {rematch && (
         <OsomPanel
           opponent="Pak Nyaa"
@@ -299,15 +300,12 @@ export function SepakRagaGame({ onExit }) {
   const { player, teams } = useTeams()
   const [phase, setPhase] = useState('intro') // intro → osom → play
   const [starter, setStarter] = useState(TEAM_YOU)
-  const [level, setLevel] = useState('biasa')
   const [records, setRecords] = useState(loadRecords)
   const onRecords = useMemo(() => (next) => setRecords(next), [])
 
   if (phase !== 'play') {
     return (
       <Intro
-        level={level}
-        setLevel={setLevel}
         records={records}
         player={player}
         teams={teams}
@@ -324,5 +322,5 @@ export function SepakRagaGame({ onExit }) {
       />
     )
   }
-  return <MatchHolder level={level} player={player} teams={teams} firstStarter={starter} onExit={onExit} onRecords={onRecords} />
+  return <MatchHolder player={player} teams={teams} firstStarter={starter} onExit={onExit} onRecords={onRecords} />
 }

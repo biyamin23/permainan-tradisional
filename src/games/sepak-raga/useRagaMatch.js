@@ -69,6 +69,9 @@ export function ballAt(f, t) {
   ]
 }
 
+/** Tuning for a match: from progression ({ timing, you, them }), or an old level name. */
+const tune = (level) => (typeof level === 'string' ? { timing: TIMING[level], you: SKILL.you[level], them: SKILL.them[level] } : level)
+
 export function useRagaMatch({ level, starter, teams }) {
   const [, setVersion] = useState(0)
   const bump = useCallback(() => setVersion((v) => v + 1), [])
@@ -209,7 +212,7 @@ export function useRagaMatch({ level, starter, teams }) {
   f.arrive = (i, kind, tc) => {
     const s = g.current
     if (isYou(s.team, i)) {
-      const w = TIMING[s.level]
+      const w = tune(s.level).timing
       s.window = { tc, w, missId: later(tc - now() + w, () => f.youMiss('lambat')) }
       bump()
       return
@@ -220,7 +223,7 @@ export function useRagaMatch({ level, starter, teams }) {
   f.aiTouch = (i, kind) => {
     const s = g.current
     if (s.phase !== 'live') return
-    const skill = SKILL[s.team === TEAM_YOU ? 'you' : 'them'][s.level]
+    const skill = tune(s.level)[s.team === TEAM_YOU ? 'you' : 'them']
     const ok = Math.random() < skill
     animate(s.team, i, kind)
     const action = aiAction(s.rally, Math.random, s.team === TEAM_YOU ? 0 : null)
@@ -392,7 +395,7 @@ export function useRagaMatch({ level, starter, teams }) {
     const s = g.current
     if (s.team !== TEAM_THEM || s.phase === 'done' || s.phase === 'turnEnd') return
     clearAll()
-    const skill = SKILL.them[s.level]
+    const skill = tune(s.level).them
     let gained = 0
     let left = s.timeLeft
     let lamb = s.lambungan

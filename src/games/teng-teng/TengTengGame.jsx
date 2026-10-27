@@ -22,7 +22,9 @@ import { RUKIAH } from './cast'
 import { PETAK, THEM, YOU, housesOf, reachOf } from './engine'
 import { loadRecords, saveResult } from './records'
 import { TengView } from './TengView'
-import { AIM_LAP, aimPower, powerForReach, useTengMatch } from './useTengMatch'
+import { aimPower, powerForReach, useTengMatch } from './useTengMatch'
+import { MasteryStatus, useProgressSession } from '../../components/progress/Progress'
+import { completeGame } from '../../progression/engine'
 import './tengTeng.css'
 
 /**
@@ -31,11 +33,6 @@ import './tengTeng.css'
  * way back; after all nine, timbang, then throw for a rumah.
  */
 
-const LEVELS = [
-  { id: 'mudah', label: 'Mudah', note: 'Rukiah baru belajar. Butang yang betul akan bercahaya.' },
-  { id: 'biasa', label: 'Biasa', note: 'Rukiah main macam biasa petang-petang.' },
-  { id: 'pakar', label: 'Pakar', note: 'Rukiah juara teng-teng satu lorong. Rentak lebih laju.' },
-]
 
 const GUNDU_CHOICES = [
   { id: 'genting', label: 'Genting', img: '/teng/gundu-genting.webp', note: 'Pecahan genting bumbung' },
@@ -76,7 +73,7 @@ function PowerMeter({ r, level, target }) {
     const tick = () => {
       const aim = r.current.aim
       if (aim) {
-        const u = aimPower(aim.t0, AIM_LAP[level])
+        const u = aimPower(aim.t0, level.aimLap)
         if (fill.current) fill.current.style.transform = `scaleY(${u})`
         if (arrow.current) arrow.current.style.bottom = `${u * 100}%`
       }
@@ -105,9 +102,8 @@ function PowerMeter({ r, level, target }) {
   )
 }
 
-function Intro({ player, level, setLevel, gundu, setGundu, goal, setGoal, records, onStart, onExit, osom, onOsomDone }) {
+function Intro({ player, gundu, setGundu, goal, setGoal, records, onStart, onExit, osom, onOsomDone }) {
   const [showRules, setShowRules] = useState(false)
-  const note = LEVELS.find((l) => l.id === level)?.note
   return (
     <Scene
       className="tt tt--intro"
@@ -127,15 +123,7 @@ function Intro({ player, level, setLevel, gundu, setGundu, goal, setGoal, record
         <div className="gs-sheet">
           <div className="gs-panel">
             <h2 className="gs-panel__title">Rukiah dah lukis petak. Jom main teng-teng!</h2>
-            <p className="gs-panel__label">Tahap Rukiah</p>
-            <div className="gs-levels" role="radiogroup" aria-label="Tahap">
-              {LEVELS.map((l) => (
-                <button key={l.id} type="button" role="radio" aria-checked={level === l.id} className={`gs-level ${level === l.id ? 'is-selected' : ''}`} onClick={() => (sfx.tap(), setLevel(l.id))}>
-                  {l.label}
-                </button>
-              ))}
-            </div>
-            <p className="gs-panel__note">{note}</p>
+            <MasteryStatus gameId="ting-ting" note="Rukiah main ikut kemahiran kamu. Cabar diri kamu!" />
             <p className="gs-panel__label">Gundu kamu</p>
             <div className="tt-gundus" role="radiogroup" aria-label="Gundu">
               {GUNDU_CHOICES.map((g) => (
@@ -176,7 +164,7 @@ function Intro({ player, level, setLevel, gundu, setGundu, goal, setGoal, record
   )
 }
 
-function Result({ result, playerName, onAgain, onExit }) {
+function Result({ result, reward, playerName, onAgain, onExit }) {
   const win = result.winner === YOU
   const title = win ? 'Kamu menang!' : result.winner === THEM ? 'Rukiah menang!' : 'Seri!'
   const line = win ? 'Rukiah tepuk tangan. "Esok kita main lagi!"' : result.winner === THEM ? 'Rukiah senyum lebar. "Latih lagi, ya!"' : 'Sama banyak rumah. Seri!'
@@ -190,15 +178,20 @@ function Result({ result, playerName, onAgain, onExit }) {
       theirName={RUKIAH.name}
       line={line}
       extra="Nombor di atas ialah rumah masing-masing."
+      reward={reward}
       onAgain={onAgain}
       onExit={onExit}
     />
   )
 }
 
-function Match({ level, starter, goal, gundu, player, look, onExit, onRecords, onRematch }) {
+function Match({ starter, goal, gundu, player, look, onExit, onRecords, onRematch }) {
   const [rematch, setRematch] = useState(false)
   const [showRules, setShowRules] = useState(false)
+  // rhythm, throw and Rukiah's form for this match follow your Teng-Teng progress
+  const session = useProgressSession('ting-ting')
+  const level = session.tuning
+  const [reward, setReward] = useState(null)
   const m = useTengMatch({ level, starter, goal })
   const s = m.s
   const g = s.game
@@ -207,8 +200,11 @@ function Match({ level, starter, goal, gundu, player, look, onExit, onRecords, o
   const holding = useRef(false)
 
   useEffect(() => {
-    if (s.result) onRecords(saveResult(s.result))
-  }, [s.result, onRecords])
+    if (!s.result) return
+    onRecords(saveResult(s.result))
+    const [mine, theirs] = s.result.houses
+    setReward(completeGame(session, { won: s.result.winner === YOU, draw: s.result.winner === null, score: mine, theirs, mistakes: s.fouls?.[YOU] ?? 0 }))
+  }, [s.result, onRecords, session])
 
   // keyboard: Space (hold) to throw; Space / Enter to hop, pick up and catch; ← → lean
   useEffect(() => {
@@ -356,7 +352,7 @@ function Match({ level, starter, goal, gundu, player, look, onExit, onRecords, o
           Cantik!
         </p>
       )}
-      {s.result && !rematch && <Result result={s.result} playerName={player.name} onAgain={() => (sfx.select(), setRematch(true))} onExit={onExit} />}
+      {s.result && !rematch && <Result result={s.result} reward={reward} playerName={player.name} onAgain={() => (sfx.select(), setRematch(true))} onExit={onExit} />}
       {rematch && <OsomPanel opponent={RUKIAH.name} onDone={onRematch} />}
       {showRules && <RulesSheet game="teng-teng" rules={RULES} onClose={() => setShowRules(false)} />}
     </Scene>
@@ -374,7 +370,6 @@ export function TengTengGame({ onExit }) {
   const look = CHILD_LOOKS[gender] ?? CHILD_LOOKS[GENDERS.LELAKI]
   const [phase, setPhase] = useState('intro')
   const [starter, setStarter] = useState(YOU)
-  const [level, setLevel] = useState('biasa')
   const [gundu, setGundu] = useState('genting')
   const [goal, setGoal] = useState(2)
   const [records, setRecords] = useState(loadRecords)
@@ -384,8 +379,6 @@ export function TengTengGame({ onExit }) {
     return (
       <Intro
         player={player}
-        level={level}
-        setLevel={setLevel}
         gundu={gundu}
         setGundu={setGundu}
         goal={goal}
@@ -401,5 +394,5 @@ export function TengTengGame({ onExit }) {
       />
     )
   }
-  return <MatchHolder level={level} goal={goal} gundu={gundu} player={player} look={look} firstStarter={starter} onExit={onExit} onRecords={onRecords} />
+  return <MatchHolder goal={goal} gundu={gundu} player={player} look={look} firstStarter={starter} onExit={onExit} onRecords={onRecords} />
 }

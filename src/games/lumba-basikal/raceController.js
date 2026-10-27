@@ -2,7 +2,6 @@ import { raceSfx, setMusicPace, sfx } from '../../audio/engine'
 import { makeKamarulAI, thinkKamarul } from './kamarulAI'
 import { createKamarulVoice } from './kamarulVoice'
 import { checkProgress, makeRacer, placeObstacles, progressOf, separate, stepRacer, updateObstacles } from './raceSim'
-import { AI_LEVELS } from './tracks'
 
 /**
  * One race from the starting grid to the result:
@@ -20,11 +19,11 @@ const COUNT_SECONDS = 3
 const WAIT_FOR_LOSER = 9 // after the winner crosses, how long the other gets to come in
 const AFTER_BOTH = 3.2 // celebration before the result screen
 
-export function createRace({ track, playerBike, kamarulBike, onEvent }) {
+export function createRace({ track, playerBike, kamarulBike, kamarulLevel, onEvent }) {
   const obstacles = placeObstacles(track, track.def.obstacles)
   const you = makeRacer(track, playerBike, 1.1, 'you')
   const kamarul = makeRacer(track, kamarulBike, -1.1, 'kamarul')
-  const ai = makeKamarulAI(track, AI_LEVELS[track.def.kamarul])
+  const ai = makeKamarulAI(track, kamarulLevel)
   const voice = createKamarulVoice()
   const race = {
     track,

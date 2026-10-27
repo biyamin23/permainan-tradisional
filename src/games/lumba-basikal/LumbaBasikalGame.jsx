@@ -14,9 +14,12 @@ import { createRace } from './raceController'
 import { progressOf } from './raceSim'
 import { RaceView } from './RaceView'
 import { loadRecords, saveResult } from './records'
+import { MasteryStatus, ProgressReward, useProgressSession } from '../../components/progress/Progress'
+import { GAME_UNLOCKS } from '../../progression/config'
+import { completeGame, gameUnlocked, useProgress as useProgression } from '../../progression/engine'
 import { KAMARUL } from './cast'
 import { buildTrack } from './track'
-import { AI_LEVELS, TRACKS, getTrack } from './tracks'
+import { TRACKS, getTrack } from './tracks'
 import './lumbaBasikal.css'
 
 /**
@@ -195,10 +198,17 @@ function TrackSelect({ bike, startId, onPick, onBack }) {
     sfx.tap()
     setIndex((i) => (i + d + TRACKS.length) % TRACKS.length)
   }, [])
+  const profile = useProgression((st) => st.profile)
+  const open = gameUnlocked(profile, 'lumba-basikal', TRACKS[index].id)
   const pick = useCallback(() => {
+    if (!open) {
+      sfx.locked()
+      return
+    }
     sfx.select()
     onPick(TRACKS[index].id)
-  }, [index, onPick])
+  }, [index, onPick, open])
+  const needs = GAME_UNLOCKS['lumba-basikal'].find((u) => u.id === TRACKS[index].id)?.mastery
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'ArrowLeft' || e.key === 'a') go(-1)
@@ -219,6 +229,9 @@ function TrackSelect({ bike, startId, onPick, onBack }) {
           tukar
         </button>
       </p>
+      <div className="lb-mastery">
+        <MasteryStatus gameId="lumba-basikal" compact />
+      </div>
       <div className="lb-stage">
         <button type="button" className="lb-arrow" aria-label="Litar sebelum" onClick={() => go(-1)}>
           ◀
@@ -230,6 +243,11 @@ function TrackSelect({ bike, startId, onPick, onBack }) {
             <span>{'★'.repeat(3 - t.stars)}</span>
           </span>
           <TrackMap def={t} />
+          {!open && (
+            <span className="lb-lock">
+              🔒 Buka pada Mastery Lv. {needs}
+            </span>
+          )}
         </div>
         <button type="button" className="lb-arrow" aria-label="Litar seterusnya" onClick={() => go(1)}>
           ▶
@@ -244,7 +262,7 @@ function TrackSelect({ bike, startId, onPick, onBack }) {
           ))}
         </ul>
         <p className="lb-card__facts">
-          Kamarul: <b>{AI_LEVELS[t.kamarul].label}</b>
+          Kamarul main ikut kemahiran kamu
           {mine && (
             <>
               {' '}
@@ -273,8 +291,8 @@ function TrackSelect({ bike, startId, onPick, onBack }) {
             />
           ))}
         </div>
-        <button type="button" className="gs-btn lb-track__go" onClick={pick}>
-          Pilih
+        <button type="button" className={`gs-btn lb-track__go ${open ? '' : 'is-locked'}`} onClick={pick}>
+          {open ? 'Pilih' : `🔒 Mastery Lv. ${needs}`}
         </button>
       </div>
     </div>
@@ -418,11 +436,13 @@ function Race({ bike, trackId, onPickTrack, onExit, onAgain }) {
   const { progress } = useProgress()
 
   const onEvent = useRef(null)
+  // difficulty for this race (fixed for the race), from your Lumba Basikal progress
+  const session = useProgressSession('lumba-basikal')
   const race = useMemo(() => {
-    const r = createRace({ track, playerBike: { ...bike }, kamarulBike: { ...kamarulBike }, onEvent: (e) => onEvent.current?.(e) })
+    const r = createRace({ track, playerBike: { ...bike }, kamarulBike: { ...kamarulBike }, kamarulLevel: session.tuning, onEvent: (e) => onEvent.current?.(e) })
     r.youPos = new Vector3()
     return r
-  }, [track, bike, kamarulBike])
+  }, [track, bike, kamarulBike, session])
   useEffect(() => {
     // ?debug: expose the race for automated checks
     if (window.location.search.includes('debug')) window.__race = race
@@ -469,7 +489,21 @@ function Race({ bike, trackId, onPickTrack, onExit, onAgain }) {
         const saved = saveResult({ won, trackId, bikeId: bike.id, time: you.finishTime })
         if (won) sfx.win()
         else sfx.lose()
-        setResult({ won, you: you.finishTime, kamarul: k.finishTime, newBest: saved.newBest, best: saved.track.best })
+        const reward = completeGame(session, {
+          won,
+          time: you.finishTime,
+          par: track.L / 7.4,
+          underPar: you.finishTime <= track.L / 7.4,
+          crashes: you.falls ?? 0,
+          hits: you.hits ?? 0,
+          checkpoints: you.nextCp / track.checkpoints.length,
+          score: won ? 1 : 0,
+          theirs: won ? 0 : 1,
+          trackId,
+          bikeId: bike.id,
+          seconds: Math.round(you.finishTime),
+        })
+        setResult({ won, you: you.finishTime, kamarul: k.finishTime, newBest: saved.newBest, best: saved.track.best, reward })
         // where that puts you on the kampung leaderboard (once the time has gone up)
         if (userId)
           window.setTimeout(() => {
@@ -683,6 +717,7 @@ function Race({ bike, trackId, onPickTrack, onExit, onAgain }) {
             <p className="lb-result__line">
               {result.won ? 'Kamu kalahkan jaguh basikal kampung!' : `Kamarul sampai ${(result.you - result.kamarul).toFixed(1)} saat lebih awal. Cuba lagi!`}
             </p>
+            <ProgressReward reward={result.reward} />
             {result.newBest ? (
               <p className="lb-result__best">Masa terbaik kamu di litar ini!</p>
             ) : (

@@ -15,17 +15,17 @@
  * shortcuts  a narrow dirt path across the inside of a bend, from `from` to `to`
  * obstacles  ayam | lopak | lubang | batu | ranting | motosikal | orang
  * scenery    houses / warung / kebun / palms placed beside the road
- * kamarul    the AI's level on this track: easy | medium | hard
+ *
+ * Kamarul's skill isn't set by the litar: it follows yours (progression/adapters.js).
  */
 export const TRACKS = [
   {
     id: 'mudah',
-    level: 'MUDAH',
+    level: 'LITAR 1',
     stars: 1,
     name: 'Jalan Kampung',
     description: 'Laluan mudah. Sesuai untuk pemanas badan.',
     color: '#3f9d4a',
-    kamarul: 'easy',
     surface: 'tar',
     width: 8,
     points: [
@@ -50,12 +50,11 @@ export const TRACKS = [
   },
   {
     id: 'biasa',
-    level: 'BIASA',
+    level: 'LITAR 2',
     stars: 2,
     name: 'Lorong Kampung',
     description: 'Jalan lebih sempit. Kena pandai kawal basikal.',
     color: '#e7a92a',
-    kamarul: 'medium',
     surface: 'tanah',
     width: 5.6,
     points: [
@@ -85,12 +84,11 @@ export const TRACKS = [
   },
   {
     id: 'jaguh',
-    level: 'JAGUH',
+    level: 'LITAR 3',
     stars: 3,
     name: 'Litar Cabaran',
     description: 'Laluan paling susah. Banyak selekoh dan jalan sempit.',
     color: '#d9483b',
-    kamarul: 'hard',
     surface: 'tanah',
     width: 4.4,
     points: [
@@ -122,13 +120,3 @@ export const TRACKS = [
 ]
 
 export const getTrack = (id) => TRACKS.find((t) => t.id === id) ?? TRACKS[0]
-
-/**
- * Kamarul's level by track. aggression: how keen he is to himpit you
- * (lean into you when you're side by side).
- */
-export const AI_LEVELS = {
-  easy: { label: 'Mudah', pace: 0.93, corner: 5.4, mistakes: 0.03, boost: 0.5, shortcut: 0.3, reaction: 0.4, catchUp: 1, aggression: 0.45 },
-  medium: { label: 'Biasa', pace: 1.02, corner: 6.3, mistakes: 0.015, boost: 0.85, shortcut: 0.7, reaction: 0.25, catchUp: 1.08, aggression: 0.75 },
-  hard: { label: 'Jaguh', pace: 1.08, corner: 7.1, mistakes: 0.007, boost: 1, shortcut: 1, reaction: 0.12, catchUp: 1.14, aggression: 1 },
-}

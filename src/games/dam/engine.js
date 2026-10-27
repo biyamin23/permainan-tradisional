@@ -211,12 +211,16 @@ const LEVEL = {
   pakar: { depth: 7, blunder: 0, ms: 900 },
 }
 
-/** Pick a move for `side` at the given level ('mudah' | 'biasa' | 'pakar'). */
+/**
+ * Pick a move for `side`. `level` is the tuning from progression
+ * ({ depth, blunder, ms }: how far ahead he searches, how often he slips,
+ * how long he may think) or an old level name.
+ */
 export function chooseMove(board, side, level = 'biasa', random = Math.random) {
   const moves = legalMoves(board, side)
   if (moves.length === 0) return null
   if (moves.length === 1) return moves[0]
-  const cfg = LEVEL[level] ?? LEVEL.biasa
+  const cfg = typeof level === 'string' ? LEVEL[level] ?? LEVEL.biasa : level
   if (random() < cfg.blunder) return moves[Math.floor(random() * moves.length)]
 
   const deadline = Date.now() + cfg.ms

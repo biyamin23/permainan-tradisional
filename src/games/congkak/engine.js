@@ -147,52 +147,79 @@ export function checkGameOver(pits, sideToMove) {
 // ------------------------------------------------------------------ AI
 const storeDiff = (pits, side) => pits[STORE[side]] - pits[STORE[1 - side]]
 
-/** Best result a side can reach this turn (follows extra turns greedily). */
-function bestTurnValue(pits, side, depth) {
+const LEGACY = {
+  mudah: { mistake: 0.65, plies: 1, guard: 0 },
+  biasa: { mistake: 0, plies: 1, guard: 0 },
+  pakar: { mistake: 0, plies: 2, guard: 0.5 },
+}
+
+const seedsOn = (pits, side) => housesOf(side).reduce((a, i) => a + pits[i], 0)
+
+/** How good a position is for `side`: rumah difference, plus (if she thinks about it) guli kept on her side. */
+function evaluate(pits, side, guard) {
+  return storeDiff(pits, side) + guard * 0.2 * (seedsOn(pits, side) - seedsOn(pits, 1 - side))
+}
+
+/**
+ * Look `plies` turns ahead (her turn, your reply, …), following extra turns
+ * within the same ply. Same rules and the same board you see: no peeking,
+ * no special moves. Stops when the time budget runs out.
+ */
+function search(pits, side, plies, guard, clock, chain = 0) {
+  if (++clock.nodes % 256 === 0 && performance.now() > clock.deadline) clock.timeout = true
+  if (clock.timeout) return evaluate(pits, side, guard)
   const moves = legalMoves(pits, side)
-  if (moves.length === 0) return { value: storeDiff(pits, side), move: null }
-  let best = { value: -Infinity, move: moves[0] }
+  if (moves.length === 0) {
+    const over = checkGameOver(pits, side)
+    return (over.scores[side] - over.scores[1 - side]) * 10 // a finished game is decisive
+  }
+  let best = -Infinity
   for (const move of moves) {
-    const result = playMove(pits, side, move)
-    let value
-    if (result.extraTurn && depth > 0) {
-      value = bestTurnValue(result.pits, side, depth - 1).value
-    } else {
-      value = storeDiff(result.pits, side)
-    }
-    if (value > best.value) best = { value, move, pits: result.pits, extraTurn: result.extraTurn }
+    const r = playMove(pits, side, move)
+    let v
+    if (r.extraTurn && chain < 2) v = search(r.pits, side, plies, guard, clock, chain + 1) + 1
+    else if (plies <= 1) v = evaluate(r.pits, side, guard)
+    else v = -search(r.pits, 1 - side, plies - 1, guard, clock, 0)
+    if (v > best) best = v
   }
   return best
 }
 
+const THINK_BUDGET_MS = 250
+
 /**
- * Choose a move for `side`.
- * mudah  — mostly random, sometimes greedy
- * biasa  — greedy: best store difference after its own turn
- * pakar  — looks one opponent reply ahead (minimax, 2 ply)
+ * Choose a move for `side`. `level` is the tuning from progression
+ * ({ mistake, plies, guard }), or an old level name.
+ *  mistake  chance she just picks any pit (an understandable slip)
+ *  plies    turns she looks ahead: 1 = best for this turn, 2+ = considers your replies
+ *  guard    0..1 how much she cares about the guli she leaves on each side
+ * Deeper looks are tried one at a time and kept only if they finish in time.
  */
 export function chooseMove(pits, side, level = 'biasa', random = Math.random) {
+  const cfg = typeof level === 'string' ? LEGACY[level] ?? LEGACY.biasa : level
   const moves = legalMoves(pits, side)
   if (moves.length === 0) return null
-  if (level === 'mudah' && random() < 0.65) return moves[Math.floor(random() * moves.length)]
-  if (level !== 'pakar') return bestTurnValue(pits, side, 3).move
-
-  let bestMove = moves[0]
-  let bestValue = -Infinity
-  for (const move of moves) {
-    const result = playMove(pits, side, move)
-    let value
-    if (result.extraTurn) {
-      value = bestTurnValue(result.pits, side, 3).value + 2 // extra turns are worth a little more
-    } else {
-      // the opponent replies with its best greedy turn
-      const reply = bestTurnValue(result.pits, 1 - side, 2)
-      value = -reply.value
+  if (moves.length === 1) return moves[0]
+  if (random() < (cfg.mistake ?? 0)) return moves[Math.floor(random() * moves.length)]
+  const guard = cfg.guard ?? 0
+  const clock = { deadline: performance.now() + THINK_BUDGET_MS, nodes: 0, timeout: false }
+  let chosen = moves
+  for (let plies = 1; plies <= (cfg.plies ?? 1); plies++) {
+    let best = -Infinity
+    let bestMoves = []
+    for (const move of moves) {
+      const r = playMove(pits, side, move)
+      let v
+      if (r.extraTurn) v = search(r.pits, side, plies, guard, clock, 1) + 1
+      else if (plies <= 1) v = evaluate(r.pits, side, guard)
+      else v = -search(r.pits, 1 - side, plies - 1, guard, clock)
+      if (v > best + 0.25) {
+        best = v
+        bestMoves = [move]
+      } else if (Math.abs(v - best) <= 0.25) bestMoves.push(move)
     }
-    if (value > bestValue) {
-      bestValue = value
-      bestMove = move
-    }
+    if (clock.timeout && plies > 1) break
+    chosen = bestMoves
   }
-  return bestMove
+  return chosen[Math.floor(random() * chosen.length)]
 }

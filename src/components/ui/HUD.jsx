@@ -5,6 +5,7 @@ import { worldRuntime } from '../../state/worldRuntime'
 import { PetaMap } from './PetaMap'
 import { SoundToggle } from './SoundToggle'
 import { AccountSheet } from './AccountSheet'
+import { overallOf, useProgress } from '../../progression/engine'
 import { useAuth } from '../../cloud/auth'
 import { logEvent } from '../../cloud/events'
 import { useKampungLive } from '../../cloud/presence'
@@ -49,6 +50,7 @@ function ControlsHelp({ isTouch }) {
  */
 export function HUD({ isTouch }) {
   const playerName = usePlayerState((s) => s.playerName)
+  const overallLevel = useProgress((s) => overallOf(s.profile).level)
   const arrowRef = useRef(null)
   const distanceRef = useRef(null)
   const labelRef = useRef(null)
@@ -72,7 +74,7 @@ export function HUD({ isTouch }) {
       /* fine */
     }
   }, [])
-  const [sheet, setSheet] = useState(null) // null | 'board' | 'me'
+  const [sheet, setSheet] = useState(null) // null | 'profil' | 'board' | 'me'
   const closeSheet = useCallback(() => setSheet(null), [])
   const signedIn = useAuth((s) => s.status === 'in')
   const live = useKampungLive()
@@ -112,9 +114,10 @@ export function HUD({ isTouch }) {
   return (
     <div className={`hud ${isTouch ? 'hud--touch' : ''}`}>
       <div className="hud__top">
-        <button type="button" className="hud__greeting hud__greeting--btn" onClick={() => setSheet('me')} aria-label="Akaun kamu">
+        <button type="button" className="hud__greeting hud__greeting--btn" onClick={() => setSheet('profil')} aria-label="Profil kamu">
           <span className="hud__title">
             Selamat kembali, <span>{playerName}</span>
+            <span className="hud__lvl" title="Level keseluruhan">Lv {overallLevel}</span>
           </span>
           <span className="hud__subtitle hud__clock">
             {live ? (

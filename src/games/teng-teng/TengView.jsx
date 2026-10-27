@@ -5,7 +5,7 @@ import { PersonModel } from '../../components/character/PersonModel'
 import { ModelSlot } from '../../components/world/ModelSlot'
 import { MODELS } from '../../data/models'
 import { PETAK, SIZE, START_GAP, centreOf, halfOf } from './engine'
-import { AIM_LAP, aimReach, now, ringClose, ringScale, standPoint } from './useTengMatch'
+import { aimReach, now, ringClose, ringScale, standPoint } from './useTengMatch'
 
 const HOP_PREP = 0.2 // share of each hop spent crouching before take-off (inside the hop's own time)
 const LAND_TIME = 0.3
@@ -301,7 +301,7 @@ function AimArrow({ r }) {
     if (!show) return
     const target = s.game.players[s.game.turn].target
     const x = centreOf(target)[0]
-    g.position.set(x, 0.05, -aimReach(s.aim.t0, AIM_LAP[s.level]))
+    g.position.set(x, 0.05, -aimReach(s.aim.t0, s.tune.aimLap))
   })
   return (
     <group ref={ref} visible={false}>

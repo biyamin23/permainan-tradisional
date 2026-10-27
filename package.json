@@ -2,12 +2,13 @@
   "name": "permainan-tradisional",
   "private": true,
   "version": "0.1.0",
-  "description": "Permainan Tradisional Malaysia \u2014 a nostalgic 3D kampung for traditional Malaysian games.",
+  "description": "Permainan Tradisional Malaysia — a nostalgic 3D kampung for traditional Malaysian games.",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:progression": "node scripts/test-progression.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^9.115.0",

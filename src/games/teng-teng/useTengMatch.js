@@ -60,6 +60,10 @@ export function ringClose(ring, t = now()) {
 export const ringScale = (ring, t = now()) => 1 + 2.2 * Math.abs(1 - (((t - ring.start) / ring.half) % 2))
 const ringLife = (ring) => ring.half * (2 * PULSES - 1) + ring.w
 
+/** Tuning for a match: from progression ({ timing, ai, aimLap, drift }), or an old level name. */
+const tuneOf = (level) =>
+  typeof level === 'string' ? { timing: TIMING[level], ai: AI[level], aimLap: AIM_LAP[level], drift: { mudah: 0.55, biasa: 0.75, pakar: 1 }[level] } : level
+
 export function useTengMatch({ level, starter, goal }) {
   const [, setV] = useState(0)
   const bump = useCallback(() => setV((v) => v + 1), [])
@@ -68,6 +72,8 @@ export function useTengMatch({ level, starter, goal }) {
   if (!r.current) {
     r.current = {
       level,
+      tune: tuneOf(level),
+      fouls: [0, 0], // times each player was "mati" this match
       game: { ...newGame(goal), turn: starter },
       phase: 'start', // start | aim | fly | hop | timbang | catch | dead | done
       plan: null, // { moves, turnAt, pickAt }
@@ -201,7 +207,7 @@ export function useTengMatch({ level, starter, goal }) {
   }
 
   fx.aiThrow = () => {
-    const a = AI[s.level]
+    const a = s.tune.ai
     const stage = pl().stage
     let target
     if (stage === 'rumah') {
@@ -234,13 +240,13 @@ export function useTengMatch({ level, starter, goal }) {
     const i = s.step + 1
     if (i >= moves.length) return fx.exitCourt()
     if (isYou()) {
-      const beat = TIMING[s.level].beat
-      s.ring = makeRing(moves[i].kind, beat, TIMING[s.level].w)
+      const beat = s.tune.timing.beat
+      s.ring = makeRing(moves[i].kind, beat, s.tune.timing.w)
       s.ring.missId = soon(ringLife(s.ring), () => fx.youFoul('pijak'))
       bump()
     } else {
       soon(AI_PAUSE + 0.32, () => {
-        if (Math.random() > AI[s.level].hop) return fx.dead(Math.random() < 0.5 ? 'pijak' : 'kaki-salah')
+        if (Math.random() > s.tune.ai.hop) return fx.dead(Math.random() < 0.5 ? 'pijak' : 'kaki-salah')
         fx.hop(i)
       })
     }
@@ -267,13 +273,13 @@ export function useTengMatch({ level, starter, goal }) {
 
   fx.askPick = () => {
     if (isYou()) {
-      const beat = TIMING[s.level].beat * 1.15
-      s.ring = makeRing('ambil', beat, TIMING[s.level].w * 1.2)
+      const beat = s.tune.timing.beat * 1.15
+      s.ring = makeRing('ambil', beat, s.tune.timing.w * 1.2)
       s.ring.missId = soon(ringLife(s.ring), () => fx.youFoul('ambil'))
       bump()
     } else {
       soon(0.5, () => {
-        if (Math.random() > AI[s.level].pick) return fx.dead('ambil')
+        if (Math.random() > s.tune.ai.pick) return fx.dead('ambil')
         fx.pickUp()
       })
     }
@@ -339,7 +345,7 @@ export function useTengMatch({ level, starter, goal }) {
   fx.nextTimbangMove = () => {
     const i = s.step + 1
     if (i >= s.plan.moves.length) return fx.startCatch()
-    if (!isYou() && i === Math.floor(s.plan.moves.length / 2) && Math.random() > Math.sqrt(AI[s.level].timbang)) return fx.dead('jatuh')
+    if (!isYou() && i === Math.floor(s.plan.moves.length / 2) && Math.random() > Math.sqrt(s.tune.ai.timbang)) return fx.dead('jatuh')
     soon(0.3, () => {
       if (s.phase !== 'timbang') return
       fx.hop(i)
@@ -352,12 +358,12 @@ export function useTengMatch({ level, starter, goal }) {
     me().pose = 'bend'
     if (isYou()) {
       const beat = 0.75
-      s.ring = makeRing('sambut', beat, TIMING[s.level].w * 1.1)
+      s.ring = makeRing('sambut', beat, s.tune.timing.w * 1.1)
       s.ring.missId = soon(ringLife(s.ring), () => fx.youFoul('sambut'))
       bump()
     } else {
       soon(0.7, () => {
-        if (Math.random() > Math.sqrt(AI[s.level].timbang)) return fx.dead('sambut')
+        if (Math.random() > Math.sqrt(s.tune.ai.timbang)) return fx.dead('sambut')
         fx.caught()
       })
     }
@@ -385,6 +391,7 @@ export function useTengMatch({ level, starter, goal }) {
   }
 
   fx.dead = (why) => {
+    s.fouls[who()] += 1
     s.phase = 'dead'
     s.ring = null
     s.gunduOnHead = false
@@ -420,7 +427,7 @@ export function useTengMatch({ level, starter, goal }) {
       const dt = Math.min(0.1, t - last)
       last = t
       if (s.phase !== 'timbang' || !isYou()) return
-      const drift = { mudah: 0.55, biasa: 0.75, pakar: 1 }[s.level]
+      const drift = s.tune.drift
       s.balance += (s.balance * 1.1 + (Math.random() - 0.5) * 2.2) * drift * dt
       if (Math.abs(s.balance) >= 1) fx.dead('jatuh')
       bump()
@@ -446,8 +453,8 @@ export function useTengMatch({ level, starter, goal }) {
   /** Release: throw where the marker is (plus a little wobble). */
   const releaseThrow = useCallback(() => {
     if (s.phase !== 'aim' || !isYou() || !s.aim) return
-    const reach = aimReach(s.aim.t0, AIM_LAP[s.level])
-    const noise = TIMING[s.level].aimNoise * (s.aim.blind ? 1.5 : 1)
+    const reach = aimReach(s.aim.t0, s.tune.aimLap)
+    const noise = s.tune.timing.aimNoise * (s.aim.blind ? 1.5 : 1)
     // sideways the gundu goes towards the petak you're aiming for (a pair's left or right);
     // the blind rumah throw could go anywhere across the court
     const side = s.aim.blind ? (Math.random() - 0.5) * SIZE * 1.1 : centreOf(pl().target)[0]
@@ -500,7 +507,7 @@ export function useTengMatch({ level, starter, goal }) {
   const skip = useCallback(() => {
     if (isYou() || s.phase === 'done' || s.phase === 'dead') return
     clearAll()
-    const a = AI[s.level]
+    const a = s.tune.ai
     let g = s.game
     let alive = true
     let rounds = 0

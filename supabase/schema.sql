@@ -184,3 +184,123 @@ from public.race_times t
 join public.profiles p on p.id = t.user_id;
 
 grant select on public.race_leaderboard to anon, authenticated;
+
+-- ---------------------------------------------------------------- progression
+-- One row per finished game (progress_events): XP and the bounds it must stay
+-- in are checked here, and a session can only ever be counted once.
+create table if not exists public.progress_events (
+  user_id uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+  session_id text not null check (char_length(session_id) between 8 and 64),
+  game_id text not null check (game_id in ('congkak', 'dam', 'sepak-raga', 'ting-ting', 'lumba-basikal')),
+  won boolean not null,
+  performance real not null check (performance between 0 and 1),
+  difficulty real not null check (difficulty between 0.1 and 0.95),
+  xp integer not null check (xp between 0 and 700),
+  game_xp integer not null check (game_xp between 0 and 300 and game_xp <= xp),
+  created_at timestamptz not null default now(),
+  primary key (user_id, session_id)
+);
+
+alter table public.progress_events enable row level security;
+
+drop policy if exists "progress events: read own" on public.progress_events;
+create policy "progress events: read own" on public.progress_events
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "progress events: insert own" on public.progress_events;
+create policy "progress events: insert own" on public.progress_events
+  for insert with check (auth.uid() = user_id);
+
+-- a real game takes a while: more than 6 results a minute is a replay, not play
+-- (games played offline are sent later and simply wait their turn)
+create or replace function public.progress_events_pace()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if (
+    select count(*) from public.progress_events
+    where user_id = new.user_id and created_at > now() - interval '60 seconds'
+  ) >= 6 then
+    raise exception 'too fast' using errcode = 'P0001';
+  end if;
+  new.created_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists progress_events_pace on public.progress_events;
+create trigger progress_events_pace
+  before insert on public.progress_events
+  for each row execute function public.progress_events_pace();
+
+-- Each player's progress (player_progress): totals the leaderboard shows, and
+-- the rest of the profile (skill, records, challenges…) as JSON. XP never goes
+-- down, can't run ahead of the games actually recorded (plus a one-off
+-- allowance for records kept before progression existed), and the level is
+-- always worked out from the XP here.
+create table if not exists public.player_progress (
+  user_id uuid primary key references public.profiles (id) on delete cascade,
+  total_xp integer not null default 0 check (total_xp >= 0),
+  overall_level integer not null default 1,
+  game_xp jsonb not null default '{}'::jsonb,
+  state jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.player_progress enable row level security;
+
+drop policy if exists "progress: everyone can read" on public.player_progress;
+create policy "progress: everyone can read" on public.player_progress
+  for select using (true);
+
+drop policy if exists "progress: insert own" on public.player_progress;
+create policy "progress: insert own" on public.player_progress
+  for insert with check (auth.uid() = user_id);
+
+drop policy if exists "progress: update own" on public.player_progress;
+create policy "progress: update own" on public.player_progress
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create or replace function public.player_progress_check()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  earned integer;
+begin
+  select coalesce(sum(xp), 0) into earned from public.progress_events where user_id = new.user_id;
+  -- 15000: the most the earlier records can seed (5 games × 2500) plus achievements and bonuses
+  new.total_xp := least(new.total_xp, earned + 15000);
+  if tg_op = 'UPDATE' then
+    new.total_xp := greatest(new.total_xp, old.total_xp);
+  end if;
+  new.overall_level := floor(power(new.total_xp / 100.0, 1 / 1.35))::integer + 1;
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists player_progress_check on public.player_progress;
+create trigger player_progress_check
+  before insert or update on public.player_progress
+  for each row execute function public.player_progress_check();
+
+-- highest overall level first
+create or replace view public.progress_leaderboard
+with (security_invoker = on) as
+select
+  g.user_id,
+  p.name,
+  p.gender,
+  p.is_guest,
+  g.total_xp,
+  g.overall_level,
+  rank() over (order by g.total_xp desc) as rank
+from public.player_progress g
+join public.profiles p on p.id = g.user_id
+where g.total_xp > 0;
+
+grant select on public.progress_leaderboard to anon, authenticated;

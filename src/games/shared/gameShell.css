@@ -858,3 +858,9 @@
 .gs-howto:active {
   background: var(--cream-2);
 }
+
+/* tall result panels (with the progress reward) scroll on short screens */
+.gs-sheet .gs-panel {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}

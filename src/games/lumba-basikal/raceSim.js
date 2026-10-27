@@ -265,6 +265,7 @@ function knock(r, type, force = 0.5) {
     r.speed *= 1 - force * 0.75 * soften - 0.08
     r.wobble = Math.max(r.wobble, force * 1.1 * soften + 0.15)
     r.events.push('hit')
+    r.hits = (r.hits ?? 0) + 1
   }
   r.lastHit = type
 }
@@ -272,6 +273,7 @@ function knock(r, type, force = 0.5) {
 /** Off the bike: the rider and bike go down to one side, slide, then get back up. */
 function fall(r, dir) {
   if (r.fallT > 0) return
+  r.falls = (r.falls ?? 0) + 1
   r.fallT = FALL_TIME
   r.fallDir = dir || 1
   r.stun = 0

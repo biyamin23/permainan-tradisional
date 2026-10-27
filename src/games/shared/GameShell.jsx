@@ -4,6 +4,7 @@ import { GENDERS, usePlayerState } from '../../state/playerState'
 import './gameShell.css'
 import { Tutorial, hasTutorial, useTutorialGame } from './Tutorial'
 import { logEvent } from '../../cloud/events'
+import { MasteryStatus, ProgressReward } from '../../components/progress/Progress'
 
 /**
  * The screen every table game shares (Congkak, Dam…): players' cards at the
@@ -218,33 +219,17 @@ export function HowToButton() {
   )
 }
 
-/** Opening panel: the invitation, level choice and the start button. */
-export function IntroPanel({ title, opponent, levels, level, setLevel, recordsLine, onStart }) {
-  const current = levels.find((l) => l.id === level)
+/**
+ * Opening panel: the invitation, your mastery in this game and the start
+ * button. There's no level to pick: the opponent plays to your level.
+ */
+export function IntroPanel({ title, opponent, recordsLine, onStart }) {
   const gameId = useTutorialGame()
   return (
     <div className="gs-sheet">
       <div className="gs-panel">
         <h2 className="gs-panel__title">{title}</h2>
-        <p className="gs-panel__label">Pilih tahap {opponent}</p>
-        <div className="gs-levels" role="radiogroup" aria-label={`Tahap ${opponent}`}>
-          {levels.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              role="radio"
-              aria-checked={level === l.id}
-              className={`gs-level ${level === l.id ? 'is-selected' : ''}`}
-              onClick={() => {
-                sfx.tap()
-                setLevel(l.id)
-              }}
-            >
-              {l.label}
-            </button>
-          ))}
-        </div>
-        <p className="gs-panel__note">{current?.note}</p>
+        <MasteryStatus gameId={gameId} note={`${opponent} main ikut kemahiran kamu. Cabar diri kamu!`} />
         {recordsLine && <p className="gs-panel__small">{recordsLine}</p>}
         <button
           type="button"
@@ -263,7 +248,7 @@ export function IntroPanel({ title, opponent, levels, level, setLevel, recordsLi
 }
 
 /** End of a match: who won, the final count, play again or go back. */
-export function ResultPanel({ title, win, mine, theirs, myName, theirName, line, extra, onAgain, onExit }) {
+export function ResultPanel({ title, win, mine, theirs, myName, theirName, line, extra, reward, onAgain, onExit }) {
   return (
     <div className="gs-sheet" role="alertdialog" aria-live="assertive">
       <div className="gs-panel">
@@ -281,6 +266,7 @@ export function ResultPanel({ title, win, mine, theirs, myName, theirName, line,
         </div>
         <p className="gs-panel__note">{line}</p>
         {extra && <p className="gs-panel__small">{extra}</p>}
+        <ProgressReward reward={reward} />
         <button type="button" className="gs-btn gs-btn--go" onClick={onAgain}>
           Main lagi
         </button>

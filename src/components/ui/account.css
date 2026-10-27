@@ -58,7 +58,7 @@
 .ac-tabs {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 4px;
   padding: 4px;
   border-radius: 999px;

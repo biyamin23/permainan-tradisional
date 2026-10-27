@@ -16,6 +16,8 @@ import {
   usePlayerLook,
   useTurnToast,
 } from '../shared/GameShell'
+import { useProgressSession } from '../../components/progress/Progress'
+import { completeGame } from '../../progression/engine'
 import { CongkakBoard } from './CongkakBoard'
 import { OPPONENT, PLAYER, createBoard } from './engine'
 import { Hands } from './Hands'
@@ -30,11 +32,6 @@ import './congkak.css'
  * result, so nothing pulls you out of the moment.
  */
 
-const LEVELS = [
-  { id: 'mudah', label: 'Mudah', note: 'Aisyah baru belajar main.' },
-  { id: 'biasa', label: 'Biasa', note: 'Aisyah main bersungguh-sungguh.' },
-  { id: 'pakar', label: 'Pakar', note: 'Aisyah juara congkak kampung ni.' },
-]
 
 const RULES = [
   'Mula-mula osom (batu, air, burung) untuk tentukan siapa main dulu. Batu menang burung, burung menang air, air menang batu.',
@@ -52,7 +49,7 @@ const START = createBoard()
 const AISYAH_COLOR = '#e9b52f'
 const AISYAH_IMG = '/avatars/aisyah.webp'
 
-function Intro({ level, setLevel, records, player, onStart, onExit, osom, onOsomDone }) {
+function Intro({ records, player, onStart, onExit, osom, onOsomDone }) {
   const [showRules, setShowRules] = useState(false)
   return (
     <Scene
@@ -73,9 +70,6 @@ function Intro({ level, setLevel, records, player, onStart, onExit, osom, onOsom
       <IntroPanel
         title="Aisyah ajak kamu main congkak!"
         opponent="Aisyah"
-        levels={LEVELS}
-        level={level}
-        setLevel={setLevel}
         recordsLine={recordsSummary(records, `skor terbaik ${records.best} biji`)}
         onStart={onStart}
       />
@@ -85,7 +79,7 @@ function Intro({ level, setLevel, records, player, onStart, onExit, osom, onOsom
   )
 }
 
-function Result({ result, saved, playerName, onAgain, onExit }) {
+function Result({ result, saved, reward, playerName, onAgain, onExit }) {
   const [you, them] = result.scores
   const title = result.winner === PLAYER ? 'Kamu menang!' : result.winner === OPPONENT ? 'Aisyah menang!' : 'Seri!'
   const line =
@@ -104,17 +98,22 @@ function Result({ result, saved, playerName, onAgain, onExit }) {
       theirName="Aisyah"
       line={line}
       extra={saved?.newBest ? `Skor terbaik baharu: ${you} biji!` : null}
+      reward={reward}
       onAgain={onAgain}
       onExit={onExit}
     />
   )
 }
 
-function Match({ level, player, firstStarter, onExit, onRecords }) {
+function Match({ player, firstStarter, onExit, onRecords }) {
   const [starter, setStarter] = useState(firstStarter)
   const [rematch, setRematch] = useState(false)
+  // Aisyah's play for this match follows your Congkak progress
+  const [round, setRound] = useState(0)
+  const session = useProgressSession('congkak', round)
+  const [reward, setReward] = useState(null)
   const { pits, turn, animating, hand, flash, banner, speech, result, fast, setFast, playHouse, skip, restart, scores, say } =
-    useCongkakMatch({ level, starter })
+    useCongkakMatch({ level: session.tuning, starter })
   const [saved, setSaved] = useState(null)
   const [hoverPit, setHoverPit] = useState(null)
   const [slap, setSlap] = useState(null)
@@ -153,7 +152,9 @@ function Match({ level, player, firstStarter, onExit, onRecords }) {
     const s = saveResult(result)
     setSaved(s)
     onRecords(s.records)
-  }, [result, onRecords])
+    const [you, them] = result.scores
+    setReward(completeGame(session, { won: result.winner === PLAYER, draw: result.winner === null, score: you, theirs: them, margin: you - them }))
+  }, [result, onRecords, session])
 
   const yourTurn = turn === PLAYER && !result
   // what to do next, always at the bottom of the screen
@@ -176,6 +177,8 @@ function Match({ level, player, firstStarter, onExit, onRecords }) {
     setRematch(false)
     setStarter(nextStarter)
     setSaved(null)
+    setReward(null)
+    setRound((r) => r + 1)
     restart(nextStarter)
   }
 
@@ -231,7 +234,7 @@ function Match({ level, player, firstStarter, onExit, onRecords }) {
       }
       bottom={<NextHint next={next} yours={yourTurn && !animating} />}
     >
-      {result && !rematch && <Result result={result} saved={saved} playerName={player.name} onAgain={again} onExit={onExit} />}
+      {result && !rematch && <Result result={result} saved={saved} reward={reward} playerName={player.name} onAgain={again} onExit={onExit} />}
       {rematch && <OsomPanel opponent="Aisyah" onDone={startAgain} />}
     </Scene>
   )
@@ -241,15 +244,12 @@ export function CongkakGame({ onExit }) {
   const player = usePlayerLook()
   const [phase, setPhase] = useState('intro') // intro → osom → play
   const [starter, setStarter] = useState(PLAYER)
-  const [level, setLevel] = useState('biasa')
   const [records, setRecords] = useState(loadRecords)
   const onRecords = useMemo(() => (next) => setRecords(next), [])
 
   if (phase !== 'play') {
     return (
       <Intro
-        level={level}
-        setLevel={setLevel}
         records={records}
         player={player}
         onExit={onExit}
@@ -265,5 +265,5 @@ export function CongkakGame({ onExit }) {
       />
     )
   }
-  return <Match level={level} player={player} firstStarter={starter} onExit={onExit} onRecords={onRecords} />
+  return <Match player={player} firstStarter={starter} onExit={onExit} onRecords={onRecords} />
 }

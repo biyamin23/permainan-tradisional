@@ -4,6 +4,8 @@ import { getGameById } from '../../data/games'
 import { GAME_MODES, playerActions, usePlayerState } from '../../state/playerState'
 import { Modal } from '../ui/Modal'
 import { GameIcon } from './GameIcon'
+import { MasteryStatus } from '../progress/Progress'
+import { GAME_IDS } from '../../progression/config'
 
 /** Opened from a game spot: Solo or Multiplayer, then straight into that game. */
 export function GameModeSelection() {
@@ -50,6 +52,11 @@ export function GameModeSelection() {
           </h2>
         </span>
       </div>
+      {GAME_IDS.includes(game.id) && (
+        <div className="mode-panel__mastery">
+          <MasteryStatus gameId={game.id} note={null} />
+        </div>
+      )}
 
       <div className="mode-grid">
         <button type="button" className="mode-card mode-card--solo" onClick={chooseSolo}>

@@ -15,6 +15,8 @@ import {
   usePlayerLook,
   useTurnToast,
 } from '../shared/GameShell'
+import { useProgressSession } from '../../components/progress/Progress'
+import { completeGame } from '../../progression/engine'
 import { DamBoard } from './DamBoard'
 import { OPPONENT, PLAYER } from './engine'
 import { loadRecords, saveResult } from './records'
@@ -30,11 +32,6 @@ import './dam.css'
 const PAK_TAM_IMG = '/avatars/pak-tam.webp'
 const PAK_TAM_COLOR = '#8a7a5a'
 
-const LEVELS = [
-  { id: 'mudah', label: 'Mudah', note: 'Pak Tam main sambil sembang, selalu leka.' },
-  { id: 'biasa', label: 'Biasa', note: 'Pak Tam main betul-betul.' },
-  { id: 'pakar', label: 'Pakar', note: 'Pak Tam juara dam kedai kopi ni.' },
-]
 
 const RULES = [
   'Mula-mula osom (batu, air, burung) untuk tentukan siapa main dulu. Batu menang burung, burung menang air, air menang batu.',
@@ -47,7 +44,7 @@ const RULES = [
 ]
 
 
-function Result({ result, playerName, onAgain, onExit }) {
+function Result({ result, reward, playerName, onAgain, onExit }) {
   const [mine, theirs] = result.pieces
   const win = result.winner === PLAYER
   const title = win ? 'Kamu menang!' : result.winner === OPPONENT ? 'Pak Tam menang!' : 'Seri!'
@@ -66,13 +63,14 @@ function Result({ result, playerName, onAgain, onExit }) {
       theirName="Pak Tam"
       line={line}
       extra="Nombor di atas ialah buah yang masih tinggal di papan."
+      reward={reward}
       onAgain={onAgain}
       onExit={onExit}
     />
   )
 }
 
-function Intro({ level, setLevel, records, player, onStart, onExit, osom, onOsomDone }) {
+function Intro({ records, player, onStart, onExit, osom, onOsomDone }) {
   const [showRules, setShowRules] = useState(false)
   return (
     <Scene
@@ -93,9 +91,6 @@ function Intro({ level, setLevel, records, player, onStart, onExit, osom, onOsom
       <IntroPanel
         title="Pak Tam ajak kamu main dam. Kopi dah sampai!"
         opponent="Pak Tam"
-        levels={LEVELS}
-        level={level}
-        setLevel={setLevel}
         recordsLine={recordsSummary(records)}
         onStart={onStart}
       />
@@ -113,17 +108,24 @@ const WHY = {
   wait: ['Sabar, giliran Pak Tam.', 'them'],
 }
 
-function Match({ level, player, firstStarter, onExit, onRecords }) {
+function Match({ player, firstStarter, onExit, onRecords }) {
   const [starter, setStarter] = useState(firstStarter)
   const [rematch, setRematch] = useState(false)
   const [showRules, setShowRules] = useState(false)
-  const m = useDamMatch({ level, starter })
+  // Pak Tam's play for this match follows your Dam progress
+  const [round, setRound] = useState(0)
+  const session = useProgressSession('dam', round)
+  const [reward, setReward] = useState(null)
+  const m = useDamMatch({ level: session.tuning, starter })
   const yourTurn = m.turn === PLAYER && !m.result
   const toast = useTurnToast({ yourTurn, finished: Boolean(m.result), banner: m.banner, theirName: 'Pak Tam' })
 
   useEffect(() => {
-    if (m.result) onRecords(saveResult(m.result))
-  }, [m.result, onRecords])
+    if (!m.result) return
+    onRecords(saveResult(m.result))
+    const [mine, theirs] = m.result.pieces
+    setReward(completeGame(session, { won: m.result.winner === PLAYER, draw: m.result.winner === null, score: mine, theirs, lost: 12 - mine }))
+  }, [m.result, onRecords, session])
 
   const { tapSquare, say } = m
   const onSquare = useCallback(
@@ -159,6 +161,8 @@ function Match({ level, player, firstStarter, onExit, onRecords }) {
   const startAgain = (nextStarter) => {
     setRematch(false)
     setStarter(nextStarter)
+    setReward(null)
+    setRound((r) => r + 1)
     m.restart(nextStarter)
   }
 
@@ -203,7 +207,7 @@ function Match({ level, player, firstStarter, onExit, onRecords }) {
       }
       bottom={<NextHint next={next} yours={yourTurn && !m.busy} />}
     >
-      {m.result && !rematch && <Result result={m.result} playerName={player.name} onAgain={again} onExit={onExit} />}
+      {m.result && !rematch && <Result result={m.result} reward={reward} playerName={player.name} onAgain={again} onExit={onExit} />}
       {rematch && <OsomPanel opponent="Pak Tam" onDone={startAgain} />}
       {showRules && <RulesSheet game="dam" rules={RULES} onClose={() => setShowRules(false)} />}
     </Scene>
@@ -214,15 +218,12 @@ export function DamGame({ onExit }) {
   const player = usePlayerLook()
   const [phase, setPhase] = useState('intro') // intro → osom → play
   const [starter, setStarter] = useState(PLAYER)
-  const [level, setLevel] = useState('biasa')
   const [records, setRecords] = useState(loadRecords)
   const onRecords = useMemo(() => (next) => setRecords(next), [])
 
   if (phase !== 'play') {
     return (
       <Intro
-        level={level}
-        setLevel={setLevel}
         records={records}
         player={player}
         onExit={onExit}
@@ -238,6 +239,6 @@ export function DamGame({ onExit }) {
       />
     )
   }
-  return <Match level={level} player={player} firstStarter={starter} onExit={onExit} onRecords={onRecords} />
+  return <Match player={player} firstStarter={starter} onExit={onExit} onRecords={onRecords} />
 }
 

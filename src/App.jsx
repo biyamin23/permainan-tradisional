@@ -9,6 +9,9 @@ import { SCREENS, isWorldScreen, playerActions, playerStore, usePlayerState } fr
 const loadCharacter = () => import('./components/character/CharacterCreation')
 const loadKampung = () => import('./components/world/KampungExperience')
 const CharacterCreation = lazy(() => loadCharacter().then((m) => ({ default: m.CharacterCreation })))
+// development only: progression numbers and simulators (not in production builds)
+const DevProgressPanel = import.meta.env.DEV ? lazy(() => import('./components/progress/DevProgressPanel')) : null
+
 const LoginScreen = lazy(() => import('./components/login/LoginScreen').then((m) => ({ default: m.LoginScreen })))
 const KampungExperience = lazy(() => loadKampung().then((m) => ({ default: m.KampungExperience })))
 
@@ -61,6 +64,11 @@ export default function App() {
       </Suspense>
       {/* the landing has its own sound button */}
       {!isWorldScreen(screen) && screen !== SCREENS.LANDING && <SoundToggle className="sound-toggle--floating" />}
+      {DevProgressPanel && (
+        <Suspense fallback={null}>
+          <DevProgressPanel />
+        </Suspense>
+      )}
     </main>
   )
 }

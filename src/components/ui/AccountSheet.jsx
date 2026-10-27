@@ -3,12 +3,16 @@ import { sfx } from '../../audio/engine'
 import { authActions, explain, useAuth } from '../../cloud/auth'
 import { fetchLeaderboard } from '../../cloud/leaderboard'
 import { fetchRaceLeaderboard } from '../../cloud/raceTimes'
+import { fetchProgressLeaderboard } from '../../cloud/progress'
 import { getBicycle } from '../../games/lumba-basikal/bicycles'
 import { TRACKS } from '../../games/lumba-basikal/tracks'
-import { SCREENS, playerActions } from '../../state/playerState'
+import { SCREENS, playerActions, usePlayerState } from '../../state/playerState'
+import { ProfilePanel } from '../progress/ProfilePanel'
 import './account.css'
 
 const BOARD_GAMES = [
+  // overall level across all five games
+  { id: 'overall', name: 'Keseluruhan', emoji: '⭐', overall: true },
   { id: 'congkak', name: 'Congkak', emoji: '🐚', best: 'biji' },
   { id: 'dam', name: 'Dam Haji', emoji: '⚪' },
   { id: 'sepak-raga', name: 'Sepak Raga', emoji: '🏐', best: 'mata' },
@@ -41,7 +45,14 @@ function Row({ r, mine, game }) {
         {r.name}
         {mine && <em> (kamu)</em>}
       </span>
-      {game.race ? (
+      {game.overall ? (
+        <span className="ac-stat">
+          <span className="ac-stat__wins">
+            <b>Lv {r.overall_level}</b>
+          </span>
+          <small>{r.total_xp.toLocaleString('ms-MY')} XP</small>
+        </span>
+      ) : game.race ? (
         <span className="ac-stat">
           <span className="ac-stat__wins">
             <b>{lapTime(r.best_ms)}</b>
@@ -72,7 +83,7 @@ function Leaderboard({ userId }) {
   useEffect(() => {
     let live = true
     setState({ loading: true })
-    ;(game.race ? fetchRaceLeaderboard(track, userId) : fetchLeaderboard(game.id, userId))
+    ;(game.overall ? fetchProgressLeaderboard(userId) : game.race ? fetchRaceLeaderboard(track, userId) : fetchLeaderboard(game.id, userId))
       .then((data) => live && setState(data))
       .catch((err) => live && setState({ error: explain(err) }))
     return () => {
@@ -124,7 +135,11 @@ function Leaderboard({ userId }) {
         <p className="ac-empty">{state.error}</p>
       ) : state.top.length === 0 ? (
         <p className="ac-empty">
-          {game.race ? 'Belum ada masa di litar ini. Jadilah yang pertama!' : `Belum ada sesiapa. Jadilah yang pertama menang ${game.name}!`}
+          {game.overall
+            ? 'Belum ada sesiapa lagi. Main apa-apa permainan untuk naik level!'
+            : game.race
+              ? 'Belum ada masa di litar ini. Jadilah yang pertama!'
+              : `Belum ada sesiapa. Jadilah yang pertama menang ${game.name}!`}
         </p>
       ) : (
         <ol className="ac-list">
@@ -207,6 +222,8 @@ export function AccountSheet({ live, onClose, startTab = 'board' }) {
   const auth = useAuth((s) => s)
   const kind = KIND[auth.kind] ?? KIND.guest
   const cloud = auth.status === 'in'
+  const playerName = usePlayerState((s) => s.playerName)
+  const playerGender = usePlayerState((s) => s.playerGender)
 
   useEffect(() => {
     const onKey = (e) => {
@@ -221,6 +238,9 @@ export function AccountSheet({ live, onClose, startTab = 'board' }) {
       <div className="ac-card" onClick={(e) => e.stopPropagation()}>
         <header className="ac-head">
           <div className="ac-tabs" role="tablist">
+            <button type="button" role="tab" aria-selected={tab === 'profil'} className={`ac-tab ${tab === 'profil' ? 'is-on' : ''}`} onClick={() => setTab('profil')}>
+              📜 Profil
+            </button>
             <button type="button" role="tab" aria-selected={tab === 'board'} className={`ac-tab ${tab === 'board' ? 'is-on' : ''}`} onClick={() => setTab('board')}>
               🏆 Kedudukan
             </button>
@@ -239,7 +259,9 @@ export function AccountSheet({ live, onClose, startTab = 'board' }) {
           </p>
         )}
 
-        {tab === 'board' ? (
+        {tab === 'profil' ? (
+          <ProfilePanel name={auth.profile?.name ?? playerName ?? 'Pemain'} gender={auth.profile?.gender ?? playerGender} />
+        ) : tab === 'board' ? (
           cloud ? (
             <Leaderboard userId={auth.user?.id} />
           ) : (

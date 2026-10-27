@@ -46,6 +46,7 @@ export function makeKamarulAI(track, level) {
     bumpT: 0, // > 0 while he's leaning into you
     bumpCooldown: 3,
     shoves: 0, // this race; capped by level so it stays rough, not a wrestling match
+    seen: {}, // obstacle:lap → whether he noticed it in time
     takeShortcut: track.shortcuts.map(() => Math.random() < level.shortcut),
     input: { throttle: 0, brake: 0, steer: 0, boost: false },
   }
@@ -115,7 +116,7 @@ export function thinkKamarul(ai, track, me, you, obstacles, time, dt, racing) {
   else if (ai.bumpT > 0) setState(ai, 'BUMP')
   else {
     // something in the road comes first, even with the line in sight
-    const threat = obstacleAhead(track, me, obstacles)
+    const threat = obstacleAhead(ai, track, me, obstacles)
     if (threat) {
       setState(ai, 'AVOID_OBSTACLE')
       ai.offsetTarget = threat.side - ai.line[me.i]
@@ -214,10 +215,14 @@ function shortcutFor(ai, track, me) {
 }
 
 /** Anything in his lane within ~12 m: which way to go round it. */
-function obstacleAhead(track, me, obstacles) {
+function obstacleAhead(ai, track, me, obstacles) {
   for (const o of obstacles) {
     const ahead = track.wrap(o.i - me.i)
     if (ahead <= 0 || ahead > 18 / track.ds) continue
+    // does he spot this one in time? (decided once each time he comes up to it)
+    const seenKey = `${o.k}:${me.lap}`
+    if (!(seenKey in ai.seen)) ai.seen[seenKey] = Math.random() < (ai.level.avoid ?? 0.9)
+    if (!ai.seen[seenKey]) continue
     if (o.type === 'motosikal' || o.type === 'orang') {
       if (!o.moving) continue
     }
