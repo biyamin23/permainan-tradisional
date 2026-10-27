@@ -37,7 +37,7 @@ const makeChannels = () => Object.fromEntries(CHANNELS.map((c) => [c, 0]))
 const FADE = {
   throwBack: 20, aimBack: 9, kick: 18, celebrate: 14, fail: 12, raga: 16,
   sit: 6, sitDangle: 6, sitPlay: 6, sitThink: 6, sitDrink: 6, fish: 6, toss: 8,
-  stand1: 16, stand2: 16, balance: 14, bend: 12,
+  stand1: 16, stand2: 16, balance: 14, bend: 12, cycle: 30,
 }
 
 const SITTING = new Set(['sit', 'sitDangle', 'fish', 'toss', 'sitPlay', 'sitThink', 'sitDrink'])
@@ -514,6 +514,55 @@ function buildPose(p, pose, ctx) {
       p.lean = -0.06 * pump
       p.headX = -0.18 * pump
       p.pelvisY += t > 1 && t < 2.2 ? Math.abs(Math.sin(t * 7)) * -0.012 : 0
+      break
+    }
+    case 'cycle': {
+      // on a bicycle: feet on the pedals (leg IK), hands on the grips (arm IK),
+      // leaning over the bars. motion.cycle (rider space, feet at y 0):
+      // { L: [z, y], R: [z, y], grip: { x, y, z }, lean, cheer 0..1, look -1..1 }
+      const c = ctx.motion?.cycle
+      if (!c) break
+      p.fade = 30
+      p.Lfz = c.L[0]
+      p.Lfy = c.L[1]
+      p.Rfz = c.R[0]
+      p.Rfy = c.R[1]
+      p.Lz = 0.06
+      p.Rz = -0.06
+      p.lean = c.lean
+      p.headX = -c.lean * 0.8
+      p.headY = (c.look ?? 0) * 1.1
+      p.twist = (c.look ?? 0) * 0.25
+      const sy = b.shoulderY - b.hip
+      const shY = b.hip + sy * Math.cos(c.lean)
+      const shZ = sy * Math.sin(c.lean)
+      const U = (b.armLen + b.armR * 2) / 2
+      for (const side of [1, -1]) {
+        const dy = c.grip.y - shY
+        const dz = c.grip.z - shZ
+        const d = Math.hypot(dy, dz)
+        const phi = Math.atan2(dz, -dy) // forward from straight down
+        const alpha = d < U * 2 ? Math.acos(d / (U * 2)) : 0
+        const x = -(phi - alpha + c.lean)
+        const e = -alpha * 2
+        const z = side * Math.atan2(Math.max(0, c.grip.x - b.shoulderX), Math.max(d, 0.1))
+        if (side > 0) {
+          p.aLx = x
+          p.aLe = e
+          p.aLz = z + 0.05
+        } else {
+          p.aRx = x
+          p.aRe = e
+          p.aRz = z - 0.05
+        }
+      }
+      if (c.cheer) {
+        // one fist up, still riding with the other hand
+        p.aRx = MathUtils.lerp(p.aRx, -2.6, c.cheer)
+        p.aRe = MathUtils.lerp(p.aRe, -0.9, c.cheer)
+        p.aRz = MathUtils.lerp(p.aRz, -0.35, c.cheer)
+        p.headX -= 0.25 * c.cheer
+      }
       break
     }
     case 'fail': {

@@ -11,6 +11,7 @@ export const RECORD_KEYS = {
   dam: 'ptm-dam-records',
   'sepak-raga': 'ptm-sepak-raga-records',
   'ting-ting': 'ptm-teng-teng-records',
+  'lumba-basikal': 'ptm-lumba-basikal-records',
 }
 const OWNER_KEY = 'ptm-records-owner'
 const FIELDS = ['wins', 'losses', 'draws', 'best']
@@ -65,7 +66,8 @@ export async function pullRecords(sb, userId) {
       writeLocal(key, null)
       continue
     }
-    const merged = Object.fromEntries(FIELDS.map((f) => [f, Math.max(local?.[f] ?? 0, remote?.[f] ?? 0)]))
+    // keep a game's own extra fields (e.g. lumba basikal's best times) on the device
+    const merged = { ...(local ?? {}), ...Object.fromEntries(FIELDS.map((f) => [f, Math.max(local?.[f] ?? 0, remote?.[f] ?? 0)])) }
     writeLocal(key, merged)
     if (!remote || FIELDS.some((f) => merged[f] > (remote[f] ?? 0))) upload.push(row(userId, gameId, merged))
   }
@@ -91,6 +93,9 @@ export function pushRecord(gameId, rec) {
       .then(({ error }) => error && console.warn('[cloud] simpan rekod', error.message))
   })
 }
+
+/** The logged-in player whose records these are (null when offline / logged out). */
+export const recordsOwner = () => owner
 
 /** Logged out: forget whose records these are (they stay for the same player). */
 export function forgetOwner() {

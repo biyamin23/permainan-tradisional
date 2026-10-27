@@ -128,6 +128,31 @@ export const TUTORIALS = {
       tip: 'Masa giliran Rukiah, tekan Langkau ⏩ untuk cepat.',
     },
   ],
+  'lumba-basikal': [
+    {
+      art: Art.BasikalKeys,
+      title: 'Kayuh, belok, brek',
+      body: 'Tahan W atau ↑ untuk kayuh. Lepas, basikal perlahan sendiri. A D atau ← → untuk belok, S atau ↓ untuk brek.',
+      tip: 'Laju sangat masa selekoh? Lepas kayuh atau brek sikit.',
+    },
+    {
+      art: Art.BasikalTouch,
+      title: 'Main di telefon',
+      body: 'Tolak joystick kiri: ke depan untuk kayuh, ke tepi untuk belok, ke belakang untuk brek. Butang PECUT dan BREK di kanan.',
+    },
+    {
+      art: Art.BasikalBoost,
+      title: 'Pecut bila perlu',
+      body: 'Tahan SPACE (atau PECUT) untuk laju sekejap. Meter pecut habis bila digunakan, dan penuh semula perlahan-lahan.',
+      tip: 'Simpan pecut untuk jalan lurus terakhir!',
+    },
+    {
+      art: Art.BasikalCheckpoint,
+      title: 'Sampai garisan dulu',
+      body: 'Lalu checkpoint 1, 2 dan 3, kemudian pecut ke garisan TAMAT. Langgar ayam, batu atau motosikal? Basikal goyang dan perlahan.',
+      tip: 'Jalan pintas ada di litar Biasa dan Jaguh. Kamarul pun tahu!',
+    },
+  ],
 }
 
 const KEY = 'pt.tutorial.'

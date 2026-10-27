@@ -716,3 +716,109 @@ export function TengHouse() {
     </Svg>
   )
 }
+
+/* ------------------------------------------------------------------ lumba basikal */
+
+const ROAD = '#c99560'
+
+function Key({ x, y, children, hot = false, w = 30 }) {
+  return (
+    <g className={hot ? 'tut-btn is-hot' : 'tut-btn'}>
+      <rect x={x} y={y} width={w} height="28" rx="7" fill={hot ? GO : CREAM} stroke={hot ? '#2c7a3b' : '#c9b48c'} strokeWidth="2" />
+      <Label x={x + w / 2} y={y + 18} fill={hot ? '#fff' : INK} size={10.5}>
+        {children}
+      </Label>
+    </g>
+  )
+}
+
+function Basikal({ x, y, lean = 0, color = '#2f6fd1' }) {
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${lean})`}>
+      <circle cx="-16" cy="0" r="11" fill="none" stroke={INK} strokeWidth="3" />
+      <circle cx="16" cy="0" r="11" fill="none" stroke={INK} strokeWidth="3" />
+      <path d="M-16 0 L-4 -16 L12 -16 L16 0 M-4 -16 L0 0 L12 -16" fill="none" stroke={color} strokeWidth="3" strokeLinejoin="round" />
+      <path d="M10 -22 l6 -2" stroke={INK} strokeWidth="3" strokeLinecap="round" />
+      <circle cx="-2" cy="-34" r="7" fill="#c98c5f" />
+      <path d="M-2 -27 L2 -16 M-2 -26 L11 -21" stroke={color} strokeWidth="4" strokeLinecap="round" />
+    </g>
+  )
+}
+
+export function BasikalKeys() {
+  return (
+    <Svg label="Kawalan: W kayuh, A D belok, S brek, Space pecut">
+      <Key x={60} y={34} hot>W</Key>
+      <Key x={26} y={68}>A</Key>
+      <Key x={60} y={68}>S</Key>
+      <Key x={94} y={68}>D</Key>
+      <Key x={34} y={106} w={84}>SPACE</Key>
+      <Label x={75} y={154} size={10}>
+        atau anak panah ↑ ← ↓ →
+      </Label>
+      <Label x={196} y={52} anchor="start">W / ↑ kayuh</Label>
+      <Label x={196} y={74} anchor="start">A D / ← → belok</Label>
+      <Label x={196} y={96} anchor="start">S / ↓ brek</Label>
+      <Label x={196} y={124} anchor="start">SPACE pecut</Label>
+      <Label x={196} y={146} anchor="start" size={10} weight={600}>Esc rehat</Label>
+    </Svg>
+  )
+}
+
+export function BasikalTouch() {
+  return (
+    <Svg label="Di telefon: joystick kiri, butang pecut dan brek di kanan">
+      <rect x="18" y="18" width="284" height="144" rx="14" fill={ROAD} />
+      <circle cx="70" cy="122" r="30" fill="rgba(255,255,255,0.35)" stroke="#fff" strokeWidth="2" />
+      <circle cx="70" cy="108" r="13" fill="#fff" className="tut-pop" />
+      <Label x={70} y={78} fill="#fff">joystick</Label>
+      <circle cx="258" cy="96" r="22" fill="#f2a93b" stroke="#fff" strokeWidth="2" />
+      <Label x={258} y={100} fill="#fff" size={9.5}>PECUT</Label>
+      <circle cx="226" cy="136" r="17" fill="#c0412f" stroke="#fff" strokeWidth="2" />
+      <Label x={226} y={140} fill="#fff" size={9}>BREK</Label>
+      <Basikal x={160} y={74} />
+    </Svg>
+  )
+}
+
+export function BasikalBoost() {
+  return (
+    <Svg label="Meter pecut: guna sekejap, ia penuh semula sendiri">
+      <rect x="0" y="100" width="320" height="80" fill={ROAD} />
+      <g>
+        <Basikal x={70} y={120} />
+        <animateTransform attributeName="transform" type="translate" values="0 0;150 0;150 0" dur="3s" repeatCount="indefinite" />
+      </g>
+      <Label x={160} y={34}>PECUT</Label>
+      <rect x="80" y="44" width="160" height="14" rx="7" fill="rgba(59,36,20,0.25)" />
+      <rect x="80" y="44" width="160" height="14" rx="7" fill="#f2a93b">
+        <animate attributeName="width" values="160;40;160" dur="3s" repeatCount="indefinite" />
+      </rect>
+      <Label x={160} y={80} size={10} weight={600}>
+        Tahan SPACE: lebih laju. Lepas: meter penuh semula.
+      </Label>
+    </Svg>
+  )
+}
+
+export function BasikalCheckpoint() {
+  return (
+    <Svg label="Lalu setiap checkpoint, pecut di hujung, sampai garisan dulu">
+      <path d="M30 150 C 90 30, 230 30, 290 150" fill="none" stroke={ROAD} strokeWidth="26" strokeLinecap="round" />
+      {[
+        [70, 82, '1'],
+        [160, 50, '2'],
+        [250, 82, '3'],
+      ].map(([x, y, n]) => (
+        <g key={n}>
+          <rect x={x - 1} y={y - 24} width="2.5" height="24" fill={INK} />
+          <path d={`M${x + 1} ${y - 24} l14 5 l-14 5 z`} fill={GLOW} />
+          <Label x={x + 7} y={y - 30} size={10}>{n}</Label>
+        </g>
+      ))}
+      <rect x="276" y="138" width="28" height="8" fill="#fff" />
+      <Label x={290} y={166} size={10}>TAMAT</Label>
+      <Bubble x={160} y={130} w={110} fill="#c0412f">Langgar? Goyang!</Bubble>
+    </Svg>
+  )
+}

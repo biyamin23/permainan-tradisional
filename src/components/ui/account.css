@@ -370,3 +370,13 @@
   font-weight: 700;
   color: rgba(59, 36, 20, 0.6);
 }
+
+/* litar under the Lumba Basikal chip */
+.ac-chips--sub {
+  margin-top: -2px;
+}
+
+.ac-chips--sub .ac-chip {
+  font-size: 0.8rem;
+  padding-block: 0.3rem;
+}

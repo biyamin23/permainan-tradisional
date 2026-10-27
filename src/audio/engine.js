@@ -534,6 +534,12 @@ function pluck(freq, at, gain = 0.05) {
   tone({ freq: freq * 2, at, attack: 0.004, decay: 0.25, gain: gain * 0.25, bus: musicBus })
 }
 
+let musicPace = 1
+/** Speed the kampung tune up a little (1 = normal), e.g. for a race's final stretch. */
+export function setMusicPace(pace) {
+  musicPace = pace
+}
+
 const music = {
   running: false,
   step: 0,
@@ -579,7 +585,104 @@ const music = {
       if (hit === 'D') tone({ freq: 120, freqEnd: 62, at, attack: 0.003, decay: 0.18, gain: 0.08, bus: musicBus })
       if (hit === 's') noise({ at, dur: 0.05, gain: 0.025, type: 'bandpass', freq: 3200, q: 1.2, bus: musicBus })
       this.step += 1
-      this.nextTime += EIGHTH
+      this.nextTime += EIGHTH / musicPace
     }
   },
+}
+
+// ------------------------------------------------------------------ lumba basikal
+/** One-shot race sounds. */
+export const raceSfx = {
+  count() {
+    if (!ready()) return
+    tone({ freq: 660, type: 'triangle', decay: 0.22, gain: 0.09 })
+  },
+  go() {
+    if (!ready()) return
+    tone({ freq: 988, type: 'triangle', decay: 0.5, gain: 0.1 })
+    tone({ freq: 1318, type: 'triangle', at: 0.04, decay: 0.55, gain: 0.07 })
+  },
+  bell() {
+    if (!ready()) return
+    for (const at of [0, 0.16]) {
+      tone({ freq: 2350, at, decay: 0.7, gain: 0.05 })
+      tone({ freq: 3520, at, decay: 0.35, gain: 0.02 })
+    }
+  },
+  checkpoint() {
+    if (!ready()) return
+    tone({ freq: 784, decay: 0.16, gain: 0.07 })
+    tone({ freq: 1175, at: 0.09, decay: 0.3, gain: 0.07 })
+  },
+  knock(big = false) {
+    if (!ready()) return
+    noise({ dur: big ? 0.3 : 0.14, gain: big ? 0.16 : 0.09, type: 'lowpass', freq: big ? 500 : 900, q: 0.8 })
+    tone({ freq: big ? 110 : 170, freqEnd: big ? 60 : 110, decay: big ? 0.25 : 0.12, gain: big ? 0.12 : 0.07 })
+    // the bell rattles
+    tone({ freq: 2350, at: 0.02, decay: 0.25, gain: 0.02 })
+  },
+  splash() {
+    if (!ready()) return
+    noise({ dur: 0.35, gain: 0.08, type: 'highpass', freq: 1800, freqEnd: 700, q: 0.6 })
+    noise({ dur: 0.2, gain: 0.05, type: 'bandpass', freq: 600, q: 1.5, at: 0.05 })
+  },
+  chicken() {
+    if (!ready()) return
+    for (let i = 0; i < 4; i++) tone({ freq: 900 + Math.random() * 500, freqEnd: 600, type: 'square', at: i * 0.07, decay: 0.05, gain: 0.025, filter: { freq: 2000 } })
+  },
+  horn() {
+    if (!ready()) return
+    for (const at of [0, 0.22]) {
+      tone({ freq: 392, type: 'square', at, decay: 0.16, gain: 0.03, filter: { freq: 1200 } })
+      tone({ freq: 494, type: 'square', at, decay: 0.16, gain: 0.025, filter: { freq: 1200 } })
+    }
+  },
+}
+
+/**
+ * The sound of riding: tyre hiss and wind rising with speed, the freewheel
+ * ticking when you stop pedalling, a little more push when you pecut.
+ * update() is called every frame; stop() when the race screen closes.
+ */
+export function createBikeSound() {
+  if (!ctx) return { update() {}, stop() {} }
+  const src = ctx.createBufferSource()
+  src.buffer = noiseBuffer
+  src.loop = true
+  const filter = ctx.createBiquadFilter()
+  filter.type = 'bandpass'
+  filter.frequency.value = 500
+  filter.Q.value = 0.6
+  const gain = ctx.createGain()
+  gain.gain.value = 0
+  src.connect(filter).connect(gain).connect(sfxBus)
+  src.start()
+  let tick = 0
+  let stopped = false
+  return {
+    update(speed, { pedalling, boosting, dt }) {
+      if (stopped || !ready()) return
+      const v = Math.min(1, speed / 10)
+      const t = ctx.currentTime
+      gain.gain.setTargetAtTime(v * v * (boosting ? 0.11 : 0.07), t, 0.1)
+      filter.frequency.setTargetAtTime(380 + v * 900 + (boosting ? 300 : 0), t, 0.1)
+      // freewheel: tick-tick-tick while rolling without pedalling
+      if (!pedalling && speed > 0.8) {
+        tick -= dt * (6 + speed * 3)
+        if (tick <= 0) {
+          tick = 1
+          tone({ freq: 3200 + Math.random() * 300, decay: 0.012, gain: 0.012 })
+        }
+      }
+    },
+    stop() {
+      stopped = true
+      try {
+        gain.gain.setTargetAtTime(0, ctx.currentTime, 0.05)
+        src.stop(ctx.currentTime + 0.2)
+      } catch {
+        // already stopped
+      }
+    },
+  }
 }

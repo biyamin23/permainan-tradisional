@@ -69,6 +69,10 @@ export function Player({ gender, enabled }) {
   useEffect(() => {
     if (visual.current) visual.current.rotation.y = facing.current
   }, [])
+  // Space pressed while a game was open (pecut, buttons) isn't a hop when you come back
+  useEffect(() => {
+    if (enabled) consumeJump()
+  }, [enabled])
 
   useFrame((_, delta) => {
     const rb = body.current

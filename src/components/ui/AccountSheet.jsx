@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { sfx } from '../../audio/engine'
 import { authActions, explain, useAuth } from '../../cloud/auth'
 import { fetchLeaderboard } from '../../cloud/leaderboard'
+import { fetchRaceLeaderboard } from '../../cloud/raceTimes'
+import { getBicycle } from '../../games/lumba-basikal/bicycles'
+import { TRACKS } from '../../games/lumba-basikal/tracks'
 import { SCREENS, playerActions } from '../../state/playerState'
 import './account.css'
 
@@ -10,7 +13,15 @@ const BOARD_GAMES = [
   { id: 'dam', name: 'Dam Haji', emoji: '⚪' },
   { id: 'sepak-raga', name: 'Sepak Raga', emoji: '🏐', best: 'mata' },
   { id: 'ting-ting', name: 'Teng-Teng', emoji: '👣' },
+  // ranked by best lap on each litar, not by wins
+  { id: 'lumba-basikal', name: 'Lumba Basikal', emoji: '🚲', race: true },
 ]
+
+const lapTime = (ms) => {
+  const s = ms / 1000
+  const m = Math.floor(s / 60)
+  return `${String(m).padStart(2, '0')}:${(s - m * 60).toFixed(1).padStart(4, '0')}`
+}
 
 const KIND = {
   google: { icon: '🟢', label: 'Akaun Google' },
@@ -30,34 +41,44 @@ function Row({ r, mine, game }) {
         {r.name}
         {mine && <em> (kamu)</em>}
       </span>
-      <span className="ac-stat">
-        <span className="ac-stat__wins">
-          <b>{r.wins}</b> menang
+      {game.race ? (
+        <span className="ac-stat">
+          <span className="ac-stat__wins">
+            <b>{lapTime(r.best_ms)}</b>
+          </span>
+          <small>{getBicycle(r.bike_id).name}</small>
         </span>
-        {game.best && r.best > 0 && (
-          <small>
-            terbaik {r.best} {game.best}
-          </small>
-        )}
-      </span>
+      ) : (
+        <span className="ac-stat">
+          <span className="ac-stat__wins">
+            <b>{r.wins}</b> menang
+          </span>
+          {game.best && r.best > 0 && (
+            <small>
+              terbaik {r.best} {game.best}
+            </small>
+          )}
+        </span>
+      )}
     </li>
   )
 }
 
 function Leaderboard({ userId }) {
   const [game, setGame] = useState(BOARD_GAMES[0])
+  const [track, setTrack] = useState(TRACKS[0].id)
   const [state, setState] = useState({ loading: true })
 
   useEffect(() => {
     let live = true
     setState({ loading: true })
-    fetchLeaderboard(game.id, userId)
+    ;(game.race ? fetchRaceLeaderboard(track, userId) : fetchLeaderboard(game.id, userId))
       .then((data) => live && setState(data))
       .catch((err) => live && setState({ error: explain(err) }))
     return () => {
       live = false
     }
-  }, [game, userId])
+  }, [game, track, userId])
 
   return (
     <div className="ac-board">
@@ -78,12 +99,33 @@ function Leaderboard({ userId }) {
           </button>
         ))}
       </div>
+      {game.race && (
+        <div className="ac-chips ac-chips--sub" role="tablist" aria-label="Litar">
+          {TRACKS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={t.id === track}
+              className={`ac-chip ${t.id === track ? 'is-on' : ''}`}
+              onClick={() => {
+                sfx.tap()
+                setTrack(t.id)
+              }}
+            >
+              {t.level} · {t.name}
+            </button>
+          ))}
+        </div>
+      )}
       {state.loading ? (
         <p className="ac-empty">Memuatkan…</p>
       ) : state.error ? (
         <p className="ac-empty">{state.error}</p>
       ) : state.top.length === 0 ? (
-        <p className="ac-empty">Belum ada sesiapa. Jadilah yang pertama menang {game.name}!</p>
+        <p className="ac-empty">
+          {game.race ? 'Belum ada masa di litar ini. Jadilah yang pertama!' : `Belum ada sesiapa. Jadilah yang pertama menang ${game.name}!`}
+        </p>
       ) : (
         <ol className="ac-list">
           {state.top.map((r) => (

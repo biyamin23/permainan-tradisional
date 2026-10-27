@@ -105,9 +105,9 @@ export const games = [
     place: 'Jalan Kampung',
     emoji: '🚲',
     tagline: 'Kayuh laju-laju sepanjang jalan kampung.',
-    status: GAME_STATUS.COMING_SOON,
+    status: GAME_STATUS.AVAILABLE,
     modes: ['solo', 'multiplayer'],
-    players: '2–6 pemain',
+    players: '1 lawan Kamarul',
     accent: '#7a3fa0',
     spot: spotAt(206, 444, 4.6, 2.08), // local +z runs along the road
     map: [130, 382],

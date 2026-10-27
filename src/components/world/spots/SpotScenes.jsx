@@ -17,6 +17,7 @@ import { KedaiKopi } from './KedaiKopi'
 import { PAK_TEAM } from '../../../games/sepak-raga/cast'
 import { RagaBall } from '../../../games/sepak-raga/RagaBall'
 import { RUKIAH } from '../../../games/teng-teng/cast'
+import { KAMARUL } from '../../../games/lumba-basikal/cast'
 import {
   DirtPatch,
   DirtRect,
@@ -634,7 +635,7 @@ const _v = new Vector3()
 const _q = new Quaternion()
 const _e = new Euler()
 
-function RacingKid({ seed, girl, lane, phase }) {
+function RacingKid({ seed, girl, look, lane, phase }) {
   const rig = useRef()
   const front = useRef()
   const rear = useRef()
@@ -675,7 +676,7 @@ function RacingKid({ seed, girl, lane, phase }) {
         <Bicycle frontWheel={front} rearWheel={rear} />
       </group>
       <group position={[0, 0.05, -0.18]}>
-        <PersonModel build="kid" look={kidLook(seed, girl)} pose="ride" motionRef={motion} detail={false} />
+        <PersonModel build="kid" look={look ?? kidLook(seed, girl)} pose="ride" motionRef={motion} detail={false} />
       </group>
     </group>
   )
@@ -684,7 +685,8 @@ function RacingKid({ seed, girl, lane, phase }) {
 export function LumbaBasikalScene({ game }) {
   return (
     <group>
-      <RacingKid seed={100} lane={-0.7} phase={0} />
+      {/* Kamarul, always out front practising */}
+      <RacingKid seed={100} look={KAMARUL.look} lane={-0.7} phase={0} />
       <RacingKid seed={101} girl lane={0.7} phase={0.25} />
       <Kid seed={102} pose="cheer" position={[3.2, 0, 1]} rotationY={-Math.PI / 2} />
       <KidBubble game={game} position={[3.2, 1.6, 1]} maxDistance={game.spot.radius + 8} />

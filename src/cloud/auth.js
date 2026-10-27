@@ -2,6 +2,7 @@ import { createStore } from '../state/createStore'
 import { SCREENS, playerActions } from '../state/playerState'
 import { cloudEnabled, getClient } from './client'
 import { forgetOwner, pullRecords } from './records'
+import { pullRaceTimes } from './raceTimes'
 
 /**
  * Who is logged in. status: 'loading' → 'out' | 'in'.
@@ -60,7 +61,7 @@ async function applySession(sb, session) {
   if (profile) playerActions.setProfile(profile)
   authStore.setState({ status: 'in', user, kind: kindOf(user), email: user.email ?? null, profile })
   // records hang off the profile, so they wait until the character is made
-  if (profile) pullRecords(sb, user.id)
+  if (profile) pullRecords(sb, user.id).then(() => pullRaceTimes(sb, user.id))
 }
 
 /** Start listening for the session (call once at startup). */
@@ -199,7 +200,7 @@ export const authActions = {
       .from('profiles')
       .upsert({ id: user.id, ...profile, is_guest: kind === 'guest', updated_at: new Date().toISOString() })
     if (error) console.warn('[cloud] simpan profil', error.message)
-    else pullRecords(sb, user.id)
+    else pullRecords(sb, user.id).then(() => pullRaceTimes(sb, user.id))
   },
 
   async signOut() {
