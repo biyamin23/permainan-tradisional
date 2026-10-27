@@ -13,7 +13,7 @@
  * hills      a stretch of road over a bukit kecil: { at, len (fraction), h (m) }
  * mud        lumpur patches that slow you down
  * shortcuts  a narrow dirt path across the inside of a bend, from `from` to `to`
- * obstacles  ayam | lopak | batu | ranting | motosikal | orang
+ * obstacles  ayam | lopak | lubang | batu | ranting | motosikal | orang
  * scenery    houses / warung / kebun / palms placed beside the road
  * kamarul    the AI's level on this track: easy | medium | hard
  */
@@ -44,6 +44,7 @@ export const TRACKS = [
       { type: 'batu', at: 0.62, lat: 2.4 },
       { type: 'ayam', at: 0.71, lat: 1 },
       { type: 'lopak', at: 0.79, lat: -2 },
+      { type: 'lubang', at: 0.55, lat: -1.8 },
     ],
     scenery: { houses: 9, warung: [{ at: 0.08, side: 1 }], kebun: [], palms: 26, trees: 70 },
   },
@@ -76,6 +77,9 @@ export const TRACKS = [
       { type: 'ranting', at: 0.7, lat: -1.2 },
       { type: 'orang', at: 0.8 },
       { type: 'batu', at: 0.92, lat: 1.5 },
+      { type: 'lubang', at: 0.16, lat: 1.2 },
+      { type: 'lubang', at: 0.68, lat: -0.9 },
+      { type: 'lubang', at: 0.88, lat: 0.4 },
     ],
     scenery: { houses: 8, warung: [{ at: 0.9, side: -1 }], kebun: [{ from: 0.55, to: 0.7, side: 1 }], palms: 20, trees: 80 },
   },
@@ -108,6 +112,10 @@ export const TRACKS = [
       { type: 'orang', at: 0.79 },
       { type: 'ayam', at: 0.9, lat: -0.8 },
       { type: 'ranting', at: 0.95, lat: 0.6 },
+      { type: 'lubang', at: 0.07, lat: 0.9 },
+      { type: 'lubang', at: 0.37, lat: -0.6 },
+      { type: 'lubang', at: 0.53, lat: 0.5 },
+      { type: 'lubang', at: 0.71, lat: -1.0 },
     ],
     scenery: { houses: 6, warung: [{ at: 0.04, side: -1 }], kebun: [{ from: 0.06, to: 0.18, side: -1 }], palms: 16, trees: 110 },
   },
@@ -115,9 +123,12 @@ export const TRACKS = [
 
 export const getTrack = (id) => TRACKS.find((t) => t.id === id) ?? TRACKS[0]
 
-/** Kamarul's level by track. */
+/**
+ * Kamarul's level by track. aggression: how keen he is to himpit you
+ * (lean into you when you're side by side).
+ */
 export const AI_LEVELS = {
-  easy: { label: 'Mudah', pace: 0.84, corner: 4.6, mistakes: 0.05, boost: 0.25, shortcut: 0, reaction: 0.55, catchUp: 0.9 },
-  medium: { label: 'Biasa', pace: 0.94, corner: 5.4, mistakes: 0.03, boost: 0.6, shortcut: 0.45, reaction: 0.35, catchUp: 1 },
-  hard: { label: 'Jaguh', pace: 1.0, corner: 6.2, mistakes: 0.015, boost: 1, shortcut: 1, reaction: 0.2, catchUp: 1.08 },
+  easy: { label: 'Mudah', pace: 0.93, corner: 5.4, mistakes: 0.03, boost: 0.5, shortcut: 0.3, reaction: 0.4, catchUp: 1, aggression: 0.45 },
+  medium: { label: 'Biasa', pace: 1.02, corner: 6.3, mistakes: 0.015, boost: 0.85, shortcut: 0.7, reaction: 0.25, catchUp: 1.08, aggression: 0.75 },
+  hard: { label: 'Jaguh', pace: 1.08, corner: 7.1, mistakes: 0.007, boost: 1, shortcut: 1, reaction: 0.12, catchUp: 1.14, aggression: 1 },
 }

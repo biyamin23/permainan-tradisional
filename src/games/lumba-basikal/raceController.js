@@ -91,11 +91,10 @@ export function createRace({ track, playerBike, kamarulBike, onEvent }) {
     stepRacer(track, you, yourInput, dt, obstacles, race.clock)
     const kInput = thinkKamarul(ai, track, kamarul, you, obstacles, race.time, dt, racing)
     stepRacer(track, kamarul, kInput, dt, obstacles, race.clock)
-    if (separate(you, kamarul)) {
-      if (race.clock - (race.lastBump ?? -9) > 1.5) {
-        race.lastBump = race.clock
-        raceSfx.knock(false)
-      }
+    const contact = separate(you, kamarul, ai.state === 'BUMP' ? kamarul : null)
+    if (contact && race.clock - (race.lastBump ?? -9) > 1.2) {
+      race.lastBump = race.clock
+      raceSfx.knock(contact === 'shove')
     }
     if (racing) race.time += dt
     if (racing) {
@@ -105,12 +104,16 @@ export function createRace({ track, playerBike, kamarulBike, onEvent }) {
 
     // ----- moments
     for (const e of you.events) {
-      if (e === 'hit' || e === 'stun') {
-        raceSfx.knock(e === 'stun')
+      if (e === 'hit' || e === 'stun' || e === 'fall') {
+        raceSfx.knock(e !== 'hit')
         if (you.lastHit === 'ayam') raceSfx.chicken()
         if (you.lastHit === 'motosikal') raceSfx.horn()
-        onEvent({ type: 'hit', who: 'you', big: e === 'stun', what: you.lastHit })
-        if (e === 'stun') say('PLAYER_CRASH')
+        onEvent({ type: 'hit', who: 'you', big: e !== 'hit', fall: e === 'fall', what: you.lastHit })
+        if (e !== 'hit') say('PLAYER_CRASH')
+      }
+      if (e === 'shoved') {
+        onEvent({ type: 'shoved' })
+        say('KAMARUL_BUMP')
       }
       if (e === 'splash') raceSfx.splash()
       if (e === 'checkpoint') {
@@ -124,10 +127,10 @@ export function createRace({ track, playerBike, kamarulBike, onEvent }) {
       }
     }
     for (const e of kamarul.events) {
-      if (e === 'hit' || e === 'stun') {
+      if (e === 'hit' || e === 'stun' || e === 'fall') {
         if (kamarul.lastHit === 'ayam') raceSfx.chicken()
         say('KAMARUL_CRASH')
-        onEvent({ type: 'hit', who: 'kamarul', big: e === 'stun', what: kamarul.lastHit })
+        onEvent({ type: 'hit', who: 'kamarul', big: e !== 'hit', fall: e === 'fall', what: kamarul.lastHit })
       }
     }
 

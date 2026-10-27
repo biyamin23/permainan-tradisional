@@ -6,6 +6,7 @@ import { createBikeSound } from '../../audio/engine'
 import { PersonModel } from '../../components/character/PersonModel'
 import { FOOT_H } from '../../components/character/characterAnimation'
 import { analyseBike, buildBike, pedalPositions } from './bikeRig'
+import { FALL_TIME } from './raceSim'
 import { TrackScene } from './TrackScene'
 
 /**
@@ -46,6 +47,16 @@ export function riderFit(rider) {
 
 const _feet = { L: [0, 0], R: [0, 0] }
 
+/** 0 riding → 1 lying on the ground, through a fall (see FALL_TIME). */
+function fallAmount(r) {
+  if (r.fallT <= 0) return 0
+  const t = FALL_TIME - r.fallT
+  if (t < 0.35) return Math.sin((t / 0.35) * (Math.PI / 2))
+  if (t < FALL_TIME - 0.75) return 1
+  const u = (t - (FALL_TIME - 0.75)) / 0.75
+  return 1 - u * u * (3 - 2 * u)
+}
+
 /** The rider measurements of a bike drawn `s` times bigger. */
 function scaledRider(rider, s) {
   if (s === 1) return rider
@@ -69,6 +80,7 @@ function BikeRider({ racer, race, look, url, scale = 1, sound }) {
   const root = useRef()
   const pitch = useRef()
   const lean = useRef()
+  const seat = useRef()
   const motion = useRef({ cycle: { L: [0, 0], R: [0, 0], grip: fit.grip, lean: fit.lean, cheer: 0, look: 0 } })
   const bikeSound = useRef(null)
 
@@ -89,7 +101,11 @@ function BikeRider({ racer, race, look, url, scale = 1, sound }) {
     pitch.current.rotation.x = MathUtils.damp(pitch.current.rotation.x, -r.pitch, 10, delta)
     // a stun knocks the bike over a little before it rights itself
     const knock = r.stun > 0 ? Math.sin(Math.min(1, r.stun / 1.1) * Math.PI) * 0.45 : 0
-    lean.current.rotation.z = r.lean + knock * (r.lean >= 0 ? 1 : -1)
+    // off the bike: down onto its side in a blink, slide, then lifted back up
+    const down = fallAmount(r)
+    lean.current.rotation.z = (r.lean + knock * (r.lean >= 0 ? 1 : -1)) * (1 - down) + down * 1.42 * r.fallDir
+    seat.current.position.x = -r.fallDir * down * 0.35
+    seat.current.position.y = fit.y - down * 0.12
     const wob = r.wobble * Math.sin(r.wobblePhase)
     bike.pose(r.steer * 0.42 + wob * 0.5, r.distance, r.crank)
 
@@ -113,7 +129,7 @@ function BikeRider({ racer, race, look, url, scale = 1, sound }) {
       <group ref={pitch}>
         <group ref={lean}>
           <primitive object={bike.root} scale={scale} />
-          <group position={[0, fit.y, fit.z]}>
+          <group ref={seat} position={[0, fit.y, fit.z]}>
             <PersonModel build="kid" look={look} pose="cycle" motionRef={motion} />
           </group>
         </group>
@@ -231,6 +247,19 @@ function StaticObstacle({ o, track }) {
         </mesh>
       </group>
     )
+  if (o.type === 'lubang')
+    return (
+      <group position={[o.x, y + 0.042, o.z]} rotation={[-Math.PI / 2, 0, o.k * 1.3]}>
+        <mesh scale={[1.15, 0.85, 1]}>
+          <circleGeometry args={[o.radius + 0.12, 9]} />
+          <meshStandardMaterial color="#7a6a58" roughness={1} />
+        </mesh>
+        <mesh position={[0, 0, 0.004]} scale={[1.05, 0.78, 1]}>
+          <circleGeometry args={[o.radius, 9]} />
+          <meshStandardMaterial color="#2c241d" roughness={1} />
+        </mesh>
+      </group>
+    )
   if (o.type === 'batu')
     return (
       <mesh position={[o.x, y + 0.14, o.z]} rotation={[o.k, o.k * 2, 0]} scale={[1, 0.6, 0.9]} castShadow>
@@ -319,7 +348,8 @@ function RaceCamera({ race }) {
     }
 
     // a knock shakes the view a touch
-    if (you.events.includes('stun')) s.shake = 0.18
+    if (you.events.includes('stun') || you.events.includes('fall')) s.shake = 0.22
+    if (you.events.includes('shoved')) s.shake = Math.max(s.shake, 0.1)
     if (you.events.includes('hit')) s.shake = Math.max(s.shake, 0.07)
     s.shake *= Math.exp(-6 * dt)
 

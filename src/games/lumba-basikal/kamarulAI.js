@@ -8,7 +8,10 @@ import { progressOf } from './raceSim'
  * stretch, takes shortcuts when he's good enough, and now and then makes a
  * small mistake. He presses the same virtual keys you do.
  *
- * States: START → ACCELERATE → FOLLOW_ROUTE ⇄ OVERTAKE / DEFEND /
+ * He also plays rough: side by side with you, he leans in and himpit-s you
+ * (BUMP) to shove you off his line, more often the harder the litar.
+ *
+ * States: START → ACCELERATE → FOLLOW_ROUTE ⇄ OVERTAKE / DEFEND / BUMP /
  *         AVOID_OBSTACLE / RECOVER → FINAL_STRETCH → FINISH → CELEBRATE | LOSE
  */
 
@@ -40,6 +43,9 @@ export function makeKamarulAI(track, level) {
     mistake: 0,
     mistakeT: 0,
     goAt: null,
+    bumpT: 0, // > 0 while he's leaning into you
+    bumpCooldown: 3,
+    shoves: 0, // this race; capped by level so it stays rough, not a wrestling match
     takeShortcut: track.shortcuts.map(() => Math.random() < level.shortcut),
     input: { throttle: 0, brake: 0, steer: 0, boost: false },
   }
@@ -90,16 +96,32 @@ export function thinkKamarul(ai, track, me, you, obstacles, time, dt, racing) {
   const gap = yourProg - myProg // + = you are ahead
   const latGap = you.lat - me.lat
 
+  // ----- himpit: side by side, he leans in to shove you off his line
+  ai.bumpCooldown -= dt
+  ai.bumpT -= dt
+  const alongside = Math.abs(gap) < 2.4 && Math.abs(latGap) < 2.6 && you.fallT <= 0 && me.fallT <= 0 && !you.finished
+  const maxShoves = Math.round(1 + lv.aggression * 4)
+  if (alongside && ai.shoves < maxShoves && ai.bumpT <= 0 && ai.bumpCooldown <= 0 && Math.random() < lv.aggression * dt * 2.5) {
+    ai.shoves++
+    ai.bumpT = 1.1 + Math.random() * 0.6
+    ai.bumpCooldown = 4 + Math.random() * 4 - lv.aggression * 1.5
+  }
+  // one good shove is enough; then back to racing
+  if (you.events.includes('shoved') || you.fallT > 0) ai.bumpT = Math.min(ai.bumpT, 0)
+  if (!alongside) ai.bumpT = Math.min(ai.bumpT, 0.2)
+
   // ----- choose a state
-  if (me.stun > 0 || (ai.state === 'RECOVER' && ai.stateT < 0.7)) setState(ai, 'RECOVER')
-  else if (me.final) setState(ai, 'FINAL_STRETCH')
-  else if (me.speed < me.bike.maxSpeed * 0.55 && ai.state !== 'OVERTAKE') setState(ai, 'ACCELERATE')
+  if (me.stun > 0 || me.fallT > 0 || (ai.state === 'RECOVER' && ai.stateT < 0.7)) setState(ai, 'RECOVER')
+  else if (ai.bumpT > 0) setState(ai, 'BUMP')
   else {
+    // something in the road comes first, even with the line in sight
     const threat = obstacleAhead(track, me, obstacles)
     if (threat) {
       setState(ai, 'AVOID_OBSTACLE')
       ai.offsetTarget = threat.side - ai.line[me.i]
-    } else if (gap > 0 && gap < 7 && Math.abs(latGap) < 1.4) setState(ai, 'OVERTAKE')
+    } else if (me.final) setState(ai, 'FINAL_STRETCH')
+    else if (me.speed < me.bike.maxSpeed * 0.55 && ai.state !== 'OVERTAKE') setState(ai, 'ACCELERATE')
+    else if (gap > 0 && gap < 7 && Math.abs(latGap) < 1.4) setState(ai, 'OVERTAKE')
     else if (gap < 0 && gap > -6 && lv.catchUp >= 1) setState(ai, 'DEFEND')
     else setState(ai, 'FOLLOW_ROUTE')
   }
@@ -113,6 +135,9 @@ export function thinkKamarul(ai, track, me, you, obstacles, time, dt, racing) {
   } else if (ai.state === 'DEFEND') {
     // drift towards your line, not perfectly
     ai.offsetTarget = (you.lat - ai.line[me.i]) * 0.6
+  } else if (ai.state === 'BUMP') {
+    // aim just past your line so the bikes meet
+    ai.offsetTarget = you.lat + Math.sign(latGap || 1) * 0.15 - ai.line[me.i]
   } else if (ai.state !== 'AVOID_OBSTACLE') ai.offsetTarget = 0
 
   // small mistakes: running wide or a look over the shoulder
@@ -123,7 +148,8 @@ export function thinkKamarul(ai, track, me, you, obstacles, time, dt, racing) {
     ai.lookBack = ai.mistake === 0
   }
   const wide = ai.mistakeT > 0 ? ai.mistake : 0
-  ai.offset += (ai.offsetTarget + wide - ai.offset) * (1 - Math.exp(-1.8 * dt))
+  const quick = ai.state === 'BUMP' || ai.state === 'AVOID_OBSTACLE'
+  ai.offset += (ai.offsetTarget + wide - ai.offset) * (1 - Math.exp(-(quick ? 4.5 : 1.8) * dt))
 
   // ----- steer at a point ahead on his line (or along a shortcut)
   const look = Math.round((3 + me.speed * 0.55) / track.ds)
@@ -156,7 +182,11 @@ export function thinkKamarul(ai, track, me, you, obstacles, time, dt, racing) {
   if (gap < -30) pace *= 2 - lv.catchUp - 0.06 // far ahead: ease off
   else if (gap > 25) pace *= lv.catchUp + 0.04 // far behind: dig in
   if (ai.lookBack && ai.mistakeT > 0) pace *= 0.86
-  const target = Math.min(me.bike.maxSpeed * pace * (me.boosting ? 1.2 : 1), cornerSpeed)
+  let target = Math.min(me.bike.maxSpeed * pace * (me.boosting ? 1.2 : 1), cornerSpeed)
+  // leaning in: match your speed so he stays alongside
+  if (ai.state === 'BUMP' && gap > -0.5) target = Math.min(target, Math.max(you.speed + 0.6, 2))
+  // swerving round a lubang or batu: ease off enough to make the line
+  if (ai.state === 'AVOID_OBSTACLE') target *= 0.86
   inp.throttle = me.speed < target - 0.2 ? 1 : me.speed < target ? 0.5 : 0
   inp.brake = me.speed > target + 0.9 ? Math.min(1, (me.speed - target) / 3) : 0
   if (ai.state === 'RECOVER') inp.throttle = ai.stateT > 0.35 ? 1 : 0
@@ -187,14 +217,17 @@ function shortcutFor(ai, track, me) {
 function obstacleAhead(track, me, obstacles) {
   for (const o of obstacles) {
     const ahead = track.wrap(o.i - me.i)
-    if (ahead <= 0 || ahead > 12 / track.ds) continue
+    if (ahead <= 0 || ahead > 18 / track.ds) continue
     if (o.type === 'motosikal' || o.type === 'orang') {
       if (!o.moving) continue
     }
     const oLat = o.lat ?? 0
     if (Math.abs(oLat - me.lat) > o.radius + 0.9) continue
     const half = track.width[me.i] / 2 - 0.6
-    const side = oLat > 0 ? Math.max(-half, oLat - o.radius - 1.1) : Math.min(half, oLat + o.radius + 1.1)
+    // go round on the side with more road
+    const left = oLat - o.radius - 1.0
+    const right = oLat + o.radius + 1.0
+    const side = -half <= left && (oLat > 0 || right > half) ? left : Math.min(half, right)
     return { side }
   }
   return null

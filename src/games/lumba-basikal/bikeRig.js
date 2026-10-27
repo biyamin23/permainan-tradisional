@@ -95,8 +95,8 @@ function extract(src, parts, pivot) {
 }
 
 /** Split one bike model. Returns shared geometries + where the rider goes. */
-export function analyseBike(url, scene) {
-  if (cache.has(url)) return cache.get(url)
+export function analyseBike(url, scene, opts = {}) {
+  if (cache.has(url) && !opts.debug) return cache.get(url)
   let mesh = null
   scene.traverse((o) => {
     if (!mesh && o.isMesh) mesh = o
@@ -118,11 +118,16 @@ export function analyseBike(url, scene) {
   const main = wheels.slice(0, 2).sort((a, b) => b.hub.z - a.hub.z) // [front, rear]
   const [front, rear] = main
   const used = new Set()
-  // a piece belongs to a wheel if it sits entirely inside the wheel's disc
+  // a piece belongs to a wheel if it sits entirely inside the wheel's disc and is
+  // either centred on the hub (tyre, rim, axle) or a thin spoke in the wheel's plane
+  // that stops at the rim. Kickstands (down to the ground) and the roda sisi
+  // brackets (out to the side) start at the hub too, but they don't turn.
   const inside = (c, w, slack = 1.07) => {
     if (Math.abs(c.c[0] - w.hub.x) > 0.14 || c.s[1] > w.r * 2.04 || c.s[2] > w.r * 2.04) return false
     for (const y of [c.lo[1], c.hi[1]]) for (const z of [c.lo[2], c.hi[2]]) if (Math.hypot(y - w.hub.y, z - w.hub.z) > w.r * slack) return false
-    return true
+    const centred = Math.abs(c.c[1] - w.hub.y) < w.r * 0.12 && Math.abs(c.c[2] - w.hub.z) < w.r * 0.12
+    const spoke = c.s[0] < 0.08 && c.lo[1] > w.hub.y - w.r * 0.93
+    return centred || spoke
   }
   for (const w of [...wheels].sort((a, b) => a.r - b.r)) {
     for (const c of comps) {
@@ -211,6 +216,7 @@ export function analyseBike(url, scene) {
     wheelR: rear.r,
     length: front.hub.z - rear.hub.z + front.r + rear.r,
   }
+  if (opts.debug) result.debugWheels = wheels
   cache.set(url, result)
   return result
 }

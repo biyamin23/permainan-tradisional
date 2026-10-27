@@ -160,8 +160,28 @@ function TrackMap({ def }) {
   )
 }
 
-function TrackSelect({ bike, onPick, onBack }) {
+/** What you'll meet on a litar, for the picker. */
+function trackFeatures(def) {
+  const count = (type) => def.obstacles.filter((o) => o.type === type).length
+  const f = []
+  if (def.bridges.length) f.push(`🌉 Jambatan ×${def.bridges.length}`)
+  if (def.shortcuts.length) f.push('🔀 Jalan pintas')
+  if (def.hills.length) f.push('⛰️ Bukit')
+  if (def.mud.length) f.push('🟫 Lumpur')
+  if (count('lubang')) f.push(`🕳️ Lubang ×${count('lubang')}`)
+  if (count('lopak')) f.push('💧 Lopak')
+  if (count('ayam')) f.push('🐔 Ayam')
+  if (count('motosikal')) f.push('🛵 Motosikal')
+  if (count('orang')) f.push('🚶 Orang lalu')
+  if (count('batu') + count('ranting')) f.push('🪨 Batu & ranting')
+  if (def.narrow.length) f.push('↔️ Jalan sempit')
+  return f
+}
+
+function TrackSelect({ bike, startId, onPick, onBack }) {
   const records = useMemo(() => loadRecords(), [])
+  const [index, setIndex] = useState(() => Math.max(0, TRACKS.findIndex((t) => t.id === startId)))
+  const t = TRACKS[index]
   // the fastest in the kampung on each litar (from the leaderboard; none offline)
   const [champs, setChamps] = useState({})
   useEffect(() => {
@@ -171,6 +191,25 @@ function TrackSelect({ bike, onPick, onBack }) {
       live = false
     }
   }, [])
+  const go = useCallback((d) => {
+    sfx.tap()
+    setIndex((i) => (i + d + TRACKS.length) % TRACKS.length)
+  }, [])
+  const pick = useCallback(() => {
+    sfx.select()
+    onPick(TRACKS[index].id)
+  }, [index, onPick])
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a') go(-1)
+      if (e.key === 'ArrowRight' || e.key === 'd') go(1)
+      if (e.key === 'Enter') pick()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [go, pick])
+  const mine = records.tracks[t.id]
+  const champ = champs[t.id]
   return (
     <div className="lb-select">
       <h2 className="lb-title">Pilih litar</h2>
@@ -180,40 +219,63 @@ function TrackSelect({ bike, onPick, onBack }) {
           tukar
         </button>
       </p>
-      <div className="lb-tracks">
-        {TRACKS.map((t) => (
-          <article key={t.id} className="lb-track" style={{ '--accent': t.color }}>
-            <header>
-              <span className="lb-track__level">{t.level}</span>
-              <span className="lb-track__stars" aria-label={`${t.stars} bintang`}>
-                {'★'.repeat(t.stars)}
-                <span>{'★'.repeat(3 - t.stars)}</span>
-              </span>
-            </header>
-            <h3>{t.name}</h3>
-            <TrackMap def={t} />
-            <p>{t.description}</p>
-            <p className="lb-track__small">
-              Kamarul: {AI_LEVELS[t.kamarul].label}
-              {records.tracks[t.id] && <> · Rekod kamu {clock(records.tracks[t.id].best)}</>}
-            </p>
-            {champs[t.id] && (
-              <p className="lb-track__small lb-track__champ">
-                🏆 {champs[t.id].name} {clock(champs[t.id].best_ms / 1000)}
-              </p>
-            )}
+      <div className="lb-stage">
+        <button type="button" className="lb-arrow" aria-label="Litar sebelum" onClick={() => go(-1)}>
+          ◀
+        </button>
+        <div className="lb-preview lb-preview--map" style={{ '--accent': t.color }} key={t.id}>
+          <span className="lb-preview__level">{t.level}</span>
+          <span className="lb-preview__stars" aria-label={`${t.stars} bintang`}>
+            {'★'.repeat(t.stars)}
+            <span>{'★'.repeat(3 - t.stars)}</span>
+          </span>
+          <TrackMap def={t} />
+        </div>
+        <button type="button" className="lb-arrow" aria-label="Litar seterusnya" onClick={() => go(1)}>
+          ▶
+        </button>
+      </div>
+      <div className="lb-card" style={{ '--accent': t.color }}>
+        <h3 className="lb-card__name">{t.name}</h3>
+        <p className="lb-card__desc">{t.description}</p>
+        <ul className="lb-features">
+          {trackFeatures(t).map((f) => (
+            <li key={f}>{f}</li>
+          ))}
+        </ul>
+        <p className="lb-card__facts">
+          Kamarul: <b>{AI_LEVELS[t.kamarul].label}</b>
+          {mine && (
+            <>
+              {' '}
+              · Rekod kamu <b>{clock(mine.best)}</b>
+            </>
+          )}
+        </p>
+        {champ && (
+          <p className="lb-card__facts lb-track__champ">
+            🏆 Juara kampung: {champ.name} {clock(champ.best_ms / 1000)}
+          </p>
+        )}
+        <div className="lb-dots" role="tablist" aria-label="Litar">
+          {TRACKS.map((x, k) => (
             <button
+              key={x.id}
               type="button"
-              className="gs-btn lb-track__go"
+              role="tab"
+              aria-selected={k === index}
+              aria-label={x.name}
+              className={k === index ? 'is-on' : ''}
               onClick={() => {
-                sfx.select()
-                onPick(t.id)
+                sfx.tap()
+                setIndex(k)
               }}
-            >
-              Pilih
-            </button>
-          </article>
-        ))}
+            />
+          ))}
+        </div>
+        <button type="button" className="gs-btn lb-track__go" onClick={pick}>
+          Pilih
+        </button>
       </div>
     </div>
   )
@@ -390,7 +452,12 @@ function Race({ bike, trackId, onPickTrack, onExit, onAgain }) {
         showToast(e.who === 'you' ? 'Kamu di depan!' : 'Kamarul potong!', e.who === 'you' ? 'good' : 'them')
         break
       case 'hit':
-        if (e.who === 'you') showToast(e.big ? 'Aduh!' : e.what === 'ayam' ? 'Ayam!' : 'Goyang!', 'bad', 900)
+        if (e.who === 'you')
+          showToast(e.fall ? (e.what === 'lubang' ? 'JATUH! Lubang!' : e.what === 'edge' ? 'JATUH longkang!' : 'JATUH!') : e.big ? 'Aduh!' : e.what === 'ayam' ? 'Ayam!' : e.what === 'lubang' ? 'Lubang!' : 'Goyang!', 'bad', e.fall ? 1600 : 900)
+        else if (e.fall) showToast('Kamarul jatuh!', 'good', 1200)
+        break
+      case 'shoved':
+        showToast('Kamarul himpit!', 'them', 900)
         break
       case 'winner':
         showToast(e.who === 'you' ? 'TAMAT! Kamu menang!' : 'TAMAT! Kamarul menang!', e.who === 'you' ? 'good' : 'them', 2600)
@@ -702,6 +769,7 @@ export function LumbaBasikalGame({ onExit }) {
       {screen === 'track' && (
         <TrackSelect
           bike={bike}
+          startId={trackId}
           onBack={() => setScreen('bike')}
           onPick={(id) => {
             setTrackId(id)

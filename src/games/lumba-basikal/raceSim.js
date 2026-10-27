@@ -10,6 +10,8 @@ const BOOST_SECONDS = 2.6 // a full meter
 const BOOST_RECOVER = 11 // seconds to refill from empty
 const VERGE = 1.7 // grass beside the road before the longkang
 export const RIDER_RADIUS = 0.38
+// coming off: down (0.35 s), on the ground, back on the bike; the whole thing
+export const FALL_TIME = 2.3
 const START_BACK = 7 // metres behind the line on the grid
 
 const angleDiff = (a, b) => {
@@ -38,6 +40,8 @@ export function makeRacer(track, bike, lat, name) {
     boost: 1,
     boosting: false,
     stun: 0,
+    fallT: 0, // > 0 while you're off the bike
+    fallDir: 1,
     wobble: 0,
     wobblePhase: 0,
     hitCooldown: 0,
@@ -75,6 +79,14 @@ export function stepRacer(track, r, input, dt, obstacles, time) {
     r.stun -= dt
     throttle = 0
     brake = 0.4
+    steerIn = 0
+  }
+  if (r.fallT > 0) {
+    // sliding along the ground until you stop, then picking the bike up
+    r.fallT -= dt
+    r.speed *= Math.exp(-3.2 * dt)
+    throttle = 0
+    brake = 0
     steerIn = 0
   }
   if (r.finished) {
@@ -162,7 +174,9 @@ export function stepRacer(track, r, input, dt, obstacles, time) {
       const into = Math.sign(lat) * -Math.sin(d) // heading into the edge
       if (into > 0.02) {
         // slide along it: turn parallel, scrub a little speed (a hard hit knocks you)
-        if (into > 0.35 && r.speed > 3 && r.hitCooldown <= 0) knock(r, 'edge', 0.35)
+        // head-first into the longkang at speed: you go over
+        if (into > 0.6 && r.speed > 6 - r.bike.stability) fall(r, -Math.sign(lat))
+        else if (into > 0.35 && r.speed > 3 && r.hitCooldown <= 0) knock(r, 'edge', 0.35)
         // (riding the wrong way along it stays the wrong way)
         r.heading -= angleDiff(r.heading, Math.abs(d) > Math.PI / 2 ? along + Math.PI : along)
         r.speed *= 1 - Math.min(0.6, into * 3) * dt * 4
@@ -235,6 +249,13 @@ function bump(r, amount) {
 function knock(r, type, force = 0.5) {
   const soften = 1 - r.bike.stability * 0.55
   r.hitCooldown = 0.8
+  r.lastHit = type
+  // fast enough into something solid and you come off (a steadier bike takes more)
+  const fallsAt = { motosikal: 2.5, orang: 2.5, lubang: 4.6, batu: 5.8 }[type]
+  if (fallsAt !== undefined && r.speed > fallsAt + r.bike.stability * 2.4) {
+    fall(r, r.lean >= 0 ? 1 : -1)
+    return
+  }
   if (force >= 0.9) {
     r.stun = 1.1
     r.speed *= 0.18
@@ -248,23 +269,58 @@ function knock(r, type, force = 0.5) {
   r.lastHit = type
 }
 
-/** Two bikes touching: nudge apart, a little wobble for both. */
-export function separate(a, b) {
+/** Off the bike: the rider and bike go down to one side, slide, then get back up. */
+function fall(r, dir) {
+  if (r.fallT > 0) return
+  r.fallT = FALL_TIME
+  r.fallDir = dir || 1
+  r.stun = 0
+  r.wobble = 0
+  r.hitCooldown = FALL_TIME + 0.6
+  r.events.push('fall')
+}
+
+/**
+ * Two bikes touching. `pusher` (if given) is leaning into the other one on
+ * purpose: they barely budge, the other gets shoved sideways, wobbles and
+ * loses speed, and if that shove sends them off the road at speed they may
+ * come off. Returns 'touch' | 'shove' | false.
+ */
+export function separate(a, b, pusher = null) {
   const dx = b.x - a.x
   const dz = b.z - a.z
   const d = Math.hypot(dx, dz)
   const min = RIDER_RADIUS * 2
-  if (d >= min || d === 0) return false
-  const push = (min - d) / 2
-  a.x -= (dx / d) * push
-  a.z -= (dz / d) * push
-  b.x += (dx / d) * push
-  b.z += (dz / d) * push
-  a.wobble = Math.max(a.wobble, 0.25)
-  b.wobble = Math.max(b.wobble, 0.25)
-  a.speed *= 0.97
-  b.speed *= 0.97
-  return true
+  if (d >= min || d === 0 || a.fallT > 0 || b.fallT > 0) return false
+  const overlap = min - d
+  const shove = pusher === a || pusher === b
+  const victim = pusher === a ? b : a
+  const share = shove ? (victim === a ? 0.85 : 0.15) : 0.5
+  a.x -= (dx / d) * overlap * share
+  a.z -= (dz / d) * overlap * share
+  b.x += (dx / d) * overlap * (1 - share)
+  b.z += (dz / d) * overlap * (1 - share)
+  if (!shove) {
+    a.wobble = Math.max(a.wobble, 0.25)
+    b.wobble = Math.max(b.wobble, 0.25)
+    a.speed *= 0.97
+    b.speed *= 0.97
+    return 'touch'
+  }
+  // a real shove: knocked off line, a lurch away from the pusher
+  const away = Math.sign(((victim.x - pusher.x) * Math.cos(victim.heading) - (victim.z - pusher.z) * Math.sin(victim.heading)) || 1)
+  victim.heading += away * 0.06
+  victim.wobble = Math.max(victim.wobble, 0.55 * (1.2 - victim.bike.stability * 0.5))
+  victim.speed *= 0.93
+  pusher.speed *= 0.985
+  if (victim.hitCooldown <= 0) {
+    victim.hitCooldown = 0.9
+    victim.lastHit = 'kamarul'
+    // shoved onto the verge at speed on a wobbly bike: over you go
+    if (victim.surface !== 'road' && victim.speed > 5 && Math.random() < 0.45 * (1 - victim.bike.stability * 0.7)) fall(victim, away)
+    else victim.events.push('shoved')
+  }
+  return 'shove'
 }
 
 /** Checkpoints in order, then the line. Returns the events this step. */
@@ -300,6 +356,9 @@ export function placeObstacles(track, defs) {
         return { ...base, x: p.x, z: p.z, homeLat: o.lat ?? 0, radius: 0.25, force: 0.35, respawn: 4 }
       case 'batu':
         return { ...base, x: p.x, z: p.z, radius: 0.3, force: 0.55, respawn: 1.5 }
+      case 'lubang':
+        // a pothole: a hard jolt, or over the bars if you hit it fast
+        return { ...base, x: p.x, z: p.z, radius: 0.42, force: 0.7, respawn: 1.2 }
       case 'ranting':
         return { ...base, x: p.x, z: p.z, radius: 0.45, force: 0.3, respawn: 1.5 }
       case 'motosikal':
