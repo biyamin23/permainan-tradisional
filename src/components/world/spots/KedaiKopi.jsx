@@ -209,7 +209,7 @@ function Elder({ look, pose = 'sitDrink', position, rotationY = 0, phase = 0, de
   ) : null
   return (
     <group ref={body} position={position} rotation={[0, rotationY, 0]}>
-      <PersonModel build="adult" elder look={full} pose={pose} phase={phase} detail={detail} rightHand={hand} />
+      <PersonModel build="adult" elder look={full} pose={pose} phase={phase} detail={detail} rightHand={hand} watch={worldRuntime.playerPosition} />
     </group>
   )
 }

@@ -63,6 +63,10 @@ export function KampungWorld({ gender, controlsEnabled, paused = false }) {
       dpr={[1, 1.75]}
       camera={{ fov: 50, near: 0.1, far: 700, position: [6, 16, 52] }}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
+      onCreated={({ gl, scene }) => {
+        // ?debug: let scripts read draw calls / frame stats and inspect the scene
+        if (window.location.search.includes('debug')) Object.assign(window, { __gl: gl, __scene: scene })
+      }}
     >
       <fog attach="fog" args={['#f0c08d', 60, 260]} />
       <Lighting />
@@ -87,10 +91,11 @@ export function KampungWorld({ gender, controlsEnabled, paused = false }) {
           <Life />
           <NightLights />
           <Player gender={gender} enabled={controlsEnabled} />
+          {/* inside Physics: the camera casts a ray so walls don't come between it and you */}
+          <CameraRig />
         </Physics>
       </Suspense>
 
-      <CameraRig />
       <InteractionTracker />
       <AudioDriver />
     </Canvas>

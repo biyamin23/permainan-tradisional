@@ -9,12 +9,14 @@ const KEY_BINDINGS = {
   left: ['KeyA', 'ArrowLeft'],
   right: ['KeyD', 'ArrowRight'],
   run: ['ShiftLeft', 'ShiftRight'],
+  jump: ['Space'],
 }
 
 const MOVEMENT_CODES = new Set(Object.values(KEY_BINDINGS).flat())
 
 const pressed = new Set()
 const joystick = { x: 0, y: 0 }
+let jumpQueued = false
 
 const isTypingTarget = (target) =>
   target instanceof HTMLElement &&
@@ -23,7 +25,10 @@ const isTypingTarget = (target) =>
 function onKeyDown(event) {
   if (isTypingTarget(event.target)) return
   if (!MOVEMENT_CODES.has(event.code)) return
-  if (event.code.startsWith('Arrow')) event.preventDefault()
+  // Space on a focused button presses the button, it doesn't jump
+  if (event.code === 'Space' && event.target instanceof HTMLElement && event.target.closest('button, a, [role="button"]')) return
+  if (event.code.startsWith('Arrow') || event.code === 'Space') event.preventDefault()
+  if (event.code === 'Space' && !event.repeat) jumpQueued = true
   pressed.add(event.code)
 }
 
@@ -33,6 +38,7 @@ function onKeyUp(event) {
 
 function clearAll() {
   pressed.clear()
+  jumpQueued = false
   joystick.x = 0
   joystick.y = 0
 }
@@ -77,4 +83,11 @@ export function getMoveInput() {
 
   // the joystick only walks: pushing it to the edge on a phone shouldn't make you sprint
   return { x, y, run: isDown('run') }
+}
+
+/** True once per Space press (Space to jump). */
+export function consumeJump() {
+  const queued = jumpQueued
+  jumpQueued = false
+  return queued
 }

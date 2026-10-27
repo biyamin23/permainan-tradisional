@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { CuboidCollider, CylinderCollider, RigidBody } from '@react-three/rapier'
 import { Euler, MathUtils, Quaternion, Vector3 } from 'three'
 import { useNpcBody } from '../../../state/npcBodies'
+import { worldRuntime } from '../../../state/worldRuntime'
 import { PersonModel } from '../../character/PersonModel'
 import { kidLook } from '../npc/kidLooks'
 import { ProximityBubble } from '../npc/ProximityBubble'
@@ -51,9 +52,18 @@ function Kid({ seed, girl = false, look: lookOverride, pose = 'idle', position =
   useNpcBody(body, { radius: 0.28, halfHeight: 0.42 })
   return (
     <group ref={setRef} position={position} rotation={[0, rotationY, 0]}>
-      <PersonModel build="kid" look={look} pose={pose} detail={false} {...rest} />
+      <PersonModel build="kid" look={look} pose={pose} detail={false} watch={worldRuntime.playerPosition} {...rest} />
     </group>
   )
+}
+
+/** Rukiah hopping the court; re-renders only when she changes between one foot and two. */
+function TengHopper({ motion, pose, hopper }) {
+  const [current, setCurrent] = useState('stand1')
+  useFrame(() => {
+    if (pose.current !== current) setCurrent(pose.current)
+  })
+  return <Kid look={RUKIAH.look} pose={current} groupRef={hopper} motionRef={motion} phase={0} />
 }
 
 /** Speech bubble above a kid's head. */
@@ -414,10 +424,15 @@ export function KondaKondiScene({ game }) {
 const TENG_ROWS = [1, 1, 1, 2, 1, 2, 1]
 const ROW_GAP = 0.84
 const ROW_START = -2.5
-const HOP_TIME = 0.55
+const HOP_TIME = 0.62
+const HOP_PREP = 0.18 // share of a hop spent crouching before take-off
+const HOP_HIGH = 0.22
 
 export function TengTengScene({ game }) {
   const hopper = useRef()
+  const motion = useRef({ jump: { phase: null, u: 0, vy: 0, impact: 0.6 }, look: new Vector3() })
+  const pose = useRef('stand1')
+  const poseFor = (row) => (row >= 0 && TENG_ROWS[row] === 2 ? 'stand2' : 'stand1')
   useFrame((state) => {
     const g = hopper.current
     if (!g) return
@@ -429,8 +444,26 @@ export function TengTengScene({ game }) {
     const from = forward ? step - 1 : hops * 2 - 1 - step
     const to = forward ? step : hops * 2 - 2 - step
     const zFor = (row) => ROW_START + Math.max(-1, row) * ROW_GAP
-    g.position.set(0, 0, MathUtils.lerp(zFor(from), zFor(to), p))
+    // crouch, spring, fly an arc, land on the next petak (the landing settles into the next crouch)
+    const j = motion.current.jump
+    let z = zFor(from)
+    let y = 0
+    if (p < HOP_PREP) {
+      j.phase = p < HOP_PREP * 0.4 ? 'land' : 'prep'
+      j.u = p < HOP_PREP * 0.4 ? 0.4 + p / (HOP_PREP * 0.4) * 0.6 : (p - HOP_PREP * 0.4) / (HOP_PREP * 0.6)
+    } else {
+      const u = (p - HOP_PREP) / (1 - HOP_PREP)
+      j.phase = 'air'
+      j.vy = Math.cos(u * Math.PI) * 2
+      z = MathUtils.lerp(zFor(from), zFor(to), MathUtils.smootherstep(u, 0, 1))
+      y = Math.sin(u * Math.PI) * HOP_HIGH
+    }
+    g.position.set(0, y, z)
     g.rotation.y = forward ? 0 : Math.PI
+    // eyes on the petak ahead
+    const next = forward ? Math.min(to + 1, hops - 1) : Math.max(to - 1, -1)
+    g.parent?.localToWorld(motion.current.look.set(0, 0, zFor(next)))
+    pose.current = poseFor(to)
   })
   return (
     <group>
@@ -452,7 +485,7 @@ export function TengTengScene({ game }) {
         ))
       })}
       {/* Rukiah hops the court; a friend waits her turn */}
-      <Kid look={RUKIAH.look} pose="hop" groupRef={hopper} />
+      <TengHopper motion={motion} pose={pose} hopper={hopper} />
       <Kid seed={71} girl pose="clap" position={[1.5, 0, -1.6]} rotationY={-Math.PI / 2} phase={2} />
       <group position={[-1.1, 0, -2.4]} rotation={[0, 0.5, 0]}>
         <ModelSlot model={MODELS.selipar} scale={1.4} fallback={null} />

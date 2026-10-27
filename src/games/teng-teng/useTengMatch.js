@@ -129,6 +129,13 @@ export function useTengMatch({ level, starter, goal }) {
   const isYou = () => who() === YOU
   const me = () => s.body[who()]
   const other = () => s.body[1 - who()]
+  /** One-shot reaction on the current player ('celebrate', 'fail'), timed on the 3D clock. */
+  const react = (pose, kind) => {
+    const body = me()
+    body.pose = pose
+    body.act.t = s.clockNow()
+    body.act.kind = kind
+  }
 
   // ------------------------------------------------------------ the turn
   fx.startTurn = () => {
@@ -166,7 +173,7 @@ export function useTengMatch({ level, starter, goal }) {
     body.act.t = s.clockNow()
     sfx.pop()
     const landingPoint = [side, -reach]
-    s.gunduFly = { from: [body.pos[0], 1.3, body.pos[1] + 0.1], to: [landingPoint[0], 0.01, landingPoint[1]], start: now() + 0.15, dur: 0.75 }
+    s.gunduFly = { from: [body.pos[0] - 0.22, 1.55, body.pos[1] - 0.05], to: [landingPoint[0], 0.01, landingPoint[1]], start: now() + 0.15, dur: 0.75 }
     s.phase = 'fly'
     s.aim = null
     bump()
@@ -179,6 +186,7 @@ export function useTengMatch({ level, starter, goal }) {
         s.game = claimHouse(s.game, who(), verdict.id)
         s.gunduFly = null
         sfx.capture()
+        react('celebrate')
         banner(isYou() ? `Rumah baru! Petak ${verdict.id} milik kamu.` : `Rukiah dapat rumah di petak ${verdict.id}.`, isYou() ? 'good' : 'them')
         if (!isYou()) say('Rukiah: Yeay, rumah aku!')
         soon(1.8, () => {
@@ -292,7 +300,7 @@ export function useTengMatch({ level, starter, goal }) {
     soon(HOP_TIME, () => {
       body.pos = [0, START_Z]
       body.hop = null
-      body.pose = 'cheer'
+      react('celebrate')
       s.picked = false
       const stage = pl().stage
       s.game = finishRound(s.game, who())
@@ -360,7 +368,7 @@ export function useTengMatch({ level, starter, goal }) {
     s.game = finishRound(s.game, who())
     sfx.extraTurn()
     banner(isYou() ? 'Timbang lulus! Sekarang baling cari rumah.' : 'Rukiah lulus timbang.', isYou() ? 'good' : 'them')
-    me().pose = 'cheer'
+    react('celebrate')
     soon(1.2, () => {
       Object.assign(me(), { pos: [0, START_Z], face: 0, pose: 'idle', hop: null })
       s.phase = 'aim'
@@ -381,8 +389,8 @@ export function useTengMatch({ level, starter, goal }) {
     s.ring = null
     s.gunduOnHead = false
     s.picked = false
-    me().pose = 'idle'
     me().hop = null
+    react('fail', why)
     sfx.locked()
     banner(`Mati! ${WHY[why] ?? ''}`, isYou() ? 'bad' : 'them')
     if (!isYou()) say('Rukiah: Alaa…')

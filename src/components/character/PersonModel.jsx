@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { MathUtils, MeshStandardMaterial } from 'three'
+import { CanvasTexture, MathUtils, MeshBasicMaterial, MeshStandardMaterial, PlaneGeometry, Vector3 } from 'three'
+import { FOOT_H, animateRig, createRig, isSitting } from './characterAnimation'
 
 /**
  * Stylised kampung person built from primitives. Used for the player, the
@@ -13,12 +14,19 @@ import { MathUtils, MeshStandardMaterial } from 'three'
  *             crouch | kick | throw | holdUp |
  *             sweep | fish | hop | pull | ride | swing | guard | toss | clap |
  *             raga (sepak raga: actionRef.current.kind = kuda | sila | lutut | kepala | lambung) |
- *             stand1 | stand2 | bend | balance | throwBack (teng-teng)
- * motionRef:  { current: { speed: 0..1 } } drives the walk cycle
- * actionRef:  { current: { t } } — elapsed time of the last one-shot action
+ *             stand1 | stand2 | bend | balance | aimBack | throwBack (teng-teng) |
+ *             celebrate | fail (reactions, timed from actionRef; fail kind 'jatuh' stumbles first)
+ * motionRef:  { current: { speed: 0..1, dist, run, bank, jump, balance, look, groundY } }
+ *             drives locomotion, jumps, balance and the look-at (see characterAnimation.js)
+ * actionRef:  { current: { t, kind } } — elapsed time of the last one-shot action
  *             (kick, flick…) so spots can sync props with the animation
+ * watch:      world position (Vector3) this person may turn to look at (the player)
+ * headRef:    receives the head group (to balance a gundu on it, say)
  * rightHand / leftHand: optional element held in the hand
  * ghost:      draw see-through (so the character doesn't hide the ground behind)
+ *
+ * Rig: root → pelvis → legs (hip → knee → ankle) and spine → arms (shoulder →
+ * elbow), head. Planted feet are solved with two-bone IK so they stay on the ground.
  */
 
 const BUILDS = {
@@ -72,11 +80,21 @@ export const DEFAULT_LOOK = {
   bagStrap: null, // colour of a shoulder-bag strap
 }
 
+// surface kinds: skin is smooth and a little soft, cloth matte and faceted, hair a touch of sheen
+const SURFACES = {
+  cloth: { roughness: 0.88, flatShading: true },
+  skin: { roughness: 0.58, flatShading: false },
+  hair: { roughness: 0.5, flatShading: true },
+  eye: { roughness: 0.18, flatShading: false },
+  shoe: { roughness: 0.7, flatShading: true },
+  default: { roughness: 0.78, flatShading: true },
+}
+
 const materialCache = new Map()
-export function getMaterial(color, ghost = false) {
-  const key = ghost ? `${color}|ghost` : color
+export function getMaterial(color, ghost = false, kind = 'default') {
+  const key = `${color}|${kind}${ghost ? '|ghost' : ''}`
   if (!materialCache.has(key)) {
-    const m = new MeshStandardMaterial({ color, roughness: 0.78, flatShading: true })
+    const m = new MeshStandardMaterial({ color, ...(SURFACES[kind] ?? SURFACES.default) })
     if (ghost) {
       // see-through, so a character never hides what's behind them (teng-teng petak)
       m.transparent = true
@@ -90,14 +108,42 @@ export function getMaterial(color, ghost = false) {
 
 const GhostContext = createContext(false)
 
-function Part({ color, children, shadow = false, ...props }) {
+function Part({ color, children, shadow = false, kind = 'cloth', ...props }) {
   const ghost = useContext(GhostContext)
   return (
-    <mesh castShadow={shadow} material={getMaterial(color, ghost)} {...props}>
+    <mesh castShadow={shadow} material={getMaterial(color, ghost, kind)} {...props}>
       {children}
     </mesh>
   )
 }
+
+// soft contact shadow under the feet (one shared texture, geometry and material)
+let blob = null
+function contactBlob() {
+  if (blob) return blob
+  const c = document.createElement('canvas')
+  c.width = c.height = 64
+  const x = c.getContext('2d')
+  const g = x.createRadialGradient(32, 32, 0, 32, 32, 32)
+  g.addColorStop(0, 'rgba(40,25,10,0.55)')
+  g.addColorStop(0.55, 'rgba(40,25,10,0.22)')
+  g.addColorStop(1, 'rgba(40,25,10,0)')
+  x.fillStyle = g
+  x.fillRect(0, 0, 64, 64)
+  const geometry = new PlaneGeometry(1, 1)
+  geometry.rotateX(-Math.PI / 2)
+  const material = new MeshBasicMaterial({
+    map: new CanvasTexture(c),
+    transparent: true,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+  })
+  blob = { geometry, material }
+  return blob
+}
+
+const _cam = new Vector3()
 
 /** What shows at the neck for each kind of top. */
 function Neckline({ look, b }) {
@@ -228,30 +274,46 @@ export function PersonModel({
   pose = 'idle',
   motionRef,
   actionRef,
-  phase = 0,
+  phase,
   elder = false,
   detail = true,
   shadows = true,
   rightHand = null,
   leftHand = null,
   ghost = false,
+  watch = null,
+  headRef = null,
 }) {
   const b = BUILDS[build] ?? BUILDS.kid
   const look = useMemo(() => ({ ...DEFAULT_LOOK, ...lookOverride }), [lookOverride])
   const headwearColor = look.headwearColor ?? HEADWEAR_DEFAULTS[look.headwear]
   const faceScale = b.headR / 0.28
 
+  const outer = useRef()
   const root = useRef()
+  const pelvis = useRef()
   const upper = useRef()
   const head = useRef()
   const legL = useRef()
   const legR = useRef()
+  const kneeL = useRef()
+  const kneeR = useRef()
+  const ankleL = useRef()
+  const ankleR = useRef()
   const armL = useRef()
   const armR = useRef()
-  const walkPhase = useRef(phase * 3)
+  const elbowL = useRef()
+  const elbowR = useRef()
+  const shadowRef = useRef()
+  const rig = useMemo(() => createRig(), [])
+  const out = useMemo(() => ({}), [])
+  const ctx = useMemo(() => ({}), [])
+  const watchPoint = useMemo(() => new Vector3(), [])
+  const blobParts = contactBlob()
 
-  const legLen = b.hip - 0.05 - b.legR * 2
-  const handY = b.armLen + b.armR * 2
+  // legs: hip → knee → ankle in equal halves; arms: shoulder → elbow → hand
+  const T = (b.hip - FOOT_H) / 2
+  const U = (b.armLen + b.armR * 2) / 2
   const kainTop = b.hip + 0.1
   const kainBottom = look.bottomType === 'pelikat' ? b.hip * 0.18 : b.hip * 0.22
   const hairCap = useMemo(() => [b.headR * 1.04, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.56], [b.headR])
@@ -261,315 +323,112 @@ export function PersonModel({
   )
 
   useFrame((state, delta) => {
-    const dt = Math.min(delta, 0.05)
-    const time = state.clock.elapsedTime + phase
-    const speed = motionRef?.current?.speed ?? 0
-    walkPhase.current += dt * (4 + speed * 9)
-    const swing = Math.sin(walkPhase.current) * 0.75 * speed
-    const breathe = Math.sin(time * 2.2) * 0.012
-    const sinceAction = actionRef?.current ? state.clock.elapsedTime - actionRef.current.t : 99
+    if (!outer.current) return
+    const m = outer.current.matrixWorld.elements
+    // far from the camera: animate at a third of the rate (nobody can tell, the CPU can)
+    _cam.set(m[12], m[13], m[14])
+    rig.frame++
+    const far = _cam.distanceToSquared(state.camera.position) > 38 * 38
+    if (far && rig.frame % 3 !== 0) return
+    const dt = Math.min(far ? delta * 3 : delta, 0.1)
+    const now = state.clock.elapsedTime
+    const motion = motionRef?.current
 
-    let lL = swing
-    let lR = -swing
-    let lRz = 0
-    let lLz = 0
-    let aLx = -swing * 0.9
-    let aRx = swing * 0.9
-    let aLz = 0.12
-    let aRz = -0.12
-    let rootY = 0
-    let lean = elder ? 0.12 : 0
-    let headX = 0
-    let bob = Math.abs(Math.sin(walkPhase.current)) * 0.05 * speed + breathe
-    const sitY = -(b.hip - b.legR - 0.03)
+    ctx.pose = pose
+    ctx.b = b
+    ctx.T = T
+    ctx.dt = dt
+    ctx.now = now
+    ctx.time = now + (phase ?? rig.offset)
+    ctx.since = actionRef?.current ? now - actionRef.current.t : 99
+    ctx.kind = actionRef?.current?.kind
+    ctx.elder = elder
+    ctx.motion = motion
+    ctx.worldY = m[13]
+    ctx.groundY = motion?.groundY ?? 0
+    if (watch) {
+      watchPoint.copy(watch)
+      watchPoint.y += 1.1
+      ctx.watch = watchPoint
+    } else ctx.watch = null
 
-    switch (pose) {
-      case 'wave':
-        aRz = -2.5 + Math.sin(time * 9) * 0.3
-        aRx = 0
-        break
-      case 'cheer':
-        aLz = 2.6 + Math.sin(time * 10) * 0.15
-        aRz = -2.6 - Math.sin(time * 10) * 0.15
-        aLx = aRx = 0
-        rootY = Math.abs(Math.sin(time * 5)) * 0.2
-        break
-      case 'sit':
-      case 'sitDangle':
-      case 'fish':
-      case 'toss':
-      case 'sitPlay':
-      case 'sitThink':
-      case 'sitDrink': {
-        const atTable = pose === 'sitPlay' || pose === 'sitThink' || pose === 'sitDrink'
-        const legAngle = pose === 'sit' || pose === 'toss' ? -1.5 : atTable ? -1.45 : -1.1
-        lL = lR = legAngle
-        rootY = sitY
-        aLx = aRx = -0.35
-        bob = breathe
-        if (pose === 'fish') {
-          aLx = aRx = -1.05 + Math.sin(time * 0.7) * 0.04
-          aLz = 0.25
-          aRz = -0.25
-        }
-        const t = time + phase * 3
-        if (pose === 'sitPlay') {
-          // leaning over the dam board, now and then reaching to move a cap
-          const p = t % 5.5
-          const reach = p > 4.2 && p < 5.2 ? Math.sin(((p - 4.2) / 1) * Math.PI) : 0
-          aLx = -0.95
-          aRx = -1.0 - reach * 0.45
-          aLz = 0.18
-          aRz = -0.1 + reach * 0.15
-          lean = 0.22 + reach * 0.12
-          headX = 0.25
-        }
-        if (pose === 'sitThink') {
-          // elbow on the table, hand at the chin, studying the board
-          aLx = -0.95
-          aRx = -2.5
-          aRz = -0.45
-          lean = 0.2
-          headX = 0.2 + Math.sin(t * 0.6) * 0.04
-        }
-        if (pose === 'sitDrink') {
-          // sipping kopi: cup up to the mouth every few seconds
-          const p = t % 7
-          const sip = p > 5 && p < 6.6 ? Math.sin(((p - 5) / 1.6) * Math.PI) : 0
-          aLx = -0.85
-          aRx = -0.95 - sip * 1.35
-          aRz = -0.12 - sip * 0.25
-          headX = -sip * 0.22
-          lean = 0.06
-        }
-        if (pose === 'toss') {
-          const p = (time % 1.6) / 1.6
-          aRx = -0.6 - Math.sin(p * Math.PI) * 1.0
-          headX = -Math.sin(p * Math.PI) * 0.35
-          lean = 0.15
-        }
-        break
+    const o = animateRig(rig, out, ctx, root.current)
+
+    root.current.position.y = o.rootY
+    root.current.rotation.z = motion?.bank ?? 0
+    pelvis.current.position.y = b.hip + o.pelvisY
+    pelvis.current.rotation.set(0, o.pelvisYaw, o.pelvisRoll)
+    upper.current.rotation.set(o.lean, o.twist, o.side)
+    upper.current.position.y = Math.sin(ctx.time * 1.9) * 0.006 // breathing
+    head.current.rotation.set(o.headX, o.headY, o.headZ)
+    armL.current.rotation.set(o.aLx, 0, o.aLz)
+    armR.current.rotation.set(o.aRx, 0, o.aRz)
+    elbowL.current.rotation.x = o.aLe
+    elbowR.current.rotation.x = o.aRe
+    legL.current.rotation.set(o.Lthigh, 0, o.Labd)
+    legR.current.rotation.set(o.Rthigh, 0, o.Rabd)
+    kneeL.current.rotation.x = o.Lknee
+    kneeR.current.rotation.x = o.Rknee
+    ankleL.current.rotation.set(o.Lankle, 0, o.Lroll)
+    ankleR.current.rotation.set(o.Rankle, 0, o.Rroll)
+
+    // contact shadow stays on the ground and shrinks as the feet leave it
+    const sh = shadowRef.current
+    if (sh) {
+      const above = m[13] - ctx.groundY
+      const h = Math.max(0, above + o.rootY)
+      sh.visible = !isSitting(pose) && h < 1.2 && above > -0.5
+      if (sh.visible) {
+        sh.position.y = -above + 0.012
+        sh.scale.setScalar(b.torsoR * 4.2 * (1 - Math.min(h, 1) * 0.45))
       }
-      case 'crouch': {
-        lL = lR = -0.95
-        rootY = -b.hip * 0.38
-        lean = 0.45
-        aLx = -0.9
-        const flick = sinceAction < 0.35 ? Math.sin((sinceAction / 0.35) * Math.PI) : 0
-        aRx = -1.0 - flick * 0.5
-        bob = breathe
-        break
-      }
-      case 'kick': {
-        const k = sinceAction < 0.5 ? Math.sin((sinceAction / 0.5) * Math.PI) : 0
-        lR = -1.35 * k
-        lL = 0
-        aLz = 0.3 + 0.5 * k
-        aRz = -0.3 - 0.5 * k
-        aLx = aRx = 0
-        rootY = 0.05 * k
-        lean = -0.12 * k
-        headX = -0.25
-        break
-      }
-      case 'throw': {
-        const p = time % 3.2
-        if (p < 0.7) aRx = MathUtils.lerp(0, 1.5, p / 0.7)
-        else if (p < 0.9) aRx = MathUtils.lerp(1.5, -1.5, (p - 0.7) / 0.2)
-        else if (p < 1.6) aRx = MathUtils.lerp(-1.5, 0, (p - 0.9) / 0.7)
-        else aRx = 0
-        lean = p > 0.7 && p < 1.2 ? 0.25 : 0.05
-        aLx = -0.3
-        break
-      }
-      case 'holdUp':
-        aRx = -2.25 + Math.sin(time * 1.3) * 0.08
-        aRz = -0.15
-        aLx = -0.5
-        headX = -0.35
-        break
-      case 'sweep':
-        lean = 0.3
-        aLx = aRx = -0.85
-        aRz = Math.sin(time * 2.4) * 0.35 - 0.1
-        aLz = Math.sin(time * 2.4) * 0.35 + 0.1
-        break
-      case 'hop': {
-        const p = (time % 0.55) / 0.55
-        rootY = Math.sin(p * Math.PI) * 0.28
-        lL = -0.9
-        lR = 0
-        aLz = 0.7
-        aRz = -0.7
-        aLx = aRx = 0
-        break
-      }
-      case 'pull':
-        lean = 0.28
-        aLx = aRx = 0.55
-        break
-      case 'ride': {
-        const pedal = Math.sin(walkPhase.current * 1.4)
-        lL = -1.1 + pedal * 0.45
-        lR = -1.1 - pedal * 0.45
-        aLx = aRx = -1.1
-        aLz = 0.15
-        aRz = -0.15
-        lean = 0.2
-        rootY = 0
-        bob = breathe
-        break
-      }
-      case 'swing': {
-        const p = time % 2.6
-        const strike = p > 1.2 && p < 1.5 ? Math.sin(((p - 1.2) / 0.3) * Math.PI) : 0
-        aLx = aRx = -0.7 - strike * 1.3
-        aLz = 0.2
-        aRz = -0.2
-        lean = 0.3 - strike * 0.3
-        lL = -0.2
-        lR = 0.25
-        break
-      }
-      case 'guard':
-        aLz = 1.25
-        aRz = -1.25
-        aLx = aRx = 0
-        lean = 0.1
-        break
-      case 'raga': {
-        // ready stance, and the sepak raga touches (synced by actionRef)
-        const kind = actionRef?.current?.kind ?? 'sila'
-        const dur = kind === 'lambung' ? 0.7 : 0.45
-        const k = sinceAction < dur ? Math.sin((sinceAction / dur) * Math.PI) : 0
-        lean = 0.14
-        aLz = 0.55
-        aRz = -0.55
-        aLx = aRx = -0.15
-        lL = lR = -0.12
-        rootY = -0.03 + Math.sin(time * 3) * 0.012
-        bob = breathe
-        if (kind === 'sila') {
-          lR = -0.95 * k
-          lRz = 0.75 * k
-          lL = 0.1 * k
-        } else if (kind === 'kuda') {
-          lR = 1.25 * k
-          lean = 0.14 + 0.35 * k
-          headX = 0.25 * k
-        } else if (kind === 'lutut') {
-          lR = -1.55 * k
-          lean = 0.14 - 0.2 * k
-        } else if (kind === 'kepala') {
-          rootY = 0.22 * k
-          headX = -0.45 + 0.9 * k
-          lean = -0.1 * k
-          lL = lR = -0.25 * k
-        } else if (kind === 'lambung') {
-          aLx = aRx = -0.4 - 2.3 * k
-          aLz = 0.3
-          aRz = -0.3
-          headX = -0.35 * k
-        }
-        break
-      }
-      // ---- teng-teng
-      case 'stand1':
-        // on one foot, the other bent back
-        lL = 0.85
-        lR = 0
-        aLz = 0.55
-        aRz = -0.55
-        aLx = aRx = -0.2
-        lean = 0.12
-        break
-      case 'stand2':
-        lLz = 0.16
-        lRz = -0.16
-        aLz = 0.35
-        aRz = -0.35
-        aLx = aRx = -0.1
-        break
-      case 'balance':
-        // gundu on the head: arms wide, chin up, one foot
-        lL = 0.85
-        aLz = 1.35 + Math.sin(time * 3) * 0.08
-        aRz = -1.35 + Math.sin(time * 3 + 1) * 0.08
-        aLx = aRx = 0
-        headX = -0.12
-        break
-      case 'bend':
-        lean = 0.95
-        aLx = aRx = -1.25
-        aLz = 0.15
-        aRz = -0.15
-        lL = 0.7
-        headX = 0.3
-        break
-      case 'throwBack': {
-        // facing away from the court, tossing the gundu back over the shoulder
-        const k = sinceAction < 0.6 ? Math.sin((sinceAction / 0.6) * Math.PI) : 0
-        aRx = 0.4 - k * 3.0
-        aLx = -0.2
-        lean = 0.1 - k * 0.25
-        headX = -k * 0.3
-        break
-      }
-      case 'clap': {
-        const clapping = time % 4 < 1.6
-        aLx = aRx = -1.0
-        aLz = clapping ? 0.35 + Math.sin(time * 18) * 0.2 : 0.2
-        aRz = clapping ? -0.35 - Math.sin(time * 18) * 0.2 : -0.2
-        if (!clapping) {
-          aLx = aRx = -0.2
-        }
-        break
-      }
-      default:
-        break
     }
-
-    const k = 1 - Math.exp(-12 * dt)
-    const lerpRot = (ref, axis, target) => {
-      if (ref.current) ref.current.rotation[axis] = MathUtils.lerp(ref.current.rotation[axis], target, k)
-    }
-    lerpRot(legL, 'x', lL)
-    lerpRot(legR, 'x', lR)
-    lerpRot(legR, 'z', lRz)
-    lerpRot(legL, 'z', lLz)
-    lerpRot(armL, 'x', aLx)
-    lerpRot(armR, 'x', aRx)
-    lerpRot(armL, 'z', aLz)
-    lerpRot(armR, 'z', aRz)
-    lerpRot(upper, 'x', lean)
-    lerpRot(head, 'x', headX)
-    if (head.current) head.current.rotation.z = Math.sin(time * 1.3) * 0.04 * (1 - speed)
-    if (upper.current) upper.current.position.y = b.hip + bob
-    if (root.current) root.current.position.y = MathUtils.lerp(root.current.position.y, rootY, k)
   })
+
+  const setHead = (el) => {
+    head.current = el
+    if (headRef) headRef.current = el
+  }
 
   const legColor = look.bottomType === 'seluar' ? look.bottom : look.skin
   const isKain = look.bottomType === 'kain' || look.bottomType === 'pelikat'
+  // under a kain the thighs take its colour, so a bent knee doesn't flash skin through it
+  const thighColor = isKain ? look.bottom : legColor
+  const kindOf = (color) => (color === look.skin ? 'skin' : 'cloth')
+  const longSleeve = look.longTop || look.top === 'baju' || look.top === 'kemeja' || look.headwear === 'tudung'
+  const sleeveColor = look.top === 'singlet' ? look.skin : look.shirt
+  const forearmColor = longSleeve ? look.shirt : look.skin
+  const limbShadow = shadows && detail
 
   return (
     <GhostContext.Provider value={ghost}>
+    <group ref={outer}>
+    <mesh ref={shadowRef} geometry={blobParts.geometry} material={blobParts.material} renderOrder={1} />
     <group ref={root}>
-      {/* Legs (pivot at the hip) */}
+    <group ref={pelvis} position={[0, b.hip, 0]}>
+      {/* Legs: hip → knee → ankle */}
       {[
-        [legL, 0.11],
-        [legR, -0.11],
-      ].map(([ref, x]) => (
-        <group key={x} ref={ref} position={[x * (b.torsoR / 0.21), b.hip, 0]}>
-          <Part color={legColor} position={[0, -(b.hip - 0.05) / 2, 0]}>
-            <capsuleGeometry args={[b.legR, legLen, 4, 8]} />
+        [legL, kneeL, ankleL, 0.11],
+        [legR, kneeR, ankleR, -0.11],
+      ].map(([ref, knee, ankle, x]) => (
+        <group key={x} ref={ref} position={[x * (b.torsoR / 0.21), 0, 0]}>
+          <Part color={thighColor} kind={kindOf(thighColor)} shadow={limbShadow} position={[0, -T / 2, 0]}>
+            <capsuleGeometry args={[b.legR * 1.12, Math.max(0.01, T - b.legR * 0.6), 4, 8]} />
           </Part>
-          <Part color={look.slipper} position={[0, -(b.hip - 0.025), 0.04]}>
-            <boxGeometry args={[b.legR * 1.9, 0.05, b.legR * 3.2]} />
-          </Part>
+          <group ref={knee} position={[0, -T, 0]}>
+            <Part color={legColor} kind={kindOf(legColor)} shadow={limbShadow} position={[0, -T / 2, 0]}>
+              <capsuleGeometry args={[b.legR, Math.max(0.01, T - b.legR * 0.8), 4, 8]} />
+            </Part>
+            <group ref={ankle} name="ankle" position={[0, -T, 0]}>
+              <Part color={look.slipper} kind="shoe" shadow={limbShadow} position={[0, -FOOT_H / 2, 0.04]}>
+                <boxGeometry args={[b.legR * 1.9, FOOT_H, b.legR * 3.2]} />
+              </Part>
+            </group>
+          </group>
         </group>
       ))}
 
-      <group ref={upper} position={[0, b.hip, 0]}>
+      <group ref={upper}>
         <group position={[0, -b.hip, 0]}>
           {/* Bottoms */}
           {isKain ? (
@@ -611,31 +470,36 @@ export function PersonModel({
             </>
           )}
 
-          {/* Arms (pivot at the shoulder) */}
+          {/* Arms: shoulder → elbow → hand */}
           {[
-            [armL, 1, leftHand],
-            [armR, -1, rightHand],
-          ].map(([ref, side, item]) => (
+            [armL, elbowL, 1, leftHand],
+            [armR, elbowR, -1, rightHand],
+          ].map(([ref, elbow, side, item]) => (
             <group key={side} ref={ref} position={[side * b.shoulderX, b.shoulderY, 0]}>
-              <Part color={look.top === 'singlet' ? look.skin : look.shirt} position={[0, -(b.armLen / 2 + b.armR * 0.6), 0]}>
-                <capsuleGeometry args={[b.armR, b.armLen, 4, 8]} />
+              <Part color={sleeveColor} kind={kindOf(sleeveColor)} shadow={limbShadow} position={[0, -U / 2, 0]}>
+                <capsuleGeometry args={[b.armR * 1.05, Math.max(0.01, U - b.armR * 0.5), 4, 8]} />
               </Part>
-              <Part color={look.skin} position={[0, -handY, 0]}>
-                <sphereGeometry args={[b.armR * 1.05, 8, 6]} />
-              </Part>
-              {item && <group position={[0, -handY, 0]}>{item}</group>}
+              <group ref={elbow} position={[0, -U, 0]}>
+                <Part color={forearmColor} kind={kindOf(forearmColor)} shadow={limbShadow} position={[0, -U / 2, 0]}>
+                  <capsuleGeometry args={[b.armR * 0.95, Math.max(0.01, U - b.armR * 0.9), 4, 8]} />
+                </Part>
+                <Part color={look.skin} kind="skin" position={[0, -U, 0]}>
+                  <sphereGeometry args={[b.armR * 1.1, 8, 6]} />
+                </Part>
+                {item && <group position={[0, -U, 0]}>{item}</group>}
+              </group>
             </group>
           ))}
 
           {/* Head */}
-          <group ref={head} position={[0, b.headY, 0]}>
-            <Part color={look.skin} shadow={shadows}>
+          <group ref={setHead} name="head" position={[0, b.headY, 0]}>
+            <Part color={look.skin} kind="skin" shadow={shadows}>
               <sphereGeometry args={[b.headR, 16, 12]} />
             </Part>
 
             {look.headwear === 'tudung' ? (
               <>
-                <Part color={headwearColor} rotation={[-0.25, 0, 0]}>
+                <Part color={headwearColor} shadow={shadows} rotation={[-0.25, 0, 0]}>
                   <sphereGeometry args={tudungCap} />
                 </Part>
                 <Part color={headwearColor} position={[0, -b.headR * 1.05, -0.01]}>
@@ -644,7 +508,7 @@ export function PersonModel({
               </>
             ) : (
               look.hairStyle !== 'none' && (
-                <Part color={look.hair} position={[0, 0.02, -0.02]} rotation={[-0.35, 0, 0]}>
+                <Part color={look.hair} kind="hair" position={[0, 0.02, -0.02]} rotation={[-0.35, 0, 0]}>
                   <sphereGeometry args={hairCap} />
                 </Part>
               )
@@ -695,13 +559,21 @@ export function PersonModel({
 
             {/* Face */}
             {[-1, 1].map((side) => (
-              <Part key={side} color="#1b1210" position={[side * 0.095 * faceScale, 0.02 * faceScale, b.headR * 0.91]}>
-                <sphereGeometry args={[0.036 * faceScale, 6, 5]} />
-              </Part>
+              <group key={side} position={[side * 0.095 * faceScale, 0.02 * faceScale, b.headR * 0.91]}>
+                <Part color="#1b1210" kind="eye">
+                  <sphereGeometry args={[0.038 * faceScale, 8, 6]} />
+                </Part>
+                {/* a catchlight keeps the eyes alive in any light */}
+                {detail && (
+                  <Part color="#fffaf0" kind="eye" position={[0.012 * faceScale, 0.014 * faceScale, 0.03 * faceScale]}>
+                    <sphereGeometry args={[0.011 * faceScale, 5, 4]} />
+                  </Part>
+                )}
+              </group>
             ))}
             {detail &&
               [-1, 1].map((side) => (
-                <Part key={`c${side}`} color="#e98a7a" position={[side * 0.16 * faceScale, -0.06 * faceScale, b.headR * 0.8]}>
+                <Part key={`c${side}`} color="#e98a7a" kind="skin" position={[side * 0.16 * faceScale, -0.06 * faceScale, b.headR * 0.8]}>
                   <sphereGeometry args={[0.045 * faceScale, 6, 5]} />
                 </Part>
               ))}
@@ -728,6 +600,8 @@ export function PersonModel({
           </group>
         </group>
       </group>
+    </group>
+    </group>
     </group>
     </GhostContext.Provider>
   )

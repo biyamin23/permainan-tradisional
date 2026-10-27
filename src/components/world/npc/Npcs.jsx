@@ -57,6 +57,7 @@ function Villager({ npc }) {
           pose={npc.pose}
           elder={npc.elder}
           rightHand={npc.hand ? HAND_ITEMS[npc.hand] : null}
+          watch={worldRuntime.playerPosition}
         />
       </group>
       <ProximityBubble lines={npc.bubble} position={[0, headY, 0]} maxDistance={10} minDistance={0} interval={5200} />

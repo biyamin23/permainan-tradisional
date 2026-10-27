@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { MathUtils } from 'three'
+import { MathUtils, Vector3 } from 'three'
 import { PersonModel } from '../../components/character/PersonModel'
 import { ModelSlot } from '../../components/world/ModelSlot'
 import { MODELS } from '../../data/models'
 import { PETAK, SIZE, START_GAP, centreOf, halfOf } from './engine'
 import { AIM_LAP, aimReach, now, ringClose, ringScale, standPoint } from './useTengMatch'
+
+const HOP_PREP = 0.2 // share of each hop spent crouching before take-off (inside the hop's own time)
+const LAND_TIME = 0.3
+const HEAD_TOP = 0.335 // gundu resting on the hair, above the head's centre
 
 /**
  * The teng-teng court on the lorong: nine petak chalked on red earth, the
@@ -131,39 +135,107 @@ function Numeral({ n, x, z }) {
   )
 }
 
-function Kid({ r, index, look }) {
+/**
+ * Where a hop puts the body at time t: a short crouch on the spot, then an
+ * eased arc to the next petak. The hop's total time is the game's, unchanged.
+ */
+function hopAt(hop, t, out) {
+  const u = MathUtils.clamp((t - hop.start) / hop.dur, 0, 1)
+  if (u < HOP_PREP) {
+    out.x = hop.from[0]
+    out.z = hop.from[1]
+    out.y = 0
+    out.phase = 'prep'
+    out.u = u / HOP_PREP
+    out.vy = 0
+    return out
+  }
+  const a = (u - HOP_PREP) / (1 - HOP_PREP)
+  const e = MathUtils.smootherstep(a, 0, 1)
+  out.x = MathUtils.lerp(hop.from[0], hop.to[0], e)
+  out.z = MathUtils.lerp(hop.from[1], hop.to[1], e)
+  out.y = Math.sin(a * Math.PI) * hop.high
+  out.phase = 'air'
+  out.u = a
+  out.vy = Math.cos(a * Math.PI) * 2
+  return out
+}
+
+function Kid({ r, index, look, headRef }) {
   const ref = useRef()
+  const motion = useRef({ jump: { phase: null, u: 0, vy: 0, impact: 0.7 }, balance: 0, look: null })
+  const lookAt = useMemo(() => new Vector3(), [])
+  const hopState = useMemo(() => ({ x: 0, y: 0, z: 0, phase: null, u: 0, vy: 0 }), [])
+  const land = useRef({ hopping: false, at: -9 })
   useFrame(() => {
-    const b = r.current.body[index]
+    const s = r.current
+    const b = s.body[index]
     const g = ref.current
     if (!g) return
+    const t = now()
+    const m = motion.current
     let x = b.pos[0]
     let z = b.pos[1]
     let y = 0
     if (b.hop) {
-      const u = MathUtils.clamp((now() - b.hop.start) / b.hop.dur, 0, 1)
-      x = MathUtils.lerp(b.hop.from[0], b.hop.to[0], u)
-      z = MathUtils.lerp(b.hop.from[1], b.hop.to[1], u)
-      y = Math.sin(u * Math.PI) * b.hop.high
+      hopAt(b.hop, t, hopState)
+      x = hopState.x
+      z = hopState.z
+      y = hopState.y
+      m.jump.phase = hopState.phase
+      m.jump.u = hopState.u
+      m.jump.vy = hopState.vy
+      m.jump.impact = b.hop.high > 0.3 ? 1 : 0.7
+      land.current.hopping = true
+    } else {
+      if (land.current.hopping) land.current.at = t // just touched down
+      land.current.hopping = false
+      const since = t - land.current.at
+      m.jump.phase = since < LAND_TIME ? 'land' : null
+      m.jump.u = since / LAND_TIME
     }
     g.position.set(x, y, z)
     let diff = b.face - g.rotation.y
     while (diff > Math.PI) diff -= Math.PI * 2
     while (diff < -Math.PI) diff += Math.PI * 2
     g.rotation.y += diff * 0.18
+
+    // balance: the real wobble for you; a gentle sway when Rukiah timbangs
+    const mine = s.game.turn === index
+    m.balance = mine && s.gunduOnHead ? (index === 0 ? s.balance : Math.sin(t * 2.3) * 0.25) : 0
+
+    // eyes on the next petak, the gundu to pick up, or (waiting) whoever is playing
+    m.look = null
+    if (mine) {
+      const move = s.plan?.moves[s.step + 1]
+      const picking = s.phase === 'catch' || (s.gunduAt !== null && s.step === s.plan?.pickAt)
+      if (picking && s.gunduFly) {
+        m.look = lookAt.set(s.gunduFly.to[0], 0.05, s.gunduFly.to[2])
+      } else if ((s.phase === 'hop' || s.phase === 'timbang') && move) {
+        const [px, pz] = standPoint(move)
+        m.look = lookAt.set(px, 0, pz)
+      }
+    } else {
+      const o = s.body[1 - index]
+      m.look = lookAt.set(o.pos[0], 0.9, o.pos[1])
+    }
   })
   const s = r.current
   const b = s.body[index]
   // throwing: the player stands at the start line facing the camera and would hide the petak
   const back = s.game.turn === index && (s.phase === 'aim' || s.phase === 'fly')
+  const pose = s.game.turn === index && s.aim ? 'aimBack' : b.pose
   return (
     <group ref={ref}>
-      <PersonModel build="kid" look={look} pose={b.pose} actionRef={{ current: b.act }} ghost={back} />
+      <PersonModel build="kid" look={look} pose={pose} actionRef={{ current: b.act }} motionRef={motion} ghost={back} headRef={headRef} />
     </group>
   )
 }
 
-function Gundu({ r, index, kind }) {
+const _head = new Vector3()
+const _hop = { x: 0, y: 0, z: 0 }
+
+function Gundu({ r, index, kind, headRef }) {
   const ref = useRef()
   useFrame(() => {
     const s = r.current
@@ -171,17 +243,24 @@ function Gundu({ r, index, kind }) {
     if (!g) return
     const mine = s.game.turn === index
     let p = null
-    if (mine && s.gunduOnHead) {
+    const head = headRef?.current
+    if (mine && s.gunduOnHead && head) {
+      // sits on the actual head, so it rides every crouch, hop and wobble
+      head.updateWorldMatrix(true, false)
+      head.localToWorld(_head.set(0, HEAD_TOP, 0))
+      p = [_head.x, _head.y, _head.z]
+      g.rotation.z = s.balance * 0.5
+    } else if (mine && s.gunduOnHead) {
       // balanced on the head (follows the hop), tipping with the balance
       const b = s.body[index]
       let x = b.pos[0]
       let z = b.pos[1]
       let y = 0
       if (b.hop) {
-        const u = MathUtils.clamp((now() - b.hop.start) / b.hop.dur, 0, 1)
-        x = MathUtils.lerp(b.hop.from[0], b.hop.to[0], u)
-        z = MathUtils.lerp(b.hop.from[1], b.hop.to[1], u)
-        y = Math.sin(u * Math.PI) * b.hop.high
+        hopAt(b.hop, now(), _hop)
+        x = _hop.x
+        z = _hop.z
+        y = _hop.y
       }
       p = [x + s.balance * 0.06, y + 1.72, z]
       g.rotation.z = s.balance * 0.5
@@ -331,6 +410,8 @@ function Scenery() {
 }
 
 export function TengView({ r, looks, gundu, houses, colors }) {
+  const headA = useRef(null)
+  const headB = useRef(null)
   return (
     <Canvas className="tt-canvas" shadows dpr={[1, 1.75]} camera={{ fov: 55, near: 0.1, far: 80, position: [0, 3.5, 5] }}>
       <color attach="background" args={['#f6d7a6']} />
@@ -341,10 +422,10 @@ export function TengView({ r, looks, gundu, houses, colors }) {
       <CameraRig r={r} />
       <Court houses={houses} colors={colors} />
       <Scenery />
-      <Kid r={r} index={0} look={looks[0]} />
-      <Kid r={r} index={1} look={looks[1]} />
-      <Gundu r={r} index={0} kind={gundu[0]} />
-      <Gundu r={r} index={1} kind={gundu[1]} />
+      <Kid r={r} index={0} look={looks[0]} headRef={headA} />
+      <Kid r={r} index={1} look={looks[1]} headRef={headB} />
+      <Gundu r={r} index={0} kind={gundu[0]} headRef={headA} />
+      <Gundu r={r} index={1} kind={gundu[1]} headRef={headB} />
       <AimArrow r={r} />
       <TimingRing r={r} />
     </Canvas>

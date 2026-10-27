@@ -8,6 +8,14 @@ import { SPAWN } from '../data/kampungLayout'
  */
 export const worldRuntime = {
   playerPosition: new Vector3(SPAWN[0], 0, SPAWN[2]),
+  playerVelocity: new Vector3(),
+  playerAirborne: false,
+  /** The player's Rapier body (the camera's occlusion ray ignores it). */
+  playerBody: null,
+  /** 0..1 landing impact; the camera dips a touch and clears it. */
+  cameraKick: 0,
+  /** Last time (performance.now) the player dragged the camera; auto-follow waits after it. */
+  cameraDraggedAt: 0,
   cameraYaw: 0,
   cameraDistance: 9,
   /** Set { x, z, yaw } to move the player there on the next frame (map travel). */
@@ -31,6 +39,10 @@ export const worldRuntime = {
 
 export function resetWorldRuntime() {
   worldRuntime.playerPosition.set(SPAWN[0], 0, SPAWN[2])
+  worldRuntime.playerVelocity.set(0, 0, 0)
+  worldRuntime.playerAirborne = false
+  worldRuntime.playerBody = null
+  worldRuntime.cameraKick = 0
   worldRuntime.cameraYaw = 0
   // Portrait phones see less to the sides, so pull the camera back a little.
   const portrait = typeof window !== 'undefined' && window.innerHeight > window.innerWidth
