@@ -5,6 +5,8 @@
   inset: 0;
   z-index: 40;
   display: grid;
+  /* minmax(0, …): the card is never wider than the screen, whatever is in it */
+  grid-template-columns: minmax(0, 1fr);
   place-items: end center;
   padding: max(12px, env(safe-area-inset-top)) 10px 0;
   background: rgba(30, 14, 4, 0.55);
@@ -23,7 +25,9 @@
   display: flex;
   flex-direction: column;
   width: min(100%, 460px);
-  max-height: min(86dvh, 680px);
+  min-width: 0;
+  /* one height for every tab, so the sheet doesn't jump about */
+  height: min(86dvh, 680px);
   padding: 12px 14px max(14px, env(safe-area-inset-bottom));
   border-radius: 24px 24px 0 0;
   background: #fbf3e2;
@@ -58,7 +62,7 @@
 .ac-tabs {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   padding: 4px;
   border-radius: 999px;
@@ -66,7 +70,12 @@
 }
 
 .ac-tab {
+  min-width: 0;
   min-height: 40px;
+  padding: 0 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -123,14 +132,48 @@
   }
 }
 
+/* narrow phones: icon over the word, so all three tabs and ✕ fit */
+@media (max-width: 420px) {
+  .ac-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    min-height: 46px;
+    font-size: 0.76rem;
+    line-height: 1.1;
+  }
+
+  .ac-tab > span[aria-hidden] {
+    font-size: 1rem;
+  }
+}
+
+/* the tab's content fills the rest of the card and scrolls inside it */
+.ac-card > .pf,
+.ac-me {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ac-card > .pf {
+  margin-top: 10px;
+  align-content: start;
+}
+
 /* ---------------------------------------------------------------- leaderboard */
 .ac-board {
+  flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
 
 .ac-chips {
+  flex: none;
   display: flex;
   gap: 6px;
   margin: 8px 0;
@@ -167,11 +210,12 @@
   padding: 0;
   list-style: none;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .ac-row {
   display: grid;
-  grid-template-columns: 2rem 38px 1fr auto;
+  grid-template-columns: 2rem 38px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   padding: 7px 8px;
@@ -188,6 +232,7 @@
 }
 
 .ac-rank {
+  white-space: nowrap;
   text-align: center;
   font-size: 1.05rem;
   font-weight: 900;

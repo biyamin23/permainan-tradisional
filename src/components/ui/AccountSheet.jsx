@@ -35,11 +35,12 @@ const KIND = {
 
 const AVATAR = { lelaki: '/avatars/pemain-lelaki.webp', perempuan: '/avatars/pemain-perempuan.webp' }
 
-function Row({ r, mine, game }) {
-  const medal = ['🥇', '🥈', '🥉'][r.rank - 1]
+function Row({ r, mine, game, tied }) {
+  // a medal only when the place is yours alone; a shared place shows "=2"
+  const medal = tied ? null : ['🥇', '🥈', '🥉'][r.rank - 1]
   return (
     <li className={`ac-row ${mine ? 'is-me' : ''}`}>
-      <span className="ac-rank">{medal ?? r.rank}</span>
+      <span className="ac-rank">{medal ?? (tied ? `=${r.rank}` : r.rank)}</span>
       <img className="ac-face" src={AVATAR[r.gender] ?? AVATAR.lelaki} alt="" />
       <span className="ac-name">
         {r.name}
@@ -144,7 +145,7 @@ function Leaderboard({ userId }) {
       ) : (
         <ol className="ac-list">
           {state.top.map((r) => (
-            <Row key={r.user_id} r={r} game={game} mine={r.user_id === userId} />
+            <Row key={r.user_id} r={r} game={game} mine={r.user_id === userId} tied={state.top.filter((o) => o.rank === r.rank).length > 1} />
           ))}
           {state.me && (
             <>
@@ -239,13 +240,13 @@ export function AccountSheet({ live, onClose, startTab = 'board' }) {
         <header className="ac-head">
           <div className="ac-tabs" role="tablist">
             <button type="button" role="tab" aria-selected={tab === 'profil'} className={`ac-tab ${tab === 'profil' ? 'is-on' : ''}`} onClick={() => setTab('profil')}>
-              📜 Profil
+              <span aria-hidden="true">📜</span> <span>Profil</span>
             </button>
             <button type="button" role="tab" aria-selected={tab === 'board'} className={`ac-tab ${tab === 'board' ? 'is-on' : ''}`} onClick={() => setTab('board')}>
-              🏆 Kedudukan
+              <span aria-hidden="true">🏆</span> <span>Kedudukan</span>
             </button>
             <button type="button" role="tab" aria-selected={tab === 'me'} className={`ac-tab ${tab === 'me' ? 'is-on' : ''}`} onClick={() => setTab('me')}>
-              👤 Akaun
+              <span aria-hidden="true">👤</span> <span>Akaun</span>
             </button>
           </div>
           <button type="button" className="ac-close" onClick={onClose} aria-label="Tutup">
