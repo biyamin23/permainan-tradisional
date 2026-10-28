@@ -1,5 +1,6 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { Html } from '@react-three/drei'
 import { MathUtils } from 'three'
 import { ROADS, groundY } from '../../../data/kampungLayout'
 import { CYCLIST, NPCS } from '../../../data/npcs'
@@ -7,11 +8,28 @@ import { useNpcBody } from '../../../state/npcBodies'
 import { worldRuntime } from '../../../state/worldRuntime'
 import { PersonModel } from '../../character/PersonModel'
 import { Broom, FishingRod } from '../spots/SpotProps'
+import { worldFx } from '../life/worldFx'
 import { ProximityBubble } from './ProximityBubble'
 
 const HAND_ITEMS = {
   broom: <Broom />,
   rod: <FishingRod />,
+}
+
+/** A fish held up by the tail. */
+function Fish() {
+  return (
+    <group position={[0, -0.3, 0.05]}>
+      <mesh scale={[0.06, 0.24, 0.1]} castShadow>
+        <sphereGeometry args={[1, 8, 6]} />
+        <meshStandardMaterial color="#6f7d6a" roughness={0.4} flatShading />
+      </mesh>
+      <mesh position={[0, 0.25, 0]} scale={[0.02, 0.08, 0.1]}>
+        <coneGeometry args={[1, 1, 4]} />
+        <meshStandardMaterial color="#56614f" flatShading />
+      </mesh>
+    </group>
+  )
 }
 
 const SITTING = new Set(['sit', 'sitDangle', 'fish', 'toss'])
@@ -41,26 +59,71 @@ function Stool() {
   )
 }
 
+/**
+ * Steps through an NPC's `cycle` of things to do (data/npcs.js), each for a
+ * random while: Mak Cik Kiah stops sweeping to look about, Pak Abu waits,
+ * gets a bite and sometimes lands a fish. Returns the pose to show and a
+ * line to say (when there is one).
+ */
+function useCycle(npc, groupRef) {
+  const [step, setStep] = useState(() => ({ i: 0, line: null }))
+  const timer = useRef(npc.cycle ? 4 + Math.random() * 10 : Infinity)
+  useFrame((_, delta) => {
+    if (!npc.cycle) return
+    timer.current -= Math.min(delta, 0.1)
+    if (timer.current > 0) return
+    const i = (step.i + 1) % npc.cycle.length
+    const s = npc.cycle[i]
+    timer.current = s.dur[0] + Math.random() * (s.dur[1] - s.dur[0])
+    const g = groupRef.current
+    if ((s.bite || s.catch) && g && npc.float) {
+      // the float, out over the water in front of them
+      const x = g.position.x + Math.sin(g.rotation.y) * npc.float
+      const z = g.position.z + Math.cos(g.rotation.y) * npc.float
+      worldFx.emit(s.catch ? 'splash' : 'ripple', x, z, s.catch ? 1 : 0.5)
+    }
+    const near = g && Math.hypot(g.position.x - worldRuntime.playerPosition.x, g.position.z - worldRuntime.playerPosition.z) < 14
+    setStep({ i, line: s.say && near ? s.say[Math.floor(Math.random() * s.say.length)] : null })
+  })
+  useEffect(() => {
+    if (!step.line) return undefined
+    const t = setTimeout(() => setStep((st) => ({ ...st, line: null })), 3200)
+    return () => clearTimeout(t)
+  }, [step.line])
+  return { pose: npc.cycle ? npc.cycle[step.i].pose : npc.pose, line: step.line }
+}
+
 function Villager({ npc }) {
-  const sitting = SITTING.has(npc.pose)
-  const seatY = npc.stool ? 0.36 : 0
-  const headY = (sitting ? 1.55 : 2.35) + seatY
   const body = useRef(null)
-  useNpcBody(body, { radius: npc.stool ? 0.45 : 0.32, halfHeight: sitting ? 0.35 : 0.6 })
+  const { pose, line } = useCycle(npc, body)
+  const sitting = SITTING.has(pose)
+  const seatY = npc.stool && sitting ? 0.36 : 0
+  const headY = (SITTING.has(npc.pose) ? 1.55 : 2.35) + (npc.stool ? 0.36 : 0)
+  useNpcBody(body, { radius: npc.stool ? 0.45 : 0.32, halfHeight: SITTING.has(npc.pose) ? 0.35 : 0.6 })
   return (
     <group ref={body} position={npc.position} rotation={[0, npc.rotationY ?? 0, 0]}>
       {npc.stool && <Stool />}
-      <group position={[0, seatY, 0]}>
+      {/* stands up off the stool (to show a catch) a little behind it */}
+      <group position={[0, seatY, sitting ? 0 : -0.35]}>
         <PersonModel
           build={npc.build}
           look={npc.look}
-          pose={npc.pose}
+          pose={pose}
           elder={npc.elder}
           rightHand={npc.hand ? HAND_ITEMS[npc.hand] : null}
+          leftHand={pose === 'holdUp' && npc.hand === 'rod' ? <Fish /> : null}
           watch={worldRuntime.playerPosition}
         />
       </group>
-      <ProximityBubble lines={npc.bubble} position={[0, headY, 0]} maxDistance={10} minDistance={0} interval={5200} />
+      {line ? (
+        <group position={[0, headY + (sitting ? 0 : 0.5), 0]}>
+          <Html center zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
+            <div className="bubble bubble--speech">{line}</div>
+          </Html>
+        </group>
+      ) : (
+        <ProximityBubble lines={npc.bubble} position={[0, headY, 0]} maxDistance={10} minDistance={0} interval={5200} />
+      )}
     </group>
   )
 }

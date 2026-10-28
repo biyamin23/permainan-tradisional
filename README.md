@@ -36,6 +36,30 @@ There's no Mudah / Biasa / Pakar to pick. Every game reads your progress and set
 
 All numbers live in `src/progression/config.js`. Progress is kept on the device and copied to the account (Supabase `progress_events` / `player_progress`, checked by the database). Run `npm run test:progression` for the checks; in `npm run dev` a 🧪 panel shows and simulates the numbers.
 
+## A kampung that lives without you
+
+Stand still and the kampung carries on (`src/components/world/life/`):
+
+- **Villagers** (`data/villagers.js`, `Villagers.jsx`) walk the roads between
+  places (warung, tebing sungai, taman, sekolah…) and do things there: sit on a
+  bench, chat, sweep, chase each other, skim stones. Routes follow the road
+  graph (`navigation.js`), keeping to the edge; nobody walks through houses or
+  the river. They greet you when you come close. Mak Cik Kiah and Pak Abu
+  (`data/npcs.js` `cycle`) stop and start; Pak Abu gets bites and lands fish.
+- **River**: a flowing water shader (`riverMaterial.js`), ripples, splashes,
+  jumping fish and leaves drifting downstream (`RiverLife.jsx`), muddy banks
+  with posts and fallen branches.
+- **Wind** in the trees, palms, padi, grass and reeds, in the vertex shader
+  (`wind.js`); smoke from wood fires behind some houses and leaves falling
+  near you (`Ambience.jsx`).
+- **Animals**: chickens scatter when you run at them and sometimes cross the
+  road; cats doze, sit up and wander; burung pipit hop about and take off
+  (`Wildlife.jsx`).
+- **Props** placed by zone, not scattered (`KampungProps.jsx`).
+- **AmbientEvents.jsx** decides when the small surprises happen; effects talk
+  through `worldFx.js`. `data/worldAssets.js` lists which pieces are real
+  assets and which are stand-ins waiting for one.
+
 ## Run it
 
 ```bash

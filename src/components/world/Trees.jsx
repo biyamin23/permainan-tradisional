@@ -2,7 +2,8 @@ import { useMemo } from 'react'
 import { CylinderCollider, RigidBody } from '@react-three/rapier'
 import { BOUNDS, HOUSE, HUTAN, KEBUN_KELAPA, isNearGameSpot, isOnRoad, isReserved } from '../../data/kampungLayout'
 import { PartsBundle } from './InstancedParts'
-import { createRandom, makeAlignedMatrix, mergeBundles, part, pick, randomBetween } from './kit'
+import { MAT, createRandom, makeAlignedMatrix, mergeBundles, part, pick, randomBetween } from './kit'
+import { windMaterial } from './life/wind'
 import { MODELS } from '../../data/models'
 
 const LEAF_GREENS = ['#4f8a3a', '#5a9440', '#447d35', '#3d7131', '#6a9c45']
@@ -287,6 +288,9 @@ export function treeLayout() {
   return layoutCache
 }
 
+// crowns and fronds sway (the shader leaves the trunk bases still)
+const TREE_WIND = windMaterial(MAT.kit, 'tree')
+
 export function Trees() {
   const { bundle, colliders } = useMemo(() => treeLayout(), [])
 
@@ -295,7 +299,7 @@ export function Trees() {
       {colliders.map((c, i) => (
         <CylinderCollider key={i} args={[c.halfHeight, c.radius]} position={c.position} />
       ))}
-      <PartsBundle bundle={bundle} />
+      <PartsBundle bundle={bundle} material={TREE_WIND} />
     </RigidBody>
   )
 }

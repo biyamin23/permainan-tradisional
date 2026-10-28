@@ -11,7 +11,8 @@ import {
   isReserved,
 } from '../../data/kampungLayout'
 import { PartsBundle } from './InstancedParts'
-import { createRandom, part, pick, randomBetween } from './kit'
+import { MAT, createRandom, part, pick, randomBetween } from './kit'
+import { windMaterial } from './life/wind'
 import { Wakaf } from './Wakaf'
 
 const GRASS = ['#6f9a3f', '#7aa646', '#5f8a37', '#86ad4c', '#93b356']
@@ -86,6 +87,9 @@ function buildScarecrow() {
   return { box, cylinder, ball, pyramid }
 }
 
+// padang grass and padi bend in the breeze
+const GRASS_WIND = windMaterial(MAT.kit, 'grass')
+
 export function Fields() {
   const grass = useMemo(buildGrassTufts, [])
   const sawah = useMemo(buildSawah, [])
@@ -93,8 +97,9 @@ export function Fields() {
 
   return (
     <group>
-      <PartsBundle bundle={grass} castShadow={false} />
-      <PartsBundle bundle={sawah} castShadow={false} />
+      <PartsBundle bundle={grass} material={GRASS_WIND} castShadow={false} />
+      <PartsBundle bundle={{ blade: sawah.blade }} material={GRASS_WIND} castShadow={false} />
+      <PartsBundle bundle={{ box: sawah.box }} castShadow={false} />
       <PartsBundle bundle={scarecrow} />
       <RigidBody type="fixed" colliders={false}>
         <CylinderCollider args={[1, 0.25]} position={[SCARECROW.position[0], 1, SCARECROW.position[2]]} />

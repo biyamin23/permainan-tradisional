@@ -5,7 +5,8 @@ import { MODELS } from './models'
 const STAIRS_TOP = MODELS.tokwan.url ? MODELS.tokwan.stairsTop : [0, 1.275, 6.05]
 
 const [kiahX, kiahZ] = px(612, 432)
-const [abuX, abuZ] = px(430, 566)
+// on the bank itself, half a metre back from the water (the map point is mid-stream)
+const [abuX, abuZ] = px(430, 583)
 
 /**
  * Kampung folk. Kids playing at the game spots are defined with each spot
@@ -68,6 +69,11 @@ export const NPCS = [
       'Hati-hati dekat sungai tu.',
     ],
     bubble: ['Assalamualaikum!', 'Sapu daun dulu…'],
+    // sweeps, stops to straighten her back and look about, sweeps on
+    cycle: [
+      { pose: 'sweep', dur: [14, 26] },
+      { pose: 'idle', dur: [3, 7] },
+    ],
   },
   {
     id: 'pak-abu',
@@ -95,6 +101,16 @@ export const NPCS = [
       'Dulu sungai ni tempat budak-budak terjun beramai-ramai.',
     ],
     bubble: ['Syhh…', 'Umpan dah dimakan ke?'],
+    // waits, gets a bite (the float splashes), and lands one now and then
+    cycle: [
+      { pose: 'fish', dur: [12, 26] },
+      { pose: 'fish', dur: [1.2, 1.2], bite: true },
+      { pose: 'holdUp', dur: [2.6, 3.4], catch: true, say: ['Dapat ikan keli!', 'Hah, besar ni!', 'Ikan puyu je…'] },
+      { pose: 'fish', dur: [14, 30] },
+      { pose: 'fish', dur: [1.2, 1.2], bite: true, say: ['Alamak, terlepas!', 'Pandai ikan ni…'] },
+    ],
+    // where the line meets the water, in front of him
+    float: 2.9,
   },
 ]
 

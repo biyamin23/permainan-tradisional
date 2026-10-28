@@ -6,6 +6,7 @@ import { HOUSE, RIVERS, SCHOOL, WARUNG, distanceToLine, px } from '../../data/ka
 import { MODELS } from '../../data/models'
 import { ModelSlot } from './ModelSlot'
 import { KEBUN_PALMS } from './Trees'
+import { windMaterial } from './life/wind'
 
 /**
  * Model props from the map: the coconut grove (one instanced GLB palm drawn
@@ -61,7 +62,7 @@ function Grove({ url }) {
     <instancedMesh
       key={k}
       ref={(el) => (refs.current[k] = el)}
-      args={[m.geometry, m.material, KEBUN_PALMS.length]}
+      args={[m.geometry, windMaterial(m.material, 'palm'), KEBUN_PALMS.length]}
       castShadow
       receiveShadow
     />

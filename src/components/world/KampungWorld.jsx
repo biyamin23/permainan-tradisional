@@ -14,6 +14,13 @@ import { Fields } from './Fields'
 import { GameSpots } from './GameSpots'
 import { House } from './House'
 import { Life } from './Life'
+import { AmbientEvents } from './life/AmbientEvents'
+import { Ambience } from './life/Ambience'
+import { KampungProps } from './life/KampungProps'
+import { RiverLife } from './life/RiverLife'
+import { Villagers } from './life/Villagers'
+import { LifeClock } from './life/wind'
+import { Wildlife } from './life/Wildlife'
 import { Lighting } from './Lighting'
 import { NightLights } from './NightLights'
 import { Animals } from './npc/Animals'
@@ -89,6 +96,12 @@ export function KampungWorld({ gender, controlsEnabled, paused = false }) {
           <Animals />
           <NpcColliders />
           <Life />
+          <Villagers />
+          <RiverLife />
+          <Ambience />
+          <KampungProps />
+          <Wildlife />
+          <AmbientEvents />
           <NightLights />
           <Player gender={gender} enabled={controlsEnabled} />
           {/* inside Physics: the camera casts a ray so walls don't come between it and you */}
@@ -96,6 +109,7 @@ export function KampungWorld({ gender, controlsEnabled, paused = false }) {
         </Physics>
       </Suspense>
 
+      <LifeClock />
       <InteractionTracker />
       <AudioDriver />
     </Canvas>

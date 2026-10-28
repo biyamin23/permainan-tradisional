@@ -1,12 +1,14 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { CuboidCollider, RigidBody } from '@react-three/rapier'
-import { Object3D } from 'three'
+import { Color, Object3D } from 'three'
 import { BRIDGES, BRIDGE_RAMP, RIVERS, WATERFALL, bridgeDeckY } from '../../data/kampungLayout'
 import { PartsBundle } from './InstancedParts'
 import { GEO, MAT, createRandom, part, pick, randomBetween } from './kit'
 import { MODELS } from '../../data/models'
 import { ModelSlot } from './ModelSlot'
+import { riverMaterial } from './life/riverMaterial'
+import { windMaterial } from './life/wind'
 
 /**
  * The rivers from the map: the anak sungai from the waterfall in the hutan
@@ -20,7 +22,7 @@ const ROCKS = ['#8d877c', '#7a746b', '#a09a8e']
 const REEDS = ['#7a9a45', '#8aa64e', '#6c8c3d']
 
 /** Walk along a polyline every `step` metres: { x, z, dirX, dirZ, along }. */
-function samplesAlong(points, step) {
+export function samplesAlong(points, step) {
   const out = []
   let along = 0
   for (let i = 0; i < points.length - 1; i++) {
@@ -36,6 +38,8 @@ function samplesAlong(points, step) {
   }
   return out
 }
+
+const REED_WIND = windMaterial(MAT.kit, 'grass')
 
 const nearBridge = (x, z, extra = 0) => BRIDGES.some((b) => Math.hypot(x - b.x, z - b.z) < b.width / 2 + 0.6 + extra)
 
@@ -82,25 +86,39 @@ function RiverFlow({ river, count }) {
 // ---------------------------------------------------------------- static parts
 function buildRiverParts() {
   const random = createRandom(11)
+  // a separate stream for the new bank details, so the rocks and reeds stay where they were
+  const extraRandom = createRandom(23)
   const water = []
   const bed = { box: [], cylinder: [] }
   const blob = []
   const blade = []
   for (const river of RIVERS) {
+    // the water's instance colour carries how far downstream it is (see riverMaterial)
+    const yaws = []
+    const starts = [0]
     for (let i = 0; i < river.points.length - 1; i++) {
       const [ax, az] = river.points[i]
       const [bx, bz] = river.points[i + 1]
       const len = Math.hypot(bx - ax, bz - az)
       const yaw = Math.atan2(bx - ax, bz - az)
+      yaws.push(yaw)
+      starts.push(starts[i] + len)
       const mid = [(ax + bx) / 2, 0, (az + bz) / 2]
-      water.push({ kind: 'box', p: part([mid[0], 0.05, mid[2]], [river.width, 0.04, len], [0, yaw, 0]) })
+      water.push({ kind: 'box', p: part([mid[0], 0.05, mid[2]], [river.width, 0.04, len], [0, yaw, 0], new Color(starts[i] + len / 2, 0, 0)) })
       bed.box.push(part([mid[0], 0.02, mid[2]], [river.width + 0.5, 0.02, len], [0, yaw, 0], '#2f5e5a'))
       bed.box.push(part([mid[0], 0.012, mid[2]], [river.width + 2.4, 0.012, len], [0, yaw, 0], SAND))
+      // darker wet mud just above the waterline
+      bed.box.push(part([mid[0], 0.016, mid[2]], [river.width + 1.1, 0.012, len], [0, yaw, 0], '#8a6a45'))
     }
-    river.points.forEach(([x, z]) => {
-      water.push({ kind: 'cylinder', p: part([x, 0.05, z], [river.width, 0.04, river.width]) })
+    river.points.forEach(([x, z], i) => {
+      // round piece at a bend: turned halfway between the two stretches so the flow carries on
+      const a = yaws[Math.max(0, i - 1)]
+      const b = yaws[Math.min(yaws.length - 1, i)]
+      const yaw = a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) / 2
+      water.push({ kind: 'cylinder', p: part([x, 0.05, z], [river.width, 0.04, river.width], [0, yaw, 0], new Color(starts[i], 0, 0)) })
       bed.cylinder.push(part([x, 0.02, z], [river.width + 0.5, 0.02, river.width + 0.5], [0, 0, 0], '#2f5e5a'))
       bed.cylinder.push(part([x, 0.012, z], [river.width + 2.4, 0.012, river.width + 2.4], [0, 0, 0], SAND))
+      bed.cylinder.push(part([x, 0.016, z], [river.width + 1.1, 0.012, river.width + 1.1], [0, 0, 0], '#8a6a45'))
     })
     // rocks and reeds along both banks
     for (const s of samplesAlong(river.points, 1.6)) {
@@ -112,6 +130,16 @@ function buildRiverParts() {
         if (random() < 0.28) {
           const r = randomBetween(random, 0.35, 0.95)
           blob.push(part([x, r * 0.2, z], [r, r * 0.6, r * 0.9], [random(), random() * 3, 0], pick(random, ROCKS)))
+        }
+        // now and then: an old post in the shallows, or a fallen branch on the bank
+        const extra = extraRandom()
+        if (extra < 0.035) {
+          const inX = s.x - s.dirZ * (off - side * 0.6)
+          const inZ = s.z + s.dirX * (off - side * 0.6)
+          bed.cylinder.push(part([inX, 0.35, inZ], [0.16, 0.9, 0.16], [randomBetween(extraRandom, -0.12, 0.12), 0, randomBetween(extraRandom, -0.12, 0.12)], '#5e4029'))
+        } else if (extra < 0.06) {
+          const yaw = Math.atan2(s.dirX, s.dirZ) + randomBetween(extraRandom, -0.5, 0.5)
+          bed.cylinder.push(part([x, 0.07, z], [0.11, randomBetween(extraRandom, 1.2, 2.2), 0.11], [Math.PI / 2, yaw, 0], '#6b4f35', 'YXZ'))
         }
         if (random() < 0.6) {
           const h = randomBetween(random, 0.6, 1.3)
@@ -288,8 +316,9 @@ export function Water() {
 
   return (
     <group>
-      <PartsBundle bundle={bankBundle} castShadow={false} />
-      <PartsBundle bundle={waterBundle} material={MAT.water} castShadow={false} />
+      <PartsBundle bundle={{ ...bankBundle, blade: [] }} castShadow={false} />
+      <PartsBundle bundle={{ blade: bankBundle.blade }} material={REED_WIND} castShadow={false} />
+      <PartsBundle bundle={waterBundle} material={riverMaterial()} castShadow={false} />
       {RIVERS.map((river) => (
         <RiverFlow key={river.id} river={river} count={river.width > 5 ? 60 : 24} />
       ))}

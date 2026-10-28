@@ -590,6 +590,28 @@ const music = {
   },
 }
 
+// ------------------------------------------------------------------ world life
+/**
+ * Sounds of things happening around you in the kampung (life/RiverLife,
+ * npc/Animals). `level` 0..1 is how close it is; nothing plays far away.
+ */
+export const worldSfx = {
+  splash(level = 1, big = false) {
+    if (!ready() || level <= 0.02) return
+    noise({ dur: big ? 0.4 : 0.22, gain: (big ? 0.07 : 0.04) * level, type: 'highpass', freq: 1600, freqEnd: 600, q: 0.6, bus: ambBus })
+    tone({ freq: 380, freqEnd: 160, decay: 0.09, gain: 0.03 * level, bus: ambBus })
+  },
+  plop(level = 1) {
+    if (!ready() || level <= 0.02) return
+    const f = 500 + Math.random() * 300
+    tone({ freq: f, freqEnd: f * 2.2, attack: 0.004, decay: 0.06, gain: 0.03 * level, bus: ambBus })
+  },
+  squawk(level = 1) {
+    if (!ready() || level <= 0.02) return
+    for (let i = 0; i < 3; i++) tone({ freq: 1000 + Math.random() * 500, freqEnd: 650, type: 'square', at: i * 0.08, decay: 0.05, gain: 0.02 * level, filter: { freq: 2000 }, bus: ambBus })
+  },
+}
+
 // ------------------------------------------------------------------ lumba basikal
 /** One-shot race sounds. */
 export const raceSfx = {
