@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { CuboidCollider, RigidBody } from '@react-three/rapier'
+import { CuboidCollider, CylinderCollider, RigidBody } from '@react-three/rapier'
 import { Color, Object3D } from 'three'
 import { BRIDGES, BRIDGE_RAMP, RIVERS, WATERFALL, bridgeDeckY } from '../../data/kampungLayout'
 import { PartsBundle } from './InstancedParts'
@@ -287,7 +287,27 @@ function Waterfall() {
 }
 
 // ---------------------------------------------------------------- colliders
-/** Short collider blocks along each river, leaving gaps at the bridges. */
+// posts that stand in for the water's walls around a bridge
+const POST_GAP = 0.6
+const POST_R = 0.36
+
+/** True when (x, z) is under a bridge deck, `margin` metres to either side included. */
+function underDeck(x, z, margin) {
+  return BRIDGES.some((b) => {
+    const dx = x - b.x
+    const dz = z - b.z
+    const along = dx * Math.sin(b.rotationY) + dz * Math.cos(b.rotationY)
+    const across = dx * Math.cos(b.rotationY) - dz * Math.sin(b.rotationY)
+    return Math.abs(along) < b.length / 2 + 1 && Math.abs(across) < b.width / 2 + margin
+  })
+}
+
+/**
+ * Short collider blocks along each river. Near a bridge the water is
+ * walled with small posts instead, and only the ones under the deck are
+ * left out, so the water right beside the bridge (outside its railings) is
+ * still water you can't walk on, whatever angle the road crosses at.
+ */
 function riverColliders() {
   const blocks = []
   for (const river of RIVERS) {
@@ -302,8 +322,38 @@ function riverColliders() {
         const t = (k + 0.5) / pieces
         const x = ax + (bx - ax) * t
         const z = az + (bz - az) * t
-        if (nearBridge(x, z, pieceLen / 2)) continue
-        blocks.push({ position: [x, 1, z], yaw, half: [river.width / 2 - 0.2, 1, pieceLen / 2 + 0.25] })
+        if (!nearBridge(x, z, pieceLen / 2 + 2)) {
+          blocks.push({ position: [x, 1, z], yaw, half: [river.width / 2 - 0.2, 1, pieceLen / 2 + 0.25] })
+          continue
+        }
+        // by a bridge (which may cross at a slant): a grid of small posts
+        // over this stretch of water, leaving out only those under the deck
+        const dirX = (bx - ax) / len
+        const dirZ = (bz - az) / len
+        const half = river.width / 2 - 0.2
+        for (let a = -pieceLen / 2; a <= pieceLen / 2 + 0.01; a += POST_GAP) {
+          for (let c = -half; c <= half + 0.01; c += POST_GAP) {
+            const px = x + dirX * a - dirZ * c
+            const pz = z + dirZ * a + dirX * c
+            if (underDeck(px, pz, POST_R)) continue
+            blocks.push({ round: true, position: [px, 1, pz], radius: POST_R })
+          }
+        }
+      }
+    }
+    // the bends: the stretches' boxes leave a wedge open on the outside of each
+    // one, so a round post fills it (small posts round a bridge deck)
+    const r = river.width / 2 - 0.2
+    for (const [x, z] of river.points) {
+      if (!nearBridge(x, z, r + 1)) {
+        blocks.push({ round: true, position: [x, 1, z], radius: r })
+        continue
+      }
+      for (let gx = -r; gx <= r; gx += POST_GAP) {
+        for (let gz = -r; gz <= r; gz += POST_GAP) {
+          if (gx * gx + gz * gz > r * r || underDeck(x + gx, z + gz, POST_R)) continue
+          blocks.push({ round: true, position: [x + gx, 1, z + gz], radius: POST_R })
+        }
       }
     }
   }
@@ -327,9 +377,13 @@ export function Water() {
       ))}
       <Waterfall />
       <RigidBody type="fixed" colliders={false}>
-        {blocks.map((b, i) => (
-          <CuboidCollider key={i} args={b.half} position={b.position} rotation={[0, b.yaw, 0]} />
-        ))}
+        {blocks.map((b, i) =>
+          b.round ? (
+            <CylinderCollider key={i} args={[1, b.radius]} position={b.position} />
+          ) : (
+            <CuboidCollider key={i} args={b.half} position={b.position} rotation={[0, b.yaw, 0]} />
+          ),
+        )}
       </RigidBody>
     </group>
   )

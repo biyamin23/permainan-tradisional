@@ -37,7 +37,7 @@ function ControlsHelp({ isTouch }) {
       <kbd className="keycap keycap--sm">W</kbd>
       <kbd className="keycap keycap--sm">A</kbd>
       <kbd className="keycap keycap--sm">S</kbd>
-      <kbd className="keycap keycap--sm">D</kbd> bergerak · <kbd className="keycap keycap--sm">Shift</kbd> lari · <kbd className="keycap keycap--sm">Spasi</kbd> lompat ·{' '}
+      <kbd className="keycap keycap--sm">D</kbd> bergerak · <kbd className="keycap keycap--sm">Shift</kbd> lari · <kbd className="keycap keycap--sm">Space</kbd> lompat ·{' '}
       <kbd className="keycap keycap--sm">E</kbd> main / sembang · <kbd className="keycap keycap--sm">M</kbd> peta · seret tetikus untuk pusing kamera
     </span>
   )
