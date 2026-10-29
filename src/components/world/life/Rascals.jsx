@@ -24,7 +24,8 @@ import { between } from './worldFx'
  * small skeleton by autoRig.js so legs and arms swing as they walk and run.
  */
 
-const KID_HEIGHT = 1.22
+// as tall as the other kampung kids (PersonModel 'kid': head top ≈ 1.7 m)
+const KID_HEIGHT = 1.68
 const WALK = 1.55
 const RUN = 3.5
 const CHASE_SEE = 13 // they notice an animal this close
@@ -94,7 +95,7 @@ function Boy({ boy, index }) {
   const scale = KID_HEIGHT / rig.height
   const group = useRef()
   const say = useRef(null)
-  useNpcBody(group, { radius: 0.28, halfHeight: 0.4 })
+  useNpcBody(group, { radius: 0.3, halfHeight: 0.55 })
 
   const b = useMemo(() => {
     const p = PLACES[boy.start]
