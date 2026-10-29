@@ -98,17 +98,25 @@ function BikeSelect({ index, setIndex, onPick }) {
         <button type="button" className="lb-arrow" aria-label="Basikal sebelum" onClick={() => go(-1)}>
           ◀
         </button>
-        <div className="lb-bike">
+        <div className={`lb-bike ${open ? '' : 'is-locked'}`}>
           <BikePreview url={bike.modelPath} scale={bike.scale ?? 1} />
-          {bike.minLevel && <span className="lb-elite">⭐ Level {bike.minLevel}+</span>}
+          {bike.minLevel && (
+            <span className="lb-elite">
+              {open ? '⭐' : '🔒'} Level {bike.minLevel}+
+            </span>
+          )}
           {!open && <span className="lb-lock">🔒 Buka pada Level {bike.minLevel} · kamu Level {level}</span>}
+          {open && bike.minLevel && <span className="lb-unlocked">✓ Terbuka · kamu Level {level}</span>}
         </div>
         <button type="button" className="lb-arrow" aria-label="Basikal seterusnya" onClick={() => go(1)}>
           ▶
         </button>
       </div>
-      <div className="lb-card">
-        <h3 className="lb-card__name">{bike.name}</h3>
+      <div className={`lb-card ${open ? '' : 'is-locked'}`}>
+        <h3 className="lb-card__name">
+          {!open && '🔒 '}
+          {bike.name}
+        </h3>
         <p className="lb-card__desc">{bike.description}</p>
         <dl className="lb-stats">
           {Object.entries(stats).map(([k, v]) => (
@@ -127,8 +135,8 @@ function BikeSelect({ index, setIndex, onPick }) {
               type="button"
               role="tab"
               aria-selected={k === index}
-              aria-label={b.name}
-              className={`${k === index ? 'is-on' : ''} ${b.minLevel ? 'is-elite' : ''}`}
+              aria-label={canRide(b, level) ? b.name : `${b.name} (dikunci, Level ${b.minLevel})`}
+              className={`${k === index ? 'is-on' : ''} ${b.minLevel ? 'is-elite' : ''} ${canRide(b, level) ? '' : 'is-locked'}`}
               onClick={() => {
                 sfx.tap()
                 setIndex(k)
@@ -136,7 +144,7 @@ function BikeSelect({ index, setIndex, onPick }) {
             />
           ))}
         </div>
-        <button type="button" className={`gs-btn gs-btn--go ${open ? '' : 'lb-track__go is-locked'}`} onClick={pick}>
+        <button type="button" className={`gs-btn gs-btn--go ${open ? '' : 'lb-track__go is-locked'}`} onClick={pick} aria-disabled={!open}>
           {open ? 'Pilih' : `🔒 Level ${bike.minLevel}`}
         </button>
       </div>
@@ -780,6 +788,11 @@ export function LumbaBasikalGame({ onExit }) {
   const [raceKey, setRaceKey] = useState(0)
   const [rules, setRules] = useState(false)
   const bike = BICYCLES[bikeIndex]
+  const level = useProgression((s) => overallOf(s.profile).level)
+  // (a locked bike can't get past the picker, however it was reached)
+  useEffect(() => {
+    if (screen !== 'bike' && !canRide(bike, level)) setScreen('bike')
+  }, [screen, bike, level])
 
   useEffect(() => {
     BICYCLES.forEach((b) => useGLTF.preload(b.modelPath))

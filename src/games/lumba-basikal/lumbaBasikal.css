@@ -79,8 +79,45 @@
   pointer-events: none;
 }
 
+/* locked: the bike goes grey, the card fades, nothing to pick */
+.lb-bike.is-locked .lb-preview canvas {
+  filter: grayscale(1) brightness(0.8) contrast(0.9);
+}
+
+.lb-bike.is-locked .lb-elite {
+  background: #b9ab92;
+  color: #fff;
+}
+
+.lb-card.is-locked .lb-card__name,
+.lb-card.is-locked .lb-card__desc,
+.lb-card.is-locked .lb-stats {
+  opacity: 0.55;
+  filter: grayscale(1);
+}
+
+.lb-card .gs-btn--go.is-locked {
+  cursor: not-allowed;
+}
+
+.lb-unlocked {
+  position: absolute;
+  inset: auto 10px 10px;
+  padding: 0.3rem 0.6rem;
+  border-radius: 12px;
+  background: rgba(47, 122, 59, 0.85);
+  color: #fff;
+  font-weight: 900;
+  text-align: center;
+  pointer-events: none;
+}
+
 .lb-dots .is-elite:not(.is-on) {
   background: #e0b45a;
+}
+
+.lb-dots .is-locked:not(.is-on) {
+  background: #c9c0b2;
 }
 
 .lb-card .gs-btn--go.is-locked {
