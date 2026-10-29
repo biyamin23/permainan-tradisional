@@ -1,19 +1,21 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { useGLTF } from '@react-three/drei'
 import { Color, MathUtils, Object3D, Vector3 } from 'three'
 import { HOUSE, NEIGHBOUR_HOUSES, WARUNG, distanceToRiver, isOnRoad, px } from '../../../data/kampungLayout'
 import { clock } from '../../../state/timeOfDay'
 import { nearestThreat, worldRuntime } from '../../../state/worldRuntime'
-import { getMaterial } from '../../character/PersonModel'
+import { MODELS } from '../../../data/models'
 import { GEO } from '../kit'
+import { autoRigCat } from './autoRig'
 import { between, worldFx } from './worldFx'
 
 /**
  * Kampung animals besides the chickens and ducks (npc/Animals.jsx): cats
- * that doze by the houses, sit up, stretch their legs and wander off, and
- * little burung pipit that hop about the grass and take off when you come
- * near. Built from the same primitives as the chickens so they sit in the
- * same world. Simple state machines, nothing clever.
+ * that doze by the houses, sit up, groom, look at you and wander off (the
+ * kucing.glb tabby, CC-BY-4.0 by iRahulRajput on Sketchfab, rigged at load by
+ * autoRigCat), and little burung pipit that hop about the grass and take off
+ * when you come near. Simple state machines, nothing clever.
  */
 
 const angleTo = (from, to) => {
@@ -31,9 +33,10 @@ const local = (house, lx, lz) => {
 }
 
 const CATS = [
-  { home: local(HOUSE, 2.4, 6.9), coat: ['#e0a050', '#f5efe2'], start: 'sleep' }, // oren, by Tok Wan's stairs
-  { home: local(WARUNG, 3.2, 3.8), coat: ['#2a2420', '#f5efe2'], start: 'sit' }, // hitam putih, waiting at the warung
-  { home: local(NEIGHBOUR_HOUSES[3], -1.5, 5.6), coat: ['#9a8f84', '#6b625a'], start: 'walk' }, // kelabu belang
+  // one tabby model, tinted: a ginger one, a dark one and a grey one
+  { home: local(HOUSE, 2.4, 6.9), tint: '#ffc58a', start: 'sleep' }, // oren, by Tok Wan's stairs
+  { home: local(WARUNG, 3.2, 3.8), tint: '#6e665e', start: 'sit' }, // gelap, waiting at the warung
+  { home: local(NEIGHBOUR_HOUSES[3], -1.5, 5.6), tint: '#d6d2cc', start: 'walk' }, // kelabu belang
 ]
 
 const CAT_TIMES = { sleep: [14, 30], sit: [5, 12], look: [2, 4], walk: [3, 7], groom: [4, 8] }
@@ -45,13 +48,44 @@ const NEXT = {
   groom: ['sit', 'sleep', 'walk'],
 }
 
+// the cat GLB (one static mid-stride tabby; autoRigCat gives it legs, head and
+// tail) faces +x and is 1 m nose to tail: turned to face +z and made cat-sized
+const CAT_SCALE = 0.75
+
+/** Joint angles (radians, model frame) for each thing a cat does; see autoRigCat. */
+const CAT_POSES = {
+  stand: { FL: 0, FR: 0, BL: 0, BR: 0, rz: 0, ry: 0, hz: 0, tz: 0.2 },
+  // nose up about the hips, hind legs tucked forward, front legs straight down
+  sit: { FL: -0.6, FR: -0.6, BL: 1.3, BR: 1.3, rz: 0.55, ry: 0, hz: -0.45, tz: -0.6 },
+  // a loaf: low down, legs folded under, chin down, tail wrapped round
+  sleep: { FL: -1.4, FR: -1.4, BL: 1.4, BR: 1.4, rz: 0, ry: -0.26, hz: -0.35, tz: -0.3 },
+}
+const POSE_OF = { walk: 'stand', look: 'stand', sit: 'sit', groom: 'sit', sleep: 'sleep' }
+
+function CatModel({ url, tint, rigRef }) {
+  const { scene } = useGLTF(url)
+  const rig = useMemo(() => {
+    let source = null
+    scene.traverse((o) => {
+      if (o.isMesh && !source) source = o
+    })
+    const material = source.material.clone()
+    material.color.set(tint)
+    return autoRigCat(source.geometry, material)
+  }, [scene, tint])
+  useEffect(() => {
+    rigRef.current = rig
+  }, [rig, rigRef])
+  return (
+    <group rotation={[0, -Math.PI / 2, 0]} scale={CAT_SCALE}>
+      <primitive object={rig.mesh} />
+    </group>
+  )
+}
+
 function Cat({ cat, index }) {
   const root = useRef()
-  const body = useRef()
-  const head = useRef()
-  const tail = useRef()
-  const legs = useRef([])
-  const [fur, belly] = cat.coat
+  const rig = useRef(null)
   const b = useMemo(
     () => ({
       pos: new Vector3(cat.home[0] + between(-1, 1), 0, cat.home[1] + between(-1, 1)),
@@ -60,7 +94,7 @@ function Cat({ cat, index }) {
       timer: between(2, 10),
       target: null,
       step: 0,
-      wake: 0,
+      pose: { ...CAT_POSES[POSE_OF[cat.start]] },
     }),
     [cat],
   )
@@ -132,88 +166,54 @@ function Cat({ cat, index }) {
         b.heading += angleTo(b.heading, Math.atan2(dx, dz)) * (1 - Math.exp(-5 * dt))
         b.pos.x += Math.sin(b.heading) * speed * dt
         b.pos.z += Math.cos(b.heading) * speed * dt
-        b.step += speed * dt * 9
+        b.step += speed * dt * (b.fleeing ? 9 : 14)
       }
     }
     g.position.set(b.pos.x, 0, b.pos.z)
     g.rotation.y = b.heading
 
-    // pose: body height and tilt, head, tail, legs
-    const lying = b.state === 'sleep'
-    const sitting = b.state === 'sit' || b.state === 'look' || b.state === 'groom'
-    const bodyY = lying ? 0.1 : sitting ? 0.2 : 0.23
-    const bodyTilt = sitting ? -0.55 : 0
-    body.current.position.y = MathUtils.lerp(body.current.position.y, bodyY, 1 - Math.exp(-6 * dt))
-    body.current.rotation.x = MathUtils.lerp(body.current.rotation.x, bodyTilt, 1 - Math.exp(-6 * dt))
-    body.current.scale.y = MathUtils.lerp(body.current.scale.y, lying ? 0.75 : 1, 1 - Math.exp(-4 * dt)) + (lying ? Math.sin(t * 1.6) * 0.03 : 0)
-    let hx = lying ? 0.5 : 0
+    const r = rig.current
+    if (!r) return
+    // ease every joint towards the pose for what it's doing
+    const want = CAT_POSES[POSE_OF[b.state]]
+    const k = 1 - Math.exp(-5 * dt)
+    for (const key of Object.keys(want)) b.pose[key] = MathUtils.lerp(b.pose[key], want[key], k)
+    const P = b.pose
+    const [body, FL, FR, BL, BR, head, tail] = r.bones
+    // walking: diagonal pairs swing together (wider when it runs)
+    const swing = speed > 0 ? Math.sin(b.step) * (b.fleeing ? 0.6 : 0.4) : 0
+    FL.rotation.z = P.FL + swing
+    BR.rotation.z = P.BR + swing
+    FR.rotation.z = P.FR - swing
+    BL.rotation.z = P.BL - swing
+    // the body pitches up about the hips (sitting), drops (lying down),
+    // breathes when asleep and bobs as it walks
+    const breathe = b.state === 'sleep' ? Math.sin(t * 1.6) * 0.008 : 0
+    const bob = speed > 0 ? Math.abs(Math.sin(b.step)) * 0.02 : 0
+    body.rotation.z = P.rz
+    body.position.set(r.hipX - r.hipX * Math.cos(P.rz), -r.hipX * Math.sin(P.rz) + P.ry + breathe + bob, 0)
+    // the head turns to look at you, grooms, or glances about
     let hy = 0
-    if (b.state === 'look' || (sitting && pd < 8)) {
-      // turn the head to look at you
-      hy = MathUtils.clamp(angleTo(b.heading, Math.atan2(p.x - b.pos.x, p.z - b.pos.z)), -1.2, 1.2)
-    } else if (b.state === 'groom') {
-      hx = 0.6 + Math.sin(t * 6) * 0.15
-      hy = -0.6
+    let hz = P.hz
+    const sitting = b.state === 'sit' || b.state === 'look' || b.state === 'groom'
+    if (b.state === 'look' || (sitting && pd < 8)) hy = MathUtils.clamp(angleTo(b.heading, Math.atan2(p.x - b.pos.x, p.z - b.pos.z)), -1.1, 1.1)
+    else if (b.state === 'groom') {
+      hy = -0.7
+      hz -= 0.5 + Math.sin(t * 6) * 0.12
     } else if (sitting) hy = Math.sin(t * 0.4) * 0.5
-    head.current.rotation.x = MathUtils.lerp(head.current.rotation.x, hx, 1 - Math.exp(-5 * dt))
-    head.current.rotation.y = MathUtils.lerp(head.current.rotation.y, hy, 1 - Math.exp(-5 * dt))
-    head.current.position.y = MathUtils.lerp(head.current.position.y, lying ? 0.14 : sitting ? 0.45 : 0.33, 1 - Math.exp(-6 * dt))
-    head.current.position.z = MathUtils.lerp(head.current.position.z, lying ? 0.22 : sitting ? 0.1 : 0.24, 1 - Math.exp(-6 * dt))
-    tail.current.rotation.x = lying ? 1.4 : -0.6 + Math.sin(t * (speed > 0 ? 3 : 1.2)) * 0.15
-    tail.current.rotation.z = Math.sin(t * 0.9) * (lying ? 0.1 : 0.5)
-    legs.current.forEach((leg, k) => {
-      if (!leg) return
-      const swing = speed > 0 ? Math.sin(b.step + (k % 2 === (k < 2 ? 0 : 1) ? 0 : Math.PI)) * 0.5 : 0
-      leg.rotation.x = lying ? 1.4 : swing
-      leg.visible = !lying
-    })
+    else if (b.state === 'sleep') hy = 0.3
+    head.rotation.y = MathUtils.lerp(head.rotation.y, hy, k)
+    head.rotation.z = MathUtils.lerp(head.rotation.z, hz, k)
+    // the tail: a slow swish, quicker when walking, wrapped round when asleep
+    tail.rotation.y = MathUtils.lerp(tail.rotation.y, b.state === 'sleep' ? 1.0 : Math.sin(t * (speed > 0 ? 3 : 1.1)) * 0.45, k)
+    tail.rotation.z = P.tz
   })
 
   return (
     <group ref={root}>
-      <group ref={body} position={[0, 0.22, 0]}>
-        <mesh scale={[0.13, 0.12, 0.25]} material={getMaterial(fur)} castShadow>
-          <sphereGeometry args={[1, 10, 8]} />
-        </mesh>
-        <mesh position={[0, -0.05, 0.03]} scale={[0.1, 0.08, 0.2]} material={getMaterial(belly)}>
-          <sphereGeometry args={[1, 8, 6]} />
-        </mesh>
-      </group>
-      <group ref={head} position={[0, 0.33, 0.24]}>
-        <mesh scale={[0.1, 0.09, 0.09]} material={getMaterial(fur)} castShadow>
-          <sphereGeometry args={[1, 10, 8]} />
-        </mesh>
-        {[-1, 1].map((side) => (
-          <mesh key={side} position={[side * 0.055, 0.085, 0]} rotation={[0, 0, -side * 0.25]} scale={[0.035, 0.06, 0.02]} material={getMaterial(fur)}>
-            <coneGeometry args={[1, 1, 4]} />
-          </mesh>
-        ))}
-        <mesh position={[0, -0.02, 0.08]} scale={[0.05, 0.035, 0.03]} material={getMaterial(belly)}>
-          <sphereGeometry args={[1, 6, 5]} />
-        </mesh>
-        {[-1, 1].map((side) => (
-          <mesh key={side} position={[side * 0.04, 0.02, 0.083]} scale={0.012} material={getMaterial('#1e1a1a')}>
-            <sphereGeometry args={[1, 5, 4]} />
-          </mesh>
-        ))}
-      </group>
-      <group ref={tail} position={[0, 0.24, -0.23]}>
-        <mesh position={[0, 0, -0.14]} rotation={[Math.PI / 2, 0, 0]} scale={[0.025, 0.3, 0.025]} material={getMaterial(fur)}>
-          <cylinderGeometry args={[0.7, 1, 1, 5]} />
-        </mesh>
-      </group>
-      {[
-        [-0.07, 0.15],
-        [0.07, 0.15],
-        [-0.07, -0.15],
-        [0.07, -0.15],
-      ].map(([x, z], k) => (
-        <group key={k} ref={(el) => (legs.current[k] = el)} position={[x, 0.16, z]}>
-          <mesh position={[0, -0.08, 0]} scale={[0.03, 0.16, 0.03]} material={getMaterial(fur)}>
-            <cylinderGeometry args={[1, 1, 1, 5]} />
-          </mesh>
-        </group>
-      ))}
+      <Suspense fallback={null}>
+        <CatModel url={MODELS.kucing.url} tint={cat.tint} rigRef={rig} />
+      </Suspense>
     </group>
   )
 }

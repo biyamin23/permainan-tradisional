@@ -61,5 +61,9 @@ export const MODELS = {
   // facing +z; rigged at load by life/autoRig.js, shown at the kampung kids' height
   amru: { url: '/models/npc_amru.glb' },
   sameer: { url: '/models/npc_sameer.glb' },
+  // the kampung cats (life/Wildlife.jsx): one static tabby, 1 m nose to tail, facing +x,
+  // rigged at load by life/autoRig.js. CC-BY-4.0, iRahulRajput on Sketchfab
+  // (sketchfab.com/3d-models/medium-poly-cat-in-motion-3d-model-free-5c31c77904de4e458d434c167ea0f4bc)
+  kucing: { url: '/models/kucing.glb' },
   kapur: { url: '/models/kapur_tulis.glb' },
 }

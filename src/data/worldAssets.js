@@ -15,7 +15,7 @@ export const WORLD_ASSETS = [
 
   // ------------------------------------------------ animals
   { id: 'chicken', category: 'animal', path: null, status: 'placeholder', animations: ['idle', 'walk', 'peck', 'run'], usedBy: 'components/world/npc/Animals.jsx' },
-  { id: 'cat', category: 'animal', path: null, status: 'requested', animations: ['idle', 'walk', 'sit', 'sleep'], usedBy: 'components/world/life/Wildlife.jsx' },
+  { id: 'cat', category: 'animal', path: '/models/kucing.glb', status: 'available', animations: [], usedBy: 'life/Wildlife.jsx (static mesh, rigged at load by life/autoRig.js autoRigCat; CC-BY-4.0, credit in README)' },
   { id: 'duck', category: 'animal', path: null, status: 'placeholder', animations: ['idle', 'walk', 'swim'], usedBy: 'components/world/npc/Animals.jsx' },
   { id: 'pipit', category: 'animal', path: null, status: 'placeholder', animations: ['hop', 'fly'], usedBy: 'components/world/life/Wildlife.jsx' },
   { id: 'fish', category: 'animal', path: null, status: 'placeholder', usedBy: 'components/world/life/RiverLife.jsx' },

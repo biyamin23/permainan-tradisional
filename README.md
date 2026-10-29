@@ -53,7 +53,8 @@ Stand still and the kampung carries on (`src/components/world/life/`):
   (`wind.js`); smoke from wood fires behind some houses and leaves falling
   near you (`Ambience.jsx`).
 - **Animals**: chickens scatter when you run at them and sometimes cross the
-  road; cats doze, sit up and wander; burung pipit hop about and take off
+  road; cats (a tabby GLB, rigged at load by `autoRigCat`) doze, sit up,
+  groom and wander; burung pipit hop about and take off
   (`Wildlife.jsx`).
 - **Amru and Sameer** (`Rascals.jsx`) roam the whole kampung together and
   chase any chicken or cat they spot, then laugh it off. Their GLBs are
@@ -185,6 +186,14 @@ registerInteractionHandler('startGame', (zone) => {
 ```
 
 **Add a screen:** add it to `SCREENS` in `src/state/playerState.js` and render it in `App.jsx`. If it should keep the 3D kampung underneath, also add it to `WORLD_SCREENS`.
+
+## Credits
+
+- Cat model: "Medium poly Cat In Motion 3d Model Free" by iRahulRajput
+  (https://sketchfab.com/rt699448), from
+  https://sketchfab.com/3d-models/medium-poly-cat-in-motion-3d-model-free-5c31c77904de4e458d434c167ea0f4bc,
+  licensed CC BY 4.0 (http://creativecommons.org/licenses/by/4.0/). Used as
+  `public/models/kucing.glb`, unchanged; tinted and rigged at load time.
 
 ## Not in Phase 1
 

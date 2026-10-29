@@ -113,3 +113,81 @@ export function autoRig(source, material) {
   mesh.frustumCulled = false
   return { mesh, bones, height }
 }
+
+// ---------------------------------------------------------------- four-legged
+export const CAT_BONES = { root: 0, legFL: 1, legFR: 2, legBL: 3, legBR: 4, head: 5, tail: 6 }
+
+/**
+ * The same idea for a standing cat (kucing.glb: one organic mesh, mid-stride,
+ * facing +x, about 1 m nose to tail, feet at y 0). Here the body is one piece,
+ * so vertices are weighted by region instead, blending over a few centimetres
+ * at the shoulders, hips, neck and the root of the tail. Proportions are
+ * taken from the model's size, so it works at any scale it was exported at.
+ * Bones turn in the model's frame: legs and the head's nod about z, the
+ * head's turn and the tail's sway about y.
+ */
+export function autoRigCat(source, material) {
+  const geometry = source.clone()
+  const pos = geometry.attributes.position
+  geometry.computeBoundingBox()
+  const { min, max } = geometry.boundingBox
+  const L = max.x - min.x
+  const H = max.y
+  // as fractions of the cat's length and height, measured off kucing.glb
+  const tailX = min.x + L * 0.16 // the tail is everything behind this
+  const headX = min.x + L * 0.76
+  const neckY = H * 0.6
+  const legY = H * 0.45 // legs below this, blending up into the body
+  const hipX = min.x + L * 0.3
+  const shoulderX = min.x + L * 0.72
+  const smooth = (a, b, x) => {
+    const t = Math.min(1, Math.max(0, (x - a) / (b - a)))
+    return t * t * (3 - 2 * t)
+  }
+  const index = new Uint16Array(pos.count * 4)
+  const weight = new Float32Array(pos.count * 4)
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i)
+    const y = pos.getY(i)
+    const z = pos.getZ(i)
+    const tail = smooth(tailX + L * 0.03, tailX - L * 0.03, x)
+    const head = (1 - tail) * smooth(headX - L * 0.04, headX + L * 0.04, x) * smooth(neckY - H * 0.08, neckY + H * 0.05, y)
+    const leg = (1 - tail - head) * smooth(legY + H * 0.08, legY - H * 0.1, y)
+    const front = x > (hipX + shoulderX) / 2
+    const o = i * 4
+    index[o] = front ? (z >= 0 ? CAT_BONES.legFL : CAT_BONES.legFR) : z >= 0 ? CAT_BONES.legBL : CAT_BONES.legBR
+    weight[o] = leg
+    index[o + 1] = CAT_BONES.head
+    weight[o + 1] = head
+    index[o + 2] = CAT_BONES.tail
+    weight[o + 2] = tail
+    index[o + 3] = CAT_BONES.root
+    weight[o + 3] = Math.max(0, 1 - leg - head - tail)
+  }
+  geometry.setAttribute('skinIndex', new Uint16BufferAttribute(index, 4))
+  geometry.setAttribute('skinWeight', new Float32BufferAttribute(weight, 4))
+
+  const root = new Bone()
+  const at = (x, y, z) => {
+    const b = new Bone()
+    b.position.set(x, y, z)
+    root.add(b)
+    return b
+  }
+  const w = (max.z - min.z) * 0.3
+  const bones = [
+    root,
+    at(shoulderX, legY + H * 0.05, w),
+    at(shoulderX, legY + H * 0.05, -w),
+    at(hipX, legY + H * 0.05, w),
+    at(hipX, legY + H * 0.05, -w),
+    at(headX - L * 0.02, neckY, 0),
+    at(tailX + L * 0.02, H * 0.62, 0),
+  ]
+  const mesh = new SkinnedMesh(geometry, material)
+  mesh.add(root)
+  mesh.bind(new Skeleton(bones))
+  mesh.castShadow = true
+  mesh.frustumCulled = false
+  return { mesh, bones, length: L, height: H, hipX }
+}
