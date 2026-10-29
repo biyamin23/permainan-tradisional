@@ -50,6 +50,43 @@
 }
 
 /* ---------------------------------------------------------------- bike picker */
+/* the preview, with the Level 10 badge and the lock laid over it */
+.lb-bike {
+  position: relative;
+  flex: 1;
+  display: flex;
+}
+
+.lb-bike .lb-preview {
+  flex: 1;
+}
+
+.lb-elite {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f2c14e, #e0a03a);
+  color: #3b2414;
+  font-size: 0.8rem;
+  font-weight: 900;
+  box-shadow: 0 2px 0 rgba(60, 30, 10, 0.35);
+  pointer-events: none;
+}
+
+.lb-bike .lb-lock {
+  pointer-events: none;
+}
+
+.lb-dots .is-elite:not(.is-on) {
+  background: #e0b45a;
+}
+
+.lb-card .gs-btn--go.is-locked {
+  background: #b9ab92;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+}
 .lb-stage {
   display: flex;
   align-items: center;

@@ -10,6 +10,9 @@
  * modelPath    GLB in public/models (metres, ground at y 0, front +Z)
  * scale        drawn this much bigger (the kids' bike is modelled for a
  *              toddler; our kampung kids are a size up)
+ * minLevel     overall Level needed to ride it (the five from
+ *              low_poly_bicycles.glb, CC-BY-4.0 by EdwinRC on Sketchfab, are
+ *              for Level 10 and up)
  */
 export const BICYCLES = [
   {
@@ -68,7 +71,77 @@ export const BICYCLES = [
     scale: 1.35,
     description: 'Sangat stabil dengan roda sisi. Tak mudah goyang, tapi tak berapa laju.',
   },
+
+  // ---------------------------------------------------------------- Level 10+
+  {
+    // a proper mountain bike: knobbly tyres, suspension fork, gears
+    id: 'gunung',
+    name: 'Gunung Merah',
+    modelPath: '/models/basikal_gunung_merah.glb',
+    minLevel: 10,
+    maxSpeed: 9.6,
+    acceleration: 4.2,
+    handling: 0.86,
+    braking: 9.5,
+    stability: 0.88,
+    description: 'Basikal gunung bergear. Laju, cengkam kuat, tak gentar lubang dan lumpur.',
+  },
+  {
+    // tiny wheels, a square frame and a tall seat post: odd, but it goes
+    id: 'kotak',
+    name: 'Kotak Oren',
+    modelPath: '/models/basikal_kotak_oren.glb',
+    minLevel: 10,
+    maxSpeed: 8.7,
+    acceleration: 5.2,
+    handling: 0.93,
+    braking: 8.5,
+    stability: 0.5,
+    description: 'Rangka segi empat, roda kecil. Pecutan paling ganas, tapi mudah tergelincir.',
+  },
+  {
+    // a penny-farthing: one enormous wheel, pedalled at the hub
+    id: 'gergasi',
+    name: 'Roda Gergasi',
+    modelPath: '/models/basikal_roda_gergasi.glb',
+    minLevel: 10,
+    maxSpeed: 10.6,
+    acceleration: 2.1,
+    handling: 0.42,
+    braking: 5,
+    stability: 0.35,
+    description: 'Roda depan gergasi. Paling laju di jalan lurus, tapi susah membelok dan senang jatuh.',
+  },
+  {
+    // a low chopper trike with fat back wheels and tall bars
+    id: 'trike',
+    name: 'Trike Raja Jalanan',
+    modelPath: '/models/basikal_trike_chopper.glb',
+    minLevel: 10,
+    maxSpeed: 9.1,
+    acceleration: 3.1,
+    handling: 0.6,
+    braking: 7.5,
+    stability: 1,
+    description: 'Tiga roda, rendah dan bergaya. Langsung tak goyang bila terlanggar.',
+  },
+  {
+    // a racing BMX: light, stiff, made for corners
+    id: 'bmx-pro',
+    name: 'BMX Hijau Pro',
+    modelPath: '/models/basikal_bmx_hijau.glb',
+    minLevel: 10,
+    maxSpeed: 9.2,
+    acceleration: 4.9,
+    handling: 1,
+    braking: 10,
+    stability: 0.55,
+    description: 'BMX lumba. Membelok paling tajam dan brek paling kuat.',
+  },
 ]
+
+/** Whether someone at overall `level` may ride `bike`. */
+export const canRide = (bike, level) => level >= (bike.minLevel ?? 0)
 
 export const getBicycle = (id) => BICYCLES.find((b) => b.id === id) ?? BICYCLES[0]
 

@@ -7,7 +7,7 @@ import { fetchRaceLeaderboard, fetchTrackRecords } from '../../cloud/raceTimes'
 import { CHILD_LOOKS } from '../../components/character/ChildModel'
 import { usePlayerState } from '../../state/playerState'
 import { ExitButton, RulesButton, RulesSheet, usePlayerLook } from '../shared/GameShell'
-import { BICYCLES, getBicycle, statBars } from './bicycles'
+import { BICYCLES, canRide, getBicycle, statBars } from './bicycles'
 import { BikePreview } from './BikePreview'
 import { preloadKamarulVoice } from './kamarulVoice'
 import { createRace } from './raceController'
@@ -16,7 +16,7 @@ import { RaceView } from './RaceView'
 import { loadRecords, saveResult } from './records'
 import { MasteryStatus, ProgressReward, useProgressSession } from '../../components/progress/Progress'
 import { GAME_UNLOCKS } from '../../progression/config'
-import { completeGame, gameUnlocked, useProgress as useProgression } from '../../progression/engine'
+import { completeGame, gameUnlocked, overallOf, useProgress as useProgression } from '../../progression/engine'
 import { KAMARUL } from './cast'
 import { buildTrack } from './track'
 import { TRACKS, getTrack } from './tracks'
@@ -68,6 +68,13 @@ function Bars({ n }) {
 function BikeSelect({ index, setIndex, onPick }) {
   const bike = BICYCLES[index]
   const stats = statBars(bike)
+  // the Level 10 bikes: on show to everyone, rideable from Level 10
+  const level = useProgression((s) => overallOf(s.profile).level)
+  const open = canRide(bike, level)
+  const pick = useCallback(() => {
+    if (open) onPick()
+    else sfx.tap()
+  }, [open, onPick])
   const go = useCallback(
     (d) => {
       sfx.tap()
@@ -79,11 +86,11 @@ function BikeSelect({ index, setIndex, onPick }) {
     const onKey = (e) => {
       if (e.key === 'ArrowLeft' || e.key === 'a') go(-1)
       if (e.key === 'ArrowRight' || e.key === 'd') go(1)
-      if (e.key === 'Enter') onPick()
+      if (e.key === 'Enter') pick()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [go, onPick])
+  }, [go, pick])
   return (
     <div className="lb-select">
       <h2 className="lb-title">Pilih basikal</h2>
@@ -91,7 +98,11 @@ function BikeSelect({ index, setIndex, onPick }) {
         <button type="button" className="lb-arrow" aria-label="Basikal sebelum" onClick={() => go(-1)}>
           ◀
         </button>
-        <BikePreview url={bike.modelPath} scale={bike.scale ?? 1} />
+        <div className="lb-bike">
+          <BikePreview url={bike.modelPath} scale={bike.scale ?? 1} />
+          {bike.minLevel && <span className="lb-elite">⭐ Level {bike.minLevel}+</span>}
+          {!open && <span className="lb-lock">🔒 Buka pada Level {bike.minLevel} · kamu Level {level}</span>}
+        </div>
         <button type="button" className="lb-arrow" aria-label="Basikal seterusnya" onClick={() => go(1)}>
           ▶
         </button>
@@ -117,7 +128,7 @@ function BikeSelect({ index, setIndex, onPick }) {
               role="tab"
               aria-selected={k === index}
               aria-label={b.name}
-              className={k === index ? 'is-on' : ''}
+              className={`${k === index ? 'is-on' : ''} ${b.minLevel ? 'is-elite' : ''}`}
               onClick={() => {
                 sfx.tap()
                 setIndex(k)
@@ -125,8 +136,8 @@ function BikeSelect({ index, setIndex, onPick }) {
             />
           ))}
         </div>
-        <button type="button" className="gs-btn gs-btn--go" onClick={onPick}>
-          Pilih
+        <button type="button" className={`gs-btn gs-btn--go ${open ? '' : 'lb-track__go is-locked'}`} onClick={pick}>
+          {open ? 'Pilih' : `🔒 Level ${bike.minLevel}`}
         </button>
       </div>
     </div>

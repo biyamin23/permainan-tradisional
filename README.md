@@ -195,6 +195,14 @@ registerInteractionHandler('startGame', (zone) => {
   licensed CC BY 4.0 (http://creativecommons.org/licenses/by/4.0/). Used as
   `public/models/kucing.glb`, unchanged; tinted and rigged at load time.
 
+- Level 10 basikal (Gunung Merah, Kotak Oren, Roda Gergasi, Trike Raja
+  Jalanan, BMX Hijau Pro): "Low Poly Bicycles" by EdwinRC
+  (https://sketchfab.com/Edwin3D), from
+  https://sketchfab.com/3d-models/low-poly-bicycles-c256e970e2874ad0ac04dcef730863af,
+  licensed CC BY 4.0. Split into one file per bike, recoloured to vertex
+  colours, turned and scaled (`public/models/basikal_{gunung_merah,
+  kotak_oren,roda_gergasi,trike_chopper,bmx_hijau}.glb`).
+
 ## Not in Phase 1
 
 Supabase, auth, database, real multiplayer, leaderboards, XP, achievements, actual gameplay (Congkak, Gasing, …), GLB assets, inventory, shops.

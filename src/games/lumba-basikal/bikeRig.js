@@ -17,6 +17,10 @@ import { BufferAttribute, BufferGeometry, Group, Mesh, Quaternion, Vector3 } fro
  */
 
 const cache = new Map()
+// spokes lie within this of the wheel's centre plane (the hub flanges dish them a
+// little, more on a big wheel); fork legs and stays sit further out, either side
+// of the tyre
+const spokePlane = (r) => Math.max(0.025, r * 0.08)
 // ?debug: inspect how each model was split
 if (typeof window !== 'undefined' && window.location.search.includes('debug')) window.__bikeParts = cache
 
@@ -121,12 +125,15 @@ export function analyseBike(url, scene, opts = {}) {
   // a piece belongs to a wheel if it sits entirely inside the wheel's disc and is
   // either centred on the hub (tyre, rim, axle) or a thin spoke in the wheel's plane
   // that stops at the rim. Kickstands (down to the ground) and the roda sisi
-  // brackets (out to the side) start at the hub too, but they don't turn.
+  // brackets (out to the side) start at the hub too, but they don't turn; nor do
+  // the fork legs, stays and dropouts that hold the axle from either side of the
+  // wheel (some models come in hundreds of little bits, so those bits sit inside
+  // the disc too): spokes lie in the wheel's own plane, those lie outside it.
   const inside = (c, w, slack = 1.07) => {
     if (Math.abs(c.c[0] - w.hub.x) > 0.14 || c.s[1] > w.r * 2.04 || c.s[2] > w.r * 2.04) return false
     for (const y of [c.lo[1], c.hi[1]]) for (const z of [c.lo[2], c.hi[2]]) if (Math.hypot(y - w.hub.y, z - w.hub.z) > w.r * slack) return false
     const centred = Math.abs(c.c[1] - w.hub.y) < w.r * 0.12 && Math.abs(c.c[2] - w.hub.z) < w.r * 0.12
-    const spoke = c.s[0] < 0.08 && c.lo[1] > w.hub.y - w.r * 0.93
+    const spoke = c.s[0] < 0.08 && c.lo[1] > w.hub.y - w.r * 0.93 && Math.abs(c.c[0] - w.hub.x) < spokePlane(w.r)
     return centred || spoke
   }
   for (const w of [...wheels].sort((a, b) => a.r - b.r)) {
@@ -147,16 +154,30 @@ export function analyseBike(url, scene, opts = {}) {
         c.s[1] < 0.32 &&
         c.c[1] < top * 0.5 &&
         c.c[2] < front.hub.z - front.r * 0.8 &&
-        c.c[2] > rear.hub.z + rear.r * 0.5,
+        // clear of the rear wheel: the rear sprocket is a disc there too
+        c.c[2] > rear.hub.z + rear.r * 0.9,
     )
     .sort((a, b) => b.s[1] - a.s[1])[0]
-  const crankCentre = ring ? new Vector3(0, ring.c[1], ring.c[2]) : new Vector3(0, rear.r * 1.05, (front.hub.z + rear.hub.z) * 0.45)
+  // a penny-farthing (front wheel far bigger, no chain) is pedalled at the front hub
+  const penny = !ring && front.r > rear.r * 1.6
+  const crankCentre = ring
+    ? new Vector3(0, ring.c[1], ring.c[2])
+    : penny
+      ? new Vector3(0, front.hub.y, front.hub.z)
+      : new Vector3(0, rear.r * 1.05, (front.hub.z + rear.hub.z) * 0.45)
   const crank = { pivot: crankCentre, parts: [], pedals: [] }
+  // (on a small bike the chain stays and seat stays come within reach of the
+  // cranks too: long tubes that aren't centred on the axle and lie in the frame's
+  // own plane are frame; crank arms sit outboard of it)
+  const frameTube = (c) =>
+    Math.max(c.s[1], c.s[2]) > 0.12 &&
+    Math.hypot(c.c[1] - crankCentre.y, c.c[2] - crankCentre.z) > 0.04 &&
+    Math.abs(c.c[0]) < 0.05
   for (const c of comps) {
     if (used.has(c)) continue
     let far = 0
     for (const y of [c.lo[1], c.hi[1]]) for (const z of [c.lo[2], c.hi[2]]) far = Math.max(far, Math.hypot(y - crankCentre.y, z - crankCentre.z))
-    if (far > 0.22 || c.hi[1] < 0.02) continue
+    if (far > 0.22 || c.hi[1] < 0.02 || frameTube(c)) continue
     crank.parts.push(c)
     used.add(c)
     // pedals: the pieces out to the sides
