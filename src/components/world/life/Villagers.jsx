@@ -61,7 +61,7 @@ function Basket() {
 }
 
 /** A short line over someone's head, shown for a few seconds when they speak. */
-function Say({ api, y }) {
+export function Say({ api, y }) {
   const [text, setText] = useState(null)
   useEffect(() => {
     let timer

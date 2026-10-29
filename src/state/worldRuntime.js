@@ -34,7 +34,25 @@ export const worldRuntime = {
     bike: new Vector3(0, 0, 999),
     bikeMoving: false,
     chickens: [],
+    /** Live positions of the cats (life/Wildlife.jsx), for the kids who chase them. */
+    cats: [],
+    /** Live positions of NPCs chasing animals (life/Rascals.jsx): animals run from these too. */
+    chasers: [],
   },
+}
+
+/** Whoever is nearest (x, z) that an animal would run from: you, or a kid giving chase. */
+export function nearestThreat(x, z) {
+  let p = worldRuntime.playerPosition
+  let d = Math.hypot(p.x - x, p.z - z)
+  for (const c of worldRuntime.npc.chasers) {
+    const dc = Math.hypot(c.x - x, c.z - z)
+    if (dc < d) {
+      p = c
+      d = dc
+    }
+  }
+  return { p, d }
 }
 
 export function resetWorldRuntime() {

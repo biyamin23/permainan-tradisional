@@ -57,5 +57,9 @@ export const MODELS = {
   gunduBatu: { url: '/models/gundu_batu.glb' },
   gunduTin: { url: '/models/gundu_tin.glb' },
   selipar: { url: '/models/selipar_jepun.glb' },
+  // Amru and Sameer (life/Rascals.jsx): one static mesh each, 1.72 m, feet at 0,
+  // facing +z; rigged at load by life/autoRig.js and shrunk to a kid's height
+  amru: { url: '/models/npc_amru.glb' },
+  sameer: { url: '/models/npc_sameer.glb' },
   kapur: { url: '/models/kapur_tulis.glb' },
 }

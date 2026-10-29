@@ -55,6 +55,9 @@ Stand still and the kampung carries on (`src/components/world/life/`):
 - **Animals**: chickens scatter when you run at them and sometimes cross the
   road; cats doze, sit up and wander; burung pipit hop about and take off
   (`Wildlife.jsx`).
+- **Amru and Sameer** (`Rascals.jsx`) roam the whole kampung together and
+  chase any chicken or cat they spot, then laugh it off. Their GLBs are
+  static meshes; `autoRig.js` gives them legs, arms and a head that move.
 - **Props** placed by zone, not scattered (`KampungProps.jsx`).
 - **AmbientEvents.jsx** decides when the small surprises happen; effects talk
   through `worldFx.js`. `data/worldAssets.js` lists which pieces are real

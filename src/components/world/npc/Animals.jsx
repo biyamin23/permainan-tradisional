@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { DoubleSide, MathUtils, Vector3 } from 'three'
 import { POND, distanceToRiver } from '../../../data/kampungLayout'
-import { worldRuntime } from '../../../state/worldRuntime'
+import { nearestThreat, worldRuntime } from '../../../state/worldRuntime'
 import { nearestRoadPoint } from '../life/navigation'
 import { worldFx } from '../life/worldFx'
 import { worldSfx } from '../../../audio/engine'
@@ -84,8 +84,8 @@ function Chicken({ area, seed, registry }) {
     let pecking = false
     let speed = 0.9
     // you came too close: squawk off in a hurry (and don't come back for a bit)
-    const p = worldRuntime.playerPosition
-    const pd = Math.hypot(p.x - b.pos.x, p.z - b.pos.z)
+    // (you, or Amru and Sameer giving chase)
+    const { p, d: pd } = nearestThreat(b.pos.x, b.pos.z)
     if (pd < 1.8 && !b.fleeing) {
       const a = Math.atan2(b.pos.x - p.x, b.pos.z - p.z) + randomBetween(b.random, -0.5, 0.5)
       b.target.set(b.pos.x + Math.sin(a) * 2.6, 0, b.pos.z + Math.cos(a) * 2.6)

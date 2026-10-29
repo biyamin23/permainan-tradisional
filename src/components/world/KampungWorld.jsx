@@ -17,6 +17,7 @@ import { Life } from './Life'
 import { AmbientEvents } from './life/AmbientEvents'
 import { Ambience } from './life/Ambience'
 import { KampungProps } from './life/KampungProps'
+import { Rascals } from './life/Rascals'
 import { RiverLife } from './life/RiverLife'
 import { Villagers } from './life/Villagers'
 import { LifeClock } from './life/wind'
@@ -47,6 +48,8 @@ preloadModels([
   MODELS.sampan.url,
   MODELS.basikal.url,
   MODELS.kelapa.url,
+  MODELS.amru.url,
+  MODELS.sameer.url,
 ])
 import { Trees } from './Trees'
 import { Water } from './Water'
@@ -97,6 +100,7 @@ export function KampungWorld({ gender, controlsEnabled, paused = false }) {
           <NpcColliders />
           <Life />
           <Villagers />
+          <Rascals />
           <RiverLife />
           <Ambience />
           <KampungProps />

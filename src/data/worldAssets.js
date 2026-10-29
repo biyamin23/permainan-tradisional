@@ -10,6 +10,8 @@
 export const WORLD_ASSETS = [
   // ------------------------------------------------ characters (keep: PersonModel is the house style)
   { id: 'villagers', category: 'character', path: null, status: 'available', usedBy: 'components/character/PersonModel.jsx (all people, procedural rig + poses)' },
+  { id: 'amru', category: 'character', path: '/models/npc_amru.glb', status: 'available', animations: [], usedBy: 'life/Rascals.jsx (static mesh, rigged at load by life/autoRig.js)' },
+  { id: 'sameer', category: 'character', path: '/models/npc_sameer.glb', status: 'available', animations: [], usedBy: 'life/Rascals.jsx (static mesh, rigged at load by life/autoRig.js)' },
 
   // ------------------------------------------------ animals
   { id: 'chicken', category: 'animal', path: null, status: 'placeholder', animations: ['idle', 'walk', 'peck', 'run'], usedBy: 'components/world/npc/Animals.jsx' },

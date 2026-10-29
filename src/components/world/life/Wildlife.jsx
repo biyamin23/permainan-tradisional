@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { Color, MathUtils, Object3D, Vector3 } from 'three'
 import { HOUSE, NEIGHBOUR_HOUSES, WARUNG, distanceToRiver, isOnRoad, px } from '../../../data/kampungLayout'
 import { clock } from '../../../state/timeOfDay'
-import { worldRuntime } from '../../../state/worldRuntime'
+import { nearestThreat, worldRuntime } from '../../../state/worldRuntime'
 import { getMaterial } from '../../character/PersonModel'
 import { GEO } from '../kit'
 import { between, worldFx } from './worldFx'
@@ -65,6 +65,13 @@ function Cat({ cat, index }) {
     [cat],
   )
 
+  // where the cats are, for Amru and Sameer
+  useEffect(() => {
+    const list = worldRuntime.npc.cats
+    list.push(b.pos)
+    return () => list.splice(list.indexOf(b.pos), 1)
+  }, [b])
+
   useFrame((s, delta) => {
     const g = root.current
     if (!g) return
@@ -77,13 +84,18 @@ function Cat({ cat, index }) {
     if (pd > 55) return
 
     b.timer -= dt
-    // someone close: a sleeping cat opens an eye and sits up; too close and it moves off
-    if (pd < 2.2 && b.state !== 'walk') {
+    // someone close (you, or a kid chasing it): a sleeping cat opens an eye
+    // and sits up; too close and it moves off
+    const threat = nearestThreat(b.pos.x, b.pos.z)
+    if (threat.d < 2.2 && (b.state !== 'walk' || !b.fleeing)) {
       b.state = 'walk'
-      const away = Math.atan2(b.pos.x - p.x, b.pos.z - p.z) + between(-0.6, 0.6)
-      b.target = [b.pos.x + Math.sin(away) * 3, b.pos.z + Math.cos(away) * 3]
+      b.fleeing = true
+      let away = Math.atan2(b.pos.x - threat.p.x, b.pos.z - threat.p.z) + between(-0.6, 0.6)
+      // cats don't run into the river: veer off along the bank instead
+      if (distanceToRiver(b.pos.x + Math.sin(away) * 3.5, b.pos.z + Math.cos(away) * 3.5) < 1) away += Math.PI / 2
+      b.target = [b.pos.x + Math.sin(away) * 3.5, b.pos.z + Math.cos(away) * 3.5]
       b.timer = 3
-    } else if (pd < 6 && b.state === 'sleep') {
+    } else if (threat.d < 6 && b.state === 'sleep') {
       b.state = 'look'
       b.timer = between(2, 4)
     }
@@ -112,10 +124,11 @@ function Cat({ cat, index }) {
       const dz = b.target[1] - b.pos.z
       const d = Math.hypot(dx, dz)
       if (d < 0.15) {
+        b.fleeing = false
         b.state = 'sit'
         b.timer = between(...CAT_TIMES.sit)
       } else {
-        speed = pd < 2.2 ? 1.6 : 0.55
+        speed = b.fleeing ? 2.4 : 0.55
         b.heading += angleTo(b.heading, Math.atan2(dx, dz)) * (1 - Math.exp(-5 * dt))
         b.pos.x += Math.sin(b.heading) * speed * dt
         b.pos.z += Math.cos(b.heading) * speed * dt
