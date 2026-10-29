@@ -8,6 +8,9 @@ import { BufferAttribute, BufferGeometry, Group, Mesh, Quaternion, Vector3 } fro
  *   wheels  discs standing on the ground (tyre) + everything inside them
  *           (rim, spokes, hub); the extra small ones are the roda sisi
  *   crank   the chainring disc at the bottom bracket + the cranks/pedals around it
+ *           (or, when the model has a mesh of its own named "…_crank", that mesh:
+ *           models too fragmented to tell crank from frame by shape hand it over
+ *           ready-made)
  *   steer   fork, handlebar, front basket/mudguard: everything at the front
  *           that isn't a long frame tube; turns about the head-tube axis
  *   frame   the rest
@@ -102,8 +105,11 @@ function extract(src, parts, pivot) {
 export function analyseBike(url, scene, opts = {}) {
   if (cache.has(url) && !opts.debug) return cache.get(url)
   let mesh = null
+  let crankMesh = null
   scene.traverse((o) => {
-    if (!mesh && o.isMesh) mesh = o
+    if (!o.isMesh) return
+    if (/_crank$/.test(o.name)) crankMesh = crankMesh ?? o
+    else if (!mesh) mesh = o
   })
   const geo = mesh.geometry
   const pos = geo.attributes.position
@@ -158,14 +164,23 @@ export function analyseBike(url, scene, opts = {}) {
         c.c[2] > rear.hub.z + rear.r * 0.9,
     )
     .sort((a, b) => b.s[1] - a.s[1])[0]
+  // the model's own crank mesh, in pieces: arms and pedals go round the axle in
+  // pairs, so the axle is the middle of the lot
+  const handed = crankMesh ? components(crankMesh.geometry.attributes.position, crankMesh.geometry.index) : null
+  const handedAxle = handed && {
+    y: (Math.min(...handed.map((c) => c.lo[1])) + Math.max(...handed.map((c) => c.hi[1]))) / 2,
+    z: (Math.min(...handed.map((c) => c.lo[2])) + Math.max(...handed.map((c) => c.hi[2]))) / 2,
+  }
   // a penny-farthing (front wheel far bigger, no chain) is pedalled at the front hub
-  const penny = !ring && front.r > rear.r * 1.6
-  const crankCentre = ring
-    ? new Vector3(0, ring.c[1], ring.c[2])
-    : penny
-      ? new Vector3(0, front.hub.y, front.hub.z)
-      : new Vector3(0, rear.r * 1.05, (front.hub.z + rear.hub.z) * 0.45)
-  const crank = { pivot: crankCentre, parts: [], pedals: [] }
+  const penny = !ring && !handed && front.r > rear.r * 1.6
+  const crankCentre = handedAxle
+    ? new Vector3(0, handedAxle.y, handedAxle.z)
+    : ring
+      ? new Vector3(0, ring.c[1], ring.c[2])
+      : penny
+        ? new Vector3(0, front.hub.y, front.hub.z)
+        : new Vector3(0, rear.r * 1.05, (front.hub.z + rear.hub.z) * 0.45)
+  const crank = { pivot: crankCentre, parts: [], pedals: [], source: crankMesh?.geometry ?? geo }
   // (on a small bike the chain stays and seat stays come within reach of the
   // cranks too: long tubes that aren't centred on the axle and lie in the frame's
   // own plane are frame; crank arms sit outboard of it)
@@ -173,11 +188,11 @@ export function analyseBike(url, scene, opts = {}) {
     Math.max(c.s[1], c.s[2]) > 0.12 &&
     Math.hypot(c.c[1] - crankCentre.y, c.c[2] - crankCentre.z) > 0.04 &&
     Math.abs(c.c[0]) < 0.05
-  for (const c of comps) {
+  for (const c of handed ?? comps) {
     if (used.has(c)) continue
     let far = 0
     for (const y of [c.lo[1], c.hi[1]]) for (const z of [c.lo[2], c.hi[2]]) far = Math.max(far, Math.hypot(y - crankCentre.y, z - crankCentre.z))
-    if (far > 0.22 || c.hi[1] < 0.02 || frameTube(c)) continue
+    if (!handed && (far > 0.22 || c.hi[1] < 0.02 || frameTube(c))) continue
     crank.parts.push(c)
     used.add(c)
     // pedals: the pieces out to the sides
@@ -190,7 +205,11 @@ export function analyseBike(url, scene, opts = {}) {
     const p = ps.sort((a, b) => Math.abs(b.c[0]) - Math.abs(a.c[0]))[0]
     const dy = p.c[1] - crankCentre.y
     const dz = p.c[2] - crankCentre.z
-    return { r: Math.max(0.06, Math.hypot(dy, dz)), a: Math.atan2(dz, -dy), x: p.c[0] }
+    // (a handed-over crank may have each arm and its pedal as one piece: the
+    // foot goes at the far end of it, not the middle)
+    let reach = Math.hypot(dy, dz)
+    if (handed) for (const y of [p.lo[1], p.hi[1]]) for (const z of [p.lo[2], p.hi[2]]) reach = Math.max(reach, Math.hypot(y - crankCentre.y, z - crankCentre.z) * 0.85)
+    return { r: Math.max(0.06, reach), a: Math.atan2(dz, -dy), x: p.c[0] }
   }
   // a pedal we couldn't find goes opposite the other one
   const foundL = pedalOf(1)
@@ -224,7 +243,7 @@ export function analyseBike(url, scene, opts = {}) {
     material,
     frame: extract(geo, frameParts, zero),
     wheels: wheels.map((w, i) => ({ geometry: extract(geo, w.parts, w.hub), hub: w.hub, r: w.r, front: w === front, main: i < 2 })),
-    crank: { geometry: crank.parts.length ? extract(geo, crank.parts, crankCentre) : null, pivot: crankCentre },
+    crank: { geometry: crank.parts.length ? extract(crank.source, crank.parts, crankCentre) : null, pivot: crankCentre },
     steer: { geometry: extract(geo, steerParts, axisOrigin), origin: axisOrigin, axis },
     rider: {
       seatY: seat ? seat.hi[1] : top * 0.75,
