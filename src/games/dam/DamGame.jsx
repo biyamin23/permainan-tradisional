@@ -18,7 +18,7 @@ import {
 } from '../shared/GameShell'
 import { streamFor } from '../shared/rng'
 import { OnlineLobby } from '../online/OnlineLobby'
-import { createMatch, explainMatchError, joinMatch } from '../../cloud/match'
+import { createMatch, explainMatchError, joinMatch, settledOffBoard } from '../../cloud/match'
 import { GAME_MODES } from '../../state/playerState'
 import { useProgressSession } from '../../components/progress/Progress'
 import { completeGame } from '../../progression/engine'
@@ -247,9 +247,22 @@ function OnlineMatch({ net, player, onLeave, onNewMatch, onRecords }) {
   const toast = useTurnToast({ yourTurn, finished: Boolean(result), banner: m.banner, theirName: them.name })
 
   // the other player walked away
+  const rebuiltSeen = useRef(false)
   useEffect(() => {
-    if (net.opponentLeft && !result) setForfeit({ winner: PLAYER, reason: 'tinggal', pieces: m.pieces })
-  }, [net.opponentLeft, result, m.pieces])
+    if (result) return
+    if (net.opponentLeft) {
+      setForfeit({ winner: PLAYER, reason: 'tinggal', pieces: m.pieces })
+      return
+    }
+    // settled while you were away (they claimed the win, or you'd left);
+    // checked from the render after the board was rebuilt, so the count is right
+    if (!rebuiltSeen.current) {
+      rebuiltSeen.current = net.loaded
+      return
+    }
+    const settled = settledOffBoard(net.match, net.seat)
+    if (settled) setForfeit({ winner: settled.winner === 'me' ? PLAYER : settled.winner === 'them' ? OPPONENT : null, reason: settled.reason, pieces: m.pieces })
+  }, [net.opponentLeft, net.match, net.seat, net.loaded, result, m.pieces])
 
   // their connection dropped: count how long
   useEffect(() => {
@@ -345,9 +358,13 @@ function OnlineMatch({ net, player, onLeave, onNewMatch, onRecords }) {
   const line = net.rematch
     ? `${them.name} ajak main lagi! Tekan Main lagi untuk terima.`
     : result?.reason === 'tinggal'
-      ? `${them.name} dah keluar. Kamu menang.`
+      ? win
+        ? `${them.name} dah keluar. Kamu menang.`
+        : `Kamu keluar dari perlawanan. ${them.name} menang.`
       : result?.reason === 'terputus'
-        ? `${them.name} terputus terlalu lama. Kamu menang.`
+        ? win
+          ? `${them.name} terputus terlalu lama. Kamu menang.`
+          : `Kamu terputus terlalu lama. ${them.name} menang.`
         : win
           ? 'Hebat! Ajak dia lawan sekali lagi.'
           : result?.winner === OPPONENT

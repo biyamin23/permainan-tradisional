@@ -96,7 +96,7 @@ function Arm({ point, angle, visible, pose, seeds, colors, moveMs, tick, recoil 
 }
 
 /** sowing: [your hand, Aisyah's hand], each { pit, count, side, tick } or null. ready: both waiting to start together. */
-export function Hands({ boardRef, sowing, turn, animating, finished, ready, hoverPit, slap, playerSleeve, moveMs }) {
+export function Hands({ boardRef, sowing, turn, animating, finished, ready, hoverPit, slap, playerSleeve, theirSleeve, moveMs }) {
   const flat = useFlatBoard()
   const [size, setSize] = useState({ w: 0, h: 0, s: 50 })
   const [slapPhase, setSlapPhase] = useState(null) // { pit, phase }
@@ -177,13 +177,15 @@ export function Hands({ boardRef, sowing, turn, animating, finished, ready, hove
   }
 
   const youColors = { ...STYLE[PLAYER], sleeve: playerSleeve ?? STYLE[PLAYER].sleeve }
+  // a friend online wears their own colour
+  const themColors = { ...STYLE[OPPONENT], sleeve: theirSleeve ?? STYLE[OPPONENT].sleeve }
   // how many guli each sowing hand still holds
   const counts = sowing.filter((h) => h && h.count > 0)
 
   return (
     <div className={`cg-hands ${size.w > 0 ? '' : 'is-measuring'}`} style={{ '--arm-w': `${size.s * 1.15}px` }} aria-hidden="true">
       <Arm {...you} angle={youAngle} colors={youColors} moveMs={slapPhase ? 200 : moveMs} />
-      <Arm {...them} angle={themAngle} colors={STYLE[OPPONENT]} moveMs={moveMs} />
+      <Arm {...them} angle={themAngle} colors={themColors} moveMs={moveMs} />
       <Arm {...slapper} angle={themAngle + (flat ? 25 : -25)} pose="flat" colors={STYLE[OPPONENT]} moveMs={110} />
       {counts.map((h) => {
         const p = pitPoint(h.pit)

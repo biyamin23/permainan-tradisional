@@ -3,6 +3,7 @@ import { sfx } from '../../audio/engine'
 import { useAuth } from '../../cloud/auth'
 import { cloudEnabled } from '../../cloud/client'
 import { createMatch, explainMatchError, inviteLink, joinMatch, tidyCode, useNetMatch } from '../../cloud/match'
+import { getGameById } from '../../data/games'
 import { clearPendingInvite, pendingCodeFor, rememberMatchInUrl } from './invite'
 import './online.css'
 
@@ -145,7 +146,8 @@ function MatchRoom({ initial, frame, onExit, onNewMatch, children }) {
 
   if (waiting) {
     const link = inviteLink(net.match)
-    const message = `Jom main dam dengan saya di Permainan Tradisional! Kod: ${net.match.code}\n${link}`
+    const gameName = getGameById(net.match.game_id)?.name ?? 'permainan tradisional'
+    const message = `Jom main ${gameName} dengan saya di Permainan Tradisional! Kod: ${net.match.code}\n${link}`
     const share = async () => {
       sfx.select()
       if (navigator.share) {

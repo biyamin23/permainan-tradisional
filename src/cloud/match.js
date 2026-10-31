@@ -11,7 +11,7 @@ import { getClient } from './client'
  */
 
 /** Games that can be played online so far (same list as online_game() in the database). */
-export const ONLINE_GAMES = ['dam']
+export const ONLINE_GAMES = ['dam', 'congkak']
 
 const WHY = {
   'not signed in': 'Log masuk dulu untuk main dengan kawan.',
@@ -44,6 +44,19 @@ export const joinMatch = (code) => call('join_match', { p_code: code })
 /** Link that opens the game and joins this match. */
 export const inviteLink = (match) => `${window.location.origin}/?main=${encodeURIComponent(match.code)}&game=${encodeURIComponent(match.game_id)}`
 
+/**
+ * A match settled without finishing on the board (someone left, or claimed
+ * the win after the other dropped out), as `seat` sees it: { winner: 'me' |
+ * 'them' | null, reason: 'tinggal' | 'terputus' }. Null if it's still on, or
+ * ended on the board (the moves show that).
+ */
+export function settledOffBoard(match, seat) {
+  const reason = match.status === 'abandoned' ? 'tinggal' : match.result?.reason
+  if ((match.status !== 'done' && match.status !== 'abandoned') || !reason) return null
+  const w = match.winner_seat
+  return { winner: w === null || w === undefined ? null : w === seat ? 'me' : 'them', reason }
+}
+
 /** Cleans a typed code: capitals, no spaces. */
 export const tidyCode = (text) => text.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
 
@@ -55,7 +68,9 @@ export const tidyCode = (text) => text.toUpperCase().replace(/[^A-Z0-9]/g, '').s
  * gender } once someone has joined), opponentOnline, opponentLeft, moves
  * ([{ seq, seat, move }], in order, yours included), loaded (the record has
  * been read: safe to rebuild the board), send(move), finish(winnerSeat,
- * result), leave(), rematch (a code the other player sent), offerRematch(code).
+ * result), leave(), rematch (a code the other player sent), offerRematch(code),
+ * signal(name, payload) / onSignal(fn): quick live messages that aren't
+ * recorded (fn gets (name, payload); onSignal returns a stop function).
  */
 export function useNetMatch(initial) {
   const userId = useAuth((s) => s.user?.id ?? null)
@@ -68,6 +83,7 @@ export function useNetMatch(initial) {
   const [rematch, setRematch] = useState(null)
 
   const movesRef = useRef([])
+  const listeners = useRef(new Set())
   const channelRef = useRef(null)
   const sbRef = useRef(null)
   const setMoves = (list) => {
@@ -118,6 +134,7 @@ export function useNetMatch(initial) {
         })
         .on('broadcast', { event: 'rematch' }, ({ payload }) => setRematch(payload.code))
         .on('broadcast', { event: 'left' }, () => setOpponentLeft(true))
+        .on('broadcast', { event: 'sig' }, ({ payload }) => listeners.current.forEach((fn) => fn(payload.name, payload.data)))
         .on('presence', { event: 'sync' }, () => {
           const others = Object.keys(channel.presenceState()).filter((k) => k !== userId)
           setOpponentOnline(others.length > 0)
@@ -181,5 +198,14 @@ export function useNetMatch(initial) {
     channelRef.current?.send({ type: 'broadcast', event: 'rematch', payload: { code } })
   }, [])
 
-  return { match, seat, opponent, opponentOnline, opponentLeft, moves, loaded, send, finish, leave, rematch, offerRematch }
+  const signal = useCallback((name, data) => {
+    channelRef.current?.send({ type: 'broadcast', event: 'sig', payload: { name, data } })
+  }, [])
+
+  const onSignal = useCallback((fn) => {
+    listeners.current.add(fn)
+    return () => listeners.current.delete(fn)
+  }, [])
+
+  return { match, seat, opponent, opponentOnline, opponentLeft, moves, loaded, send, finish, leave, rematch, offerRematch, signal, onSignal }
 }

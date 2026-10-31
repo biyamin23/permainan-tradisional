@@ -370,7 +370,7 @@ create policy "moves: player adds own" on public.match_moves
 -- games that can be played online so far
 create or replace function public.online_game(p_game text)
 returns boolean language sql immutable as $$
-  select p_game in ('dam')
+  select p_game in ('dam', 'congkak')
 $$;
 
 -- Host a match: a fresh 6-letter code (no 0/O/1/I/L to misread) and a seed.
