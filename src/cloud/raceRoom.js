@@ -20,12 +20,21 @@ import { getClient } from './client'
  *   'state' { seat, s }      (host only) a player's own rider
  *   'final' { standings }    the host's results
  *   'left'  { seat }         someone walked out
+ *
+ * A phone can drop its connection without warning (off to WhatsApp to share
+ * the link), so what the room needs is also kept in the tables: each
+ * player's bike (match_players.bike) and the line-up the host started with
+ * (matches.settings.roster). The room reads them again every few seconds
+ * while it waits, and reconnects when the page comes back to the front.
  */
+
+const REFRESH_MS = 4000 // while waiting: read the room again this often
 
 export function useRaceRoom(initial) {
   const userId = useAuth((s) => s.user?.id ?? null)
   const [match, setMatch] = useState(initial)
-  const [players, setPlayers] = useState([]) // [{ seat, userId, name, gender }]
+  const [players, setPlayers] = useState([]) // [{ seat, userId, name, gender, bike }]
+  const [link, setLink] = useState(0) // bumped to reconnect the live channels
   const [here, setHere] = useState({}) // userId → { seat, bike, ready }
   const listeners = useRef(new Set())
   const sbRef = useRef(null)
@@ -43,10 +52,10 @@ export function useRaceRoom(initial) {
     const sb = sbRef.current
     if (!sb) return
     const [{ data: rows }, { data: m }] = await Promise.all([
-      sb.from('match_players').select('seat, user_id, profiles(name, gender)').eq('match_id', id).order('seat'),
+      sb.from('match_players').select('seat, user_id, bike, profiles(name, gender)').eq('match_id', id).order('seat'),
       sb.from('matches').select('*').eq('id', id).maybeSingle(),
     ])
-    if (rows) setPlayers(rows.map((r) => ({ seat: r.seat, userId: r.user_id, name: r.profiles?.name ?? 'Kawan', gender: r.profiles?.gender ?? null })))
+    if (rows) setPlayers(rows.map((r) => ({ seat: r.seat, userId: r.user_id, name: r.profiles?.name ?? 'Kawan', gender: r.profiles?.gender ?? null, bike: r.bike })))
     if (m) setMatch(m)
   }, [id])
 
@@ -83,7 +92,32 @@ export function useRaceRoom(initial) {
       roomRef.current = null
       if (sbRef.current && channel) sbRef.current.removeChannel(channel)
     }
-  }, [id, userId, refetch]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, userId, refetch, link]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // while waiting, read the room again now and then (live messages can be missed)
+  const waiting = match.status === 'waiting'
+  useEffect(() => {
+    if (!waiting) return undefined
+    const t = setInterval(refetch, REFRESH_MS)
+    return () => clearInterval(t)
+  }, [waiting, refetch])
+
+  // back to the front (a phone that went to WhatsApp): reconnect if the line dropped, say you're here
+  useEffect(() => {
+    const onShow = () => {
+      if (document.hidden) return
+      const ch = roomRef.current
+      if (!ch || ch.state !== 'joined') setLink((n) => n + 1)
+      else ch.track({ ...meRef.current, seat: mySeatRef.current, at: Date.now() })
+      refetch()
+    }
+    document.addEventListener('visibilitychange', onShow)
+    window.addEventListener('pageshow', onShow)
+    return () => {
+      document.removeEventListener('visibilitychange', onShow)
+      window.removeEventListener('pageshow', onShow)
+    }
+  }, [refetch])
 
   // uplinks: a guest opens their own; the host listens to every guest's
   const seatsKey = players.map((p) => p.seat).join(',')
@@ -108,16 +142,16 @@ export function useRaceRoom(initial) {
       ups.set(p.seat, ch)
     }
     return undefined
-  }, [id, isHost, mySeat, seatsKey, players.length > 0]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, isHost, mySeat, seatsKey, players.length > 0, link]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // the host closes every uplink when the room goes
+  // the host's uplinks: closed when the room goes, or opened afresh on a reconnect
   useEffect(
     () => () => {
       const sb = sbRef.current
       if (sb) upsRef.current.forEach((ch) => sb.removeChannel(ch))
       upsRef.current.clear()
     },
-    [],
+    [link],
   )
 
   /** What you show the room: your bike, whether your race has loaded. */
@@ -125,6 +159,15 @@ export function useRaceRoom(initial) {
     meRef.current = { ...meRef.current, ...patch }
     roomRef.current?.track({ ...meRef.current, seat: mySeatRef.current, at: Date.now() })
   }, [])
+
+  /** Your bike: shown live, and kept in the room's table (so the host has it even if a message is lost). */
+  const setBike = useCallback(
+    (bikeId) => {
+      setMine({ bike: bikeId })
+      call('set_my_bike', { p_match: id, p_bike: bikeId }).catch((e) => console.warn('[race] bike', e.message))
+    },
+    [id, setMine], // eslint-disable-line react-hooks/exhaustive-deps
+  )
   const mySeatRef = useRef(mySeat)
   mySeatRef.current = mySeat
 
@@ -140,9 +183,9 @@ export function useRaceRoom(initial) {
     return data
   }
 
-  /** Host: lock the room and tell everyone who rides what. */
+  /** Host: lock the room and tell everyone who rides what (kept with the match too, for anyone who misses the message). */
   const start = useCallback(async (roster) => {
-    const m = await call('start_match', { p_id: id })
+    const m = await call('start_match', { p_id: id, p_roster: roster })
     setMatch(m)
     const payload = { roster, at: Date.now() }
     roomRef.current?.send({ type: 'broadcast', event: 'start', payload })
@@ -171,5 +214,5 @@ export function useRaceRoom(initial) {
     return call('leave_match', { p_id: id }).catch(() => {})
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { match, players, here, isHost, mySeat, userId, setMine, onEvent, start, sendState, sendSnap, sendFinal, leave, refetch }
+  return { match, players, here, isHost, mySeat, userId, setMine, setBike, onEvent, start, sendState, sendSnap, sendFinal, leave, refetch }
 }

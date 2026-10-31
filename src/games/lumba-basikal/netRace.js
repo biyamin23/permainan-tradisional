@@ -207,6 +207,11 @@ export function createNetRace({ track, roster, mySeat, isHost, aiLevel, room, on
       if (data.s.r) x.target = { ...decodeRider(data.s.r), at: now - (x.oneWay ?? 0) / 1000 }
     } else if (name === 'snap' && !isHost) {
       race.lastSnapAt = now
+      // the host is back after a silence (its phone or window was in the background)
+      if (race.cancelled) {
+        race.cancelled = false
+        onEvent({ type: 'resume' })
+      }
       race.snapTs = data.ts
       const ow = data.ow ?? {}
       const mine = ow[mySeat] ?? 0

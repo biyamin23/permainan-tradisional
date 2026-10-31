@@ -254,17 +254,25 @@ function Room({ initial, bikeIndex, setBikeIndex, onExit, onLobby }) {
     if (saved >= 0 && canRide(BICYCLES[saved], level)) setBikeIndex(saved)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const bike = canRide(BICYCLES[bikeIndex], level) ? BICYCLES[bikeIndex] : BICYCLES[0]
-  const { setMine } = room
+  const { setBike } = room
   useEffect(() => {
-    setMine({ bike: bike.id })
+    if (room.mySeat === null) return
+    setBike(bike.id)
     try {
       localStorage.setItem(BIKE_KEY, bike.id)
     } catch {
       // private window: fine
     }
-  }, [bike.id, setMine, room.mySeat])
+  }, [bike.id, setBike, room.mySeat]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => room.onEvent((name, data) => name === 'start' && setRoster(data.roster)), [room])
+
+  // missed the host's "go" (the phone was busy elsewhere)? the line-up is kept with the match
+  const saved = room.match.status === 'playing' ? room.match.settings?.roster : null
+  const inSaved = saved?.some((r) => r.kind === 'human' && r.seat === room.mySeat)
+  useEffect(() => {
+    if (!roster && inSaved) setRoster(saved)
+  }, [roster, inSaved]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const leave = () => {
     room.leave()
@@ -273,8 +281,8 @@ function Room({ initial, bikeIndex, setBikeIndex, onExit, onLobby }) {
 
   if (roster) return <NetRace room={room} roster={roster} trackId={trackId} onExit={leave} onLobby={onLobby} />
 
-  // the room was already racing when you opened it (a reload): can't rejoin a race in progress
-  if (room.match.status === 'playing' && !room.isHost && room.match.capacity > 2) {
+  // the room was already racing without you (you joined too late)
+  if (room.match.status === 'playing' && saved && !inSaved) {
     return (
       <div className="gs lb lb-online">
         <Sheet title="Perlumbaan sedang berjalan">
@@ -317,15 +325,17 @@ function Room({ initial, bikeIndex, setBikeIndex, onExit, onLobby }) {
     )
 
   const capacity = room.match.capacity
-  const humansHere = room.players.filter((p) => room.here[p.userId])
-  const canStart = room.isHost && humansHere.length >= 2 && !starting
+  // who rides: everyone in the room's table (the live "here" list can lag behind on a phone)
+  const humans = room.players
+  const bikeOf = (p) => p.bike ?? room.here[p.userId]?.bike ?? BICYCLES[0].id
+  const canStart = room.isHost && humans.length >= 2 && !starting
 
   const start = async () => {
     sfx.select()
     setStarting(true)
     setError(null)
     // humans keep their seats; every other seat gets an AI rider
-    const roster = humansHere.map((p) => ({ seat: p.seat, kind: 'human', name: p.name, gender: p.gender, bikeId: room.here[p.userId]?.bike ?? BICYCLES[0].id }))
+    const roster = humans.map((p) => ({ seat: p.seat, kind: 'human', name: p.name, gender: p.gender, bikeId: bikeOf(p) }))
     const basic = BICYCLES.filter((b) => !b.minLevel)
     let k = 0
     for (let seat = 0; seat < capacity; seat++) {
@@ -392,9 +402,9 @@ function Room({ initial, bikeIndex, setBikeIndex, onExit, onLobby }) {
 
         <ol className="lb-seats" aria-label="Pelumba">
           {seats.map((p, seat) => {
-            const here = p && room.here[p.userId]
-            const theirBike = here?.bike ? getBicycle(here.bike) : null
             const me = p && p.userId === room.userId
+            const here = p && (me || room.here[p.userId])
+            const theirBike = p ? getBicycle(me ? bike.id : bikeOf(p)) : null
             return (
               <li key={seat} className={`${p ? (here ? 'is-here' : 'is-away') : 'is-empty'} ${me ? 'is-me' : ''}`}>
                 <i className="lb-seats__dot" style={{ background: SEAT_COLORS[seat] }} />
@@ -405,7 +415,10 @@ function Room({ initial, bikeIndex, setBikeIndex, onExit, onLobby }) {
                       {seat === 0 && <small> · tuan rumah</small>}
                       {me && <small> · kamu</small>}
                     </span>
-                    <span className="lb-seats__bike">{here ? theirBike?.name ?? '…' : 'terputus'}</span>
+                    <span className="lb-seats__bike">
+                      {theirBike?.name ?? '…'}
+                      {!here && ' · ?'}
+                    </span>
                   </>
                 ) : (
                   <span className="lb-seats__name lb-seats__wait">Menunggu kawan… (AI kalau kosong)</span>
@@ -436,7 +449,7 @@ function Room({ initial, bikeIndex, setBikeIndex, onExit, onLobby }) {
             <button type="button" className="gs-btn gs-btn--go" disabled={!canStart} onClick={start}>
               {starting ? 'Memulakan…' : 'Mula lumba'}
             </button>
-            {humansHere.length < 2 && <p className="gs-panel__small lb-room__hint">Perlu sekurang-kurangnya seorang kawan untuk mula.</p>}
+            {humans.length < 2 && <p className="gs-panel__small lb-room__hint">Perlu sekurang-kurangnya seorang kawan untuk mula.</p>}
           </>
         ) : (
           <p className="ol-wait" role="status">
@@ -592,6 +605,10 @@ function NetRace({ room, roster, trackId, onExit, onLobby }) {
       case 'cancel':
         setCancelled(true)
         break
+      case 'resume':
+        setCancelled(false)
+        showToast('Tuan rumah kembali!', 'good')
+        break
       default:
         break
     }
@@ -743,9 +760,13 @@ function NetRace({ room, roster, trackId, onExit, onLobby }) {
       {ready && !started && !standings && !cancelled && <p className="lb-waiting">Menunggu semua pelumba bersedia…</p>}
 
       {cancelled && !standings && (
-        <Sheet title="Perlumbaan dibatalkan">
-          <p className="gs-panel__note">Tuan rumah terputus. Perlumbaan ini tak dikira.</p>
-          <button type="button" className="gs-btn gs-btn--go" onClick={onLobby}>
+        <Sheet title="Tuan rumah terputus">
+          <p className="gs-panel__note">Menunggu tuan rumah kembali… Perlumbaan bersambung bila dia kembali.</p>
+          <p className="ol-wait" role="status">
+            <span className="ol-dots" aria-hidden="true" />
+            Menunggu…
+          </p>
+          <button type="button" className="gs-btn gs-btn--plain" onClick={onLobby}>
             Bilik baharu
           </button>
           <button type="button" className="gs-btn gs-btn--plain" onClick={onExit}>

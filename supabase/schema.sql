@@ -623,3 +623,75 @@ grant execute on function public.is_match_player(uuid) to authenticated;
 -- the winner can be any seat in a room (0–7)
 alter table public.matches drop constraint if exists matches_winner_seat_check;
 alter table public.matches add constraint matches_winner_seat_check check (winner_seat between 0 and 7);
+
+-- ---------------------------------------------------------------- multiplayer: rooms that survive a phone in the background
+-- Live messages can be missed (a phone that went to WhatsApp to share the
+-- link drops its connection), so a room keeps what matters in the table:
+-- each player's bike, and the line-up the host started with.
+
+alter table public.match_players add column if not exists bike text;
+
+create or replace function public.set_my_bike(p_match uuid, p_bike text)
+returns void
+language sql security definer set search_path = public as $$
+  update match_players set bike = left(p_bike, 32) where match_id = p_match and user_id = auth.uid()
+$$;
+
+-- Join with a code: two-player games (dam, congkak) fill the guest's seat and
+-- start; rooms (lumba-basikal, any size) take the next free seat and wait
+-- for the host to start.
+create or replace function public.join_match(p_code text)
+returns public.matches
+language plpgsql security definer set search_path = public as $$
+declare
+  m public.matches;
+  free_seat smallint;
+begin
+  if auth.uid() is null then raise exception 'not signed in'; end if;
+  if not exists (select 1 from profiles where id = auth.uid()) then raise exception 'no profile'; end if;
+  select * into m from matches where code = upper(trim(p_code)) for update;
+  if not found then raise exception 'no such match'; end if;
+  if auth.uid() in (m.host, m.guest) or exists (select 1 from match_players where match_id = m.id and user_id = auth.uid()) then
+    return m;
+  end if;
+  if m.status <> 'waiting' or m.created_at < now() - interval '24 hours' then raise exception 'match closed'; end if;
+  if max_seats(m.game_id) = 2 then
+    update matches set guest = auth.uid(), status = 'playing', started_at = now()
+      where id = m.id
+      returning * into m;
+    insert into match_players (match_id, seat, user_id) values (m.id, 1, auth.uid()) on conflict do nothing;
+    return m;
+  end if;
+  select s into free_seat
+    from generate_series(1, m.capacity - 1) as s
+    where s not in (select seat from match_players where match_id = m.id)
+    order by s limit 1;
+  if free_seat is null then raise exception 'match full'; end if;
+  insert into match_players (match_id, seat, user_id) values (m.id, free_seat, auth.uid());
+  return m;
+end;
+$$;
+
+-- The host starts a room, keeping the line-up (AI included) with it.
+drop function if exists public.start_match(uuid);
+create or replace function public.start_match(p_id uuid, p_roster jsonb default null)
+returns public.matches
+language plpgsql security definer set search_path = public as $$
+declare
+  m public.matches;
+begin
+  update matches set
+      status = 'playing',
+      started_at = now(),
+      settings = case when p_roster is null then settings else settings || jsonb_build_object('roster', p_roster) end
+    where id = p_id and host = auth.uid() and status = 'waiting'
+    returning * into m;
+  if not found then raise exception 'match closed'; end if;
+  return m;
+end;
+$$;
+
+revoke all on function public.set_my_bike(uuid, text) from public, anon;
+revoke all on function public.start_match(uuid, jsonb) from public, anon;
+grant execute on function public.set_my_bike(uuid, text) to authenticated;
+grant execute on function public.start_match(uuid, jsonb) to authenticated;
