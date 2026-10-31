@@ -1065,3 +1065,162 @@
   background: #b9ab92;
   box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
 }
+
+/* ------------------------------------------------------------------ racing friends: the room */
+
+.lb-online {
+  min-height: 100%;
+}
+
+.lb-room {
+  max-height: calc(var(--vh, 100vh) - 32px);
+  overflow-y: auto;
+}
+
+.lb-room__hint {
+  margin: 0.4rem 0 0.8rem;
+}
+
+.lb-seats-pick {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.lb-seats-pick .gs-level {
+  min-height: 44px;
+}
+
+.lb-track-pick {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 0.4rem;
+}
+
+.lb-track-pick .gs-level {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+}
+
+.lb-track-pick small {
+  font-size: 0.72rem;
+  opacity: 0.7;
+}
+
+.lb-seats {
+  display: grid;
+  gap: 5px;
+  margin: 0.9rem 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.lb-seats li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 12px;
+  background: var(--cream-2);
+  font-weight: 800;
+}
+
+.lb-seats li.is-me {
+  outline: 3px solid var(--go);
+}
+
+.lb-seats li.is-empty,
+.lb-seats li.is-away {
+  opacity: 0.6;
+}
+
+.lb-seats__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.lb-seats__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lb-seats__name small,
+.lb-seats__bike {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.lb-seats__wait {
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.lb-room__bike {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+  text-align: left;
+  font-weight: 700;
+}
+
+.lb-room__bike .gs-btn {
+  width: auto;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 1rem;
+  font-size: 1rem;
+}
+
+/* in the race */
+.lb-place {
+  font-weight: 900;
+}
+
+.lb-progress__dot--ai {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.lb-progress__dot.is-gone {
+  opacity: 0.3;
+}
+
+.lb-waiting {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translateX(-50%);
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: rgba(30, 20, 10, 0.7);
+  color: #fff;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.lb-podium--many li {
+  padding-block: 0.3rem;
+}
+
+.lb-podium__ai {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 900;
+}

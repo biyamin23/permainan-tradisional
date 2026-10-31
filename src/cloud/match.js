@@ -11,7 +11,7 @@ import { getClient } from './client'
  */
 
 /** Games that can be played online so far (same list as online_game() in the database). */
-export const ONLINE_GAMES = ['dam', 'congkak']
+export const ONLINE_GAMES = ['dam', 'congkak', 'lumba-basikal']
 
 const WHY = {
   'not signed in': 'Log masuk dulu untuk main dengan kawan.',
@@ -19,6 +19,8 @@ const WHY = {
   'no such match': 'Kod tu tak dijumpai. Semak semula.',
   'match closed': 'Perlawanan tu dah tutup, atau dah ada pemain lain.',
   'game not online': 'Permainan ni belum boleh dimain dengan kawan.',
+  'match full': 'Bilik tu dah penuh.',
+  'bad capacity': 'Bilangan pemain tak sah.',
 }
 
 /** Friendly Malay for what went wrong. */
@@ -36,8 +38,8 @@ async function call(fn, args) {
   return data
 }
 
-/** Host a new match of `gameId`. Returns the match row (with its code). */
-export const createMatch = (gameId) => call('create_match', { p_game: gameId })
+/** Host a new match of `gameId` (rooms: `capacity` seats, the host's `settings`). Returns the match row (with its code). */
+export const createMatch = (gameId, capacity = 2, settings = {}) => call('create_match', { p_game: gameId, p_capacity: capacity, p_settings: settings })
 /** Join a friend's match by its code (or get your own back after a reload). */
 export const joinMatch = (code) => call('join_match', { p_code: code })
 

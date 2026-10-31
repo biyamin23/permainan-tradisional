@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useGLTF, useProgress } from '@react-three/drei'
 import { Vector3 } from 'three'
 import { sfx } from '../../audio/engine'
 import { useAuth } from '../../cloud/auth'
 import { fetchRaceLeaderboard, fetchTrackRecords } from '../../cloud/raceTimes'
 import { CHILD_LOOKS } from '../../components/character/ChildModel'
-import { usePlayerState } from '../../state/playerState'
+import { GAME_MODES, usePlayerState } from '../../state/playerState'
 import { ExitButton, RulesButton, RulesSheet, usePlayerLook } from '../shared/GameShell'
 import { BICYCLES, canRide, getBicycle, statBars } from './bicycles'
 import { BikePreview } from './BikePreview'
@@ -40,18 +40,21 @@ const RULES = [
   'Litar Biasa dan Jaguh ada jalan pintas. Kamarul yang jaguh pun tahu!',
 ]
 
-const clock = (sec) => {
+// a race with friends (loaded when chosen; it borrows the pickers and controls below)
+const OnlineRace = lazy(() => import('./OnlineRace').then((m) => ({ default: m.OnlineRace })))
+
+export const clock = (sec) => {
   const s = Math.max(0, sec)
   const m = Math.floor(s / 60)
   const r = s - m * 60
   return `${String(m).padStart(2, '0')}:${r.toFixed(1).padStart(4, '0')}`
 }
-const shortClock = (sec) => {
+export const shortClock = (sec) => {
   const s = Math.max(0, Math.floor(sec))
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 }
 
-const isTouch = () => typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window)
+export const isTouch = () => typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window)
 
 /* ------------------------------------------------------------------ pick a bike */
 
@@ -65,7 +68,7 @@ function Bars({ n }) {
   )
 }
 
-function BikeSelect({ index, setIndex, onPick }) {
+export function BikeSelect({ index, setIndex, onPick }) {
   const bike = BICYCLES[index]
   const stats = statBars(bike)
   // the Level 10 bikes: on show to everyone, rideable from Level 10
@@ -320,7 +323,7 @@ function TrackSelect({ bike, startId, onPick, onBack }) {
 
 /* ------------------------------------------------------------------ input */
 
-function useRaceInput() {
+export function useRaceInput() {
   const keys = useRef(new Set())
   const touch = useRef({ x: 0, y: 0, boost: false, brake: false })
   const out = useRef({ throttle: 0, brake: 0, steer: 0, boost: false })
@@ -360,7 +363,7 @@ function useRaceInput() {
 }
 
 /** Left-thumb joystick: up to pedal, sideways to steer, down to brake. */
-function Joystick({ touch }) {
+export function Joystick({ touch }) {
   const base = useRef(null)
   const id = useRef(null)
   const [knob, setKnob] = useState({ x: 0, y: 0 })
@@ -408,7 +411,7 @@ function Joystick({ touch }) {
   )
 }
 
-function HoldButton({ className, label, onChange }) {
+export function HoldButton({ className, label, onChange }) {
   const set = (v) => (e) => {
     try {
       if (v) e.currentTarget.setPointerCapture?.(e.pointerId)
@@ -777,11 +780,11 @@ function Race({ bike, trackId, onPickTrack, onExit, onAgain }) {
   )
 }
 
-const IDLE_INPUT = { throttle: 0, brake: 0, steer: 0, boost: false }
+export const IDLE_INPUT = { throttle: 0, brake: 0, steer: 0, boost: false }
 
 /* ------------------------------------------------------------------ the game */
 
-export function LumbaBasikalGame({ onExit }) {
+export function LumbaBasikalGame({ mode, onExit }) {
   const [screen, setScreen] = useState('bike') // bike | track | race
   const [bikeIndex, setBikeIndex] = useState(0)
   const [trackId, setTrackId] = useState(null)
@@ -802,6 +805,13 @@ export function LumbaBasikalGame({ onExit }) {
     sfx.select()
     setScreen('track')
   }, [])
+
+  if (mode === GAME_MODES.MULTIPLAYER)
+    return (
+      <Suspense fallback={<p className="game-screen__loading">Memuatkan…</p>}>
+        <OnlineRace onExit={onExit} bikeIndex={bikeIndex} setBikeIndex={setBikeIndex} />
+      </Suspense>
+    )
 
   if (screen === 'race' && trackId)
     return (

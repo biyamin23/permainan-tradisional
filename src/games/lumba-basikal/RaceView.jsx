@@ -10,7 +10,8 @@ import { FALL_TIME } from './raceSim'
 import { TrackScene } from './TrackScene'
 
 /**
- * The race in 3D: the litar, both riders on their basikal, the things in the
+ * The race in 3D: the litar, the riders on their basikal (you and Kamarul,
+ * or everyone in `race.others` in a race with friends), the things in the
  * road, the chase camera, and the loop that steps the race every frame.
  */
 
@@ -119,7 +120,7 @@ function BikeRider({ racer, race, look, url, scale = 1, sound }) {
     const won = r.finished && race.winner === r.name
     c.cheer = MathUtils.damp(c.cheer, won && race.phaseT > 0.3 ? 1 : 0, 4, delta)
     // a look over the shoulder now and then (Kamarul checking on you)
-    const looking = r.name === 'kamarul' && race.ai.lookBack && race.ai.mistakeT > 0
+    const looking = r.name === 'kamarul' && race.ai?.lookBack && race.ai.mistakeT > 0
     c.look = MathUtils.damp(c.look, looking ? 1 : 0, 6, delta)
     bikeSound.current?.update(r.speed, { pedalling: r.lastThrottle > 0, boosting: r.boosting, dt: delta })
   })
@@ -385,7 +386,8 @@ function Driver({ race, readInput }) {
     const steps = dt > 1 / 40 ? 2 : 1
     const input = readInput()
     race.you.lastThrottle = input.throttle
-    for (let i = 0; i < steps; i++) race.step(dt / steps, input)
+    const now = performance.now() / 1000 // (a race with friends times its messages by this)
+    for (let i = 0; i < steps; i++) race.step(dt / steps, input, now)
     race.youPos.set(race.you.x, race.you.y, race.you.z)
   })
   return null
@@ -446,7 +448,9 @@ export function RaceView({ race, looks, urls, readInput, onReady }) {
       <Suspense fallback={null}>
         <TrackScene track={race.track} watch={race.youPos} />
         <BikeRider racer={race.you} race={race} look={looks.you} url={urls.you.url} scale={urls.you.scale} sound />
-        <BikeRider racer={race.kamarul} race={race} look={looks.kamarul} url={urls.kamarul.url} scale={urls.kamarul.scale} />
+        {race.others
+          ? race.others.map((o) => <BikeRider key={o.seat} racer={o.r} race={race} look={o.look} url={o.url} scale={o.scale} />)
+          : <BikeRider racer={race.kamarul} race={race} look={looks.kamarul} url={urls.kamarul.url} scale={urls.kamarul.scale} />}
         <Obstacles race={race} />
         <Ready onReady={onReady} />
       </Suspense>
