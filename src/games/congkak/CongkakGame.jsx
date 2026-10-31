@@ -5,7 +5,6 @@ import {
   HoldFast,
   IntroPanel,
   NextHint,
-  OsomPanel,
   PlayerCard,
   ResultPanel,
   RulesButton,
@@ -19,7 +18,7 @@ import {
 import { useProgressSession } from '../../components/progress/Progress'
 import { completeGame } from '../../progression/engine'
 import { CongkakBoard } from './CongkakBoard'
-import { OPPONENT, PLAYER, createBoard } from './engine'
+import { MAX_ROUNDS, OPPONENT, PLAYER, createBoard } from './engine'
 import { Hands } from './Hands'
 import { loadRecords, saveResult } from './records'
 import { useCongkakMatch } from './useCongkakMatch'
@@ -28,20 +27,20 @@ import './congkak.css'
 
 /**
  * Congkak at the wakaf: the board lies on a mengkuang mat, Aisyah sits across
- * from you. The same scene is used to choose a level, to play and to show the
- * result, so nothing pulls you out of the moment.
+ * from you. The same scene is used to start, to play and to show the result,
+ * so nothing pulls you out of the moment. Rules: engine.js.
  */
 
-
 const RULES = [
-  'Mula-mula osom (batu, air, burung) untuk tentukan siapa main dulu. Batu menang burung, burung menang air, air menang batu.',
-  'Setiap lubang kecil ada 7 biji. Rumah (lubang besar) bermula kosong. Rumah kamu di sebelah kiri kamu.',
-  'Pilih satu lubang di barisan kamu. Agihkan biji satu demi satu ikut arah jam: ke kiri sepanjang barisan kamu, masuk rumah kamu, kemudian ke barisan Aisyah. Rumah Aisyah dilangkau.',
-  'Biji terakhir masuk rumah kamu: main lagi.',
-  'Biji terakhir jatuh dalam lubang yang berisi: kaut semua dan terus agihkan.',
-  'Biji terakhir jatuh dalam lubang kosong di barisan kamu: tembak. Biji itu dan semua biji di lubang bertentangan masuk rumah kamu.',
-  'Tapi tembak hanya dibenarkan selepas satu pusingan dalam giliran yang sama: biji kamu mesti sudah melalui kampung (barisan) Aisyah dan kembali ke barisan kamu. Kalau belum, giliran mati dan biji itu tinggal di situ.',
-  'Bila satu pihak tiada biji lagi, pihak satu lagi kutip baki di barisannya. Biji paling banyak dalam rumah menang.',
+  'Setiap kampung (lubang kecil) ada 7 guli. Rumah (lubang besar) bermula kosong. Rumah kamu di sebelah kiri kamu.',
+  'Mula serentak: kamu dan Aisyah sama-sama ambil guli dari satu kampung sendiri dan agih pada masa yang sama, satu demi satu dari kanan ke kiri: sepanjang barisan sendiri, masuk rumah sendiri, kemudian ke kampung lawan. Rumah lawan dilangkau.',
+  'Guli terakhir jatuh dalam kampung yang berisi: kaut semua dan terus agih.',
+  'Guli terakhir masuk rumah sendiri: teruskan dengan mana-mana kampung sendiri.',
+  'Guli terakhir jatuh dalam kampung kosong: mati, giliran tamat. Kalau kampung kosong itu milik sendiri dan guli kamu sudah melalui kampung lawan (satu pusingan), kamu tembak: kaut semua guli di kampung lawan yang setentang.',
+  'Selepas permulaan, giliran bersilih ganti, setiap giliran sampai gulinya mati. Siapa mati dulu masa mula serentak, dia main dulu.',
+  'Tiada guli di kampung sendiri bila tiba giliran? Giliran berpindah kepada lawan. Pusingan tamat bila semua kampung kosong.',
+  'Pusingan seterusnya: setiap pemain isi semula kampung, 7 guli setiap satu, dari guli dalam rumah sendiri. Kampung yang tak cukup guli jadi terbakar dan tak boleh digunakan lagi. Yang tak cukup guli untuk satu kampung pun, kalah.',
+  `Permainan tamat selepas ${MAX_ROUNDS} pusingan. Guli paling banyak dalam rumah menang. Kalau sama banyak, yang lebih banyak kampung terbakar kalah.`,
 ]
 
 const START = createBoard()
@@ -49,7 +48,7 @@ const START = createBoard()
 const AISYAH_COLOR = '#e9b52f'
 const AISYAH_IMG = '/avatars/aisyah.webp'
 
-function Intro({ records, player, onStart, onExit, osom, onOsomDone }) {
+function Intro({ records, player, onStart, onExit }) {
   const [showRules, setShowRules] = useState(false)
   return (
     <Scene
@@ -64,16 +63,12 @@ function Intro({ records, player, onStart, onExit, osom, onOsomDone }) {
       you={<PlayerCard side="you" name={player.name} color={player.color} img={player.img} score={0} unit="guli" />}
       board={<CongkakBoard pits={START} />}
     >
-      {osom ? (
-        <OsomPanel opponent="Aisyah" onDone={onOsomDone} />
-      ) : (
       <IntroPanel
         title="Aisyah ajak kamu main congkak!"
         opponent="Aisyah"
         recordsLine={recordsSummary(records, `skor terbaik ${records.best} biji`)}
         onStart={onStart}
       />
-      )}
       {showRules && <RulesSheet game="congkak" rules={RULES} onClose={() => setShowRules(false)} />}
     </Scene>
   )
@@ -82,12 +77,16 @@ function Intro({ records, player, onStart, onExit, osom, onOsomDone }) {
 function Result({ result, saved, reward, playerName, onAgain, onExit }) {
   const [you, them] = result.scores
   const title = result.winner === PLAYER ? 'Kamu menang!' : result.winner === OPPONENT ? 'Aisyah menang!' : 'Seri!'
-  const line =
+  const burntLine = `${result.rounds} pusingan · kampung terbakar: kamu ${result.burnt[0]}, Aisyah ${result.burnt[1]}`
+  const mood =
     result.winner === PLAYER
       ? 'Aisyah tersenyum kelat. Dia nak lawan lagi.'
       : result.winner === OPPONENT
         ? 'Kalah menang adat bermain. Cuba sekali lagi.'
-        : 'Sama kuat. Satu pusingan lagi?'
+        : 'Sama kuat. Lawan sekali lagi?'
+  const line = result.tieBreak
+    ? `Guli sama banyak, tapi ${result.winner === PLAYER ? 'Aisyah' : 'kamu'} lebih banyak kampung terbakar. ${burntLine}.`
+    : `${mood} ${burntLine}.`
   return (
     <ResultPanel
       title={title}
@@ -105,15 +104,13 @@ function Result({ result, saved, reward, playerName, onAgain, onExit }) {
   )
 }
 
-function Match({ player, firstStarter, onExit, onRecords }) {
-  const [starter, setStarter] = useState(firstStarter)
-  const [rematch, setRematch] = useState(false)
+function Match({ player, onExit, onRecords }) {
   // Aisyah's play for this match follows your Congkak progress
-  const [round, setRound] = useState(0)
-  const session = useProgressSession('congkak', round)
+  const [match, setMatch] = useState(0)
+  const session = useProgressSession('congkak', match)
   const [reward, setReward] = useState(null)
-  const { pits, turn, animating, hand, flash, banner, speech, result, fast, setFast, playHouse, skip, restart, scores, say } =
-    useCongkakMatch({ level: session.tuning, starter })
+  const { pits, burnt, round, phase, turn, movers, animating, hands, flash, banner, speech, result, fast, setFast, playHouse, skip, restart, scores, say } =
+    useCongkakMatch({ level: session.tuning })
   const [saved, setSaved] = useState(null)
   const [hoverPit, setHoverPit] = useState(null)
   const [slap, setSlap] = useState(null)
@@ -123,7 +120,7 @@ function Match({ player, firstStarter, onExit, onRecords }) {
   useEffect(() => voice.preload(SABAR_URLS), [])
 
   // what just happened, in big type over the board
-  const toast = useTurnToast({ yourTurn: turn === PLAYER, finished: Boolean(result), banner, theirName: 'Aisyah' })
+  const toast = useTurnToast({ yourTurn: phase === 'opening' || (phase === 'play' && turn === PLAYER), finished: Boolean(result), banner, theirName: 'Aisyah' })
 
   /** Every tap on a hole: play it, or explain why not (with a tepis on Aisyah's turn). */
   const onPitTap = useCallback(
@@ -142,6 +139,8 @@ function Match({ player, firstStarter, onExit, onRecords }) {
         say('Itu lubang Aisyah. Pilih lubang di barisan bawah.', 'bad')
       } else if (outcome === 'empty') {
         say('Lubang tu kosong. Pilih yang ada guli.', 'bad')
+      } else if (outcome === 'burnt') {
+        say('Kampung tu terbakar. Pilih kampung lain.', 'bad')
       }
     },
     [playHouse, say],
@@ -156,33 +155,36 @@ function Match({ player, firstStarter, onExit, onRecords }) {
     setReward(completeGame(session, { won: result.winner === PLAYER, draw: result.winner === null, score: you, theirs: them, margin: you - them }))
   }, [result, onRecords, session])
 
-  const yourTurn = turn === PLAYER && !result
+  const opening = phase === 'opening' && !result
+  const yourTurn = (opening || (phase === 'play' && turn === PLAYER)) && !result
+  const together = animating && movers.length === 2
   // what to do next, always at the bottom of the screen
   const next = result
     ? null
-    : yourTurn
-      ? animating
-        ? { icon: '👆', text: 'Tekan papan untuk langkau' }
-        : { icon: '👆', text: 'Tekan lubang yang bercahaya untuk ambil guli' }
-      : animating
-        ? { icon: '⏳', text: 'Aisyah sedang mengagih guli…' }
-        : { icon: '⏳', text: 'Tunggu, Aisyah sedang berfikir…' }
+    : opening
+      ? { icon: '👆', text: `Pusingan ${round}: pilih satu kampung. Kamu dan Aisyah mula serentak!` }
+      : phase === 'between'
+        ? { icon: '🔄', text: 'Isi semula kampung…' }
+        : together
+          ? { icon: '👐', text: 'Mula serentak! Tekan papan untuk langkau' }
+          : yourTurn
+            ? animating
+              ? { icon: '👆', text: 'Tekan papan untuk langkau' }
+              : { icon: '👆', text: 'Tekan kampung yang bercahaya untuk ambil guli' }
+            : animating
+              ? { icon: '⏳', text: 'Aisyah sedang mengagih guli…' }
+              : { icon: '⏳', text: 'Tunggu, Aisyah sedang berfikir…' }
 
-  // Main lagi: osom again to decide who starts
+  // Main lagi: straight into a new match, both starting together again
   const again = () => {
     sfx.select()
-    setRematch(true)
-  }
-  const startAgain = (nextStarter) => {
-    setRematch(false)
-    setStarter(nextStarter)
     setSaved(null)
     setReward(null)
-    setRound((r) => r + 1)
-    restart(nextStarter)
+    setMatch((r) => r + 1)
+    restart()
   }
 
-  const theirTurn = turn === OPPONENT && !result
+  const theirTurn = (opening || (phase === 'play' && turn === OPPONENT)) && !result
 
   return (
     <Scene
@@ -191,6 +193,11 @@ function Match({ player, firstStarter, onExit, onRecords }) {
         <>
           <ExitButton onExit={onExit} />
           {!result && <HoldFast fast={fast} setFast={setFast} active={animating} />}
+          {!result && (
+            <span className="cg-round" aria-live="polite">
+              Pusingan {round}/{MAX_ROUNDS}
+            </span>
+          )}
         </>
       }
       them={
@@ -212,16 +219,18 @@ function Match({ player, firstStarter, onExit, onRecords }) {
         <div className={`gs-board-hit ${animating ? 'is-skippable' : ''}`} onClick={animating ? skip : undefined}>
           <CongkakBoard
             pits={pits}
+            burnt={burnt}
             canPlay={yourTurn && !animating}
             flash={flash}
             onPlay={onPitTap}
-            onHover={(i) => setHoverPit(i !== null && i < 7 && pits[i] > 0 ? i : null)}
+            onHover={(i) => setHoverPit(i !== null && i < 7 && pits[i] > 0 && !burnt[i] ? i : null)}
             boardRef={boardRef}
           >
             <Hands
               boardRef={boardRef}
-              sowing={hand}
-              turn={turn}
+              sowing={hands}
+              turn={phase === 'play' ? turn : null}
+              ready={opening}
               animating={animating}
               finished={Boolean(result)}
               hoverPit={yourTurn && !animating ? hoverPit : null}
@@ -234,16 +243,14 @@ function Match({ player, firstStarter, onExit, onRecords }) {
       }
       bottom={<NextHint next={next} yours={yourTurn && !animating} />}
     >
-      {result && !rematch && <Result result={result} saved={saved} reward={reward} playerName={player.name} onAgain={again} onExit={onExit} />}
-      {rematch && <OsomPanel opponent="Aisyah" onDone={startAgain} />}
+      {result && <Result result={result} saved={saved} reward={reward} playerName={player.name} onAgain={again} onExit={onExit} />}
     </Scene>
   )
 }
 
 export function CongkakGame({ onExit }) {
   const player = usePlayerLook()
-  const [phase, setPhase] = useState('intro') // intro → osom → play
-  const [starter, setStarter] = useState(PLAYER)
+  const [phase, setPhase] = useState('intro') // intro → play (no osom: you both start together)
   const [records, setRecords] = useState(loadRecords)
   const onRecords = useMemo(() => (next) => setRecords(next), [])
 
@@ -255,15 +262,10 @@ export function CongkakGame({ onExit }) {
         onExit={onExit}
         onStart={() => {
           sfx.select()
-          setPhase('osom')
-        }}
-        osom={phase === 'osom'}
-        onOsomDone={(who) => {
-          setStarter(who)
           setPhase('play')
         }}
       />
     )
   }
-  return <Match player={player} firstStarter={starter} onExit={onExit} onRecords={onRecords} />
+  return <Match player={player} onExit={onExit} onRecords={onRecords} />
 }

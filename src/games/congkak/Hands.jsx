@@ -4,8 +4,9 @@ import { OPPONENT, PLAYER } from './engine'
 
 /**
  * Hands over the board, seen from above. Your arm reaches in from your side,
- * Aisyah's from hers. The sowing hand travels hole to hole and dips at every
- * seed. Tap a hole on Aisyah's turn and her other hand slaps yours away.
+ * Aisyah's from hers. A sowing hand travels hole to hole and dips at every
+ * seed; at the start of each pusingan both hands sow at once. Tap a hole on
+ * Aisyah's turn and her other hand slaps yours away.
  */
 
 /**
@@ -94,7 +95,8 @@ function Arm({ point, angle, visible, pose, seeds, colors, moveMs, tick, recoil 
   )
 }
 
-export function Hands({ boardRef, sowing, turn, animating, finished, hoverPit, slap, playerSleeve, moveMs }) {
+/** sowing: [your hand, Aisyah's hand], each { pit, count, side, tick } or null. ready: both waiting to start together. */
+export function Hands({ boardRef, sowing, turn, animating, finished, ready, hoverPit, slap, playerSleeve, moveMs }) {
   const flat = useFlatBoard()
   const [size, setSize] = useState({ w: 0, h: 0, s: 50 })
   const [slapPhase, setSlapPhase] = useState(null) // { pit, phase }
@@ -151,17 +153,19 @@ export function Hands({ boardRef, sowing, turn, animating, finished, hoverPit, s
     const reachPoint = pitPoint(slapPhase.pit)
     if (slapPhase.phase === 'recoil') you = { point: edge(PLAYER, 1.6), visible: true, pose: 'flat', recoil: true }
     else you = { point: reachPoint, visible: true, pose: 'flat' }
-  } else if (sowing && sowing.side === PLAYER) {
-    you = { point: pitPoint(sowing.pit), visible: true, pose: 'curl', seeds: sowing.count, tick: sowing.tick }
-  } else if (turn === PLAYER && !animating && !finished) {
+  } else if (sowing[PLAYER]) {
+    const h = sowing[PLAYER]
+    you = { point: pitPoint(h.pit), visible: true, pose: 'curl', seeds: h.count, tick: h.tick }
+  } else if ((turn === PLAYER || ready) && !animating && !finished) {
     you = hoverPit != null ? { point: pitPoint(hoverPit), visible: true, pose: 'flat' } : { point: edge(PLAYER, 0.35), visible: true, pose: 'flat' }
   }
 
   // ---- Aisyah's sowing arm
   let them = { point: edge(OPPONENT, 3.2), visible: false, pose: 'curl', seeds: 0, tick: null }
-  if (sowing && sowing.side === OPPONENT) {
-    them = { point: pitPoint(sowing.pit), visible: true, pose: 'curl', seeds: sowing.count, tick: sowing.tick }
-  } else if (turn === OPPONENT && !finished) {
+  if (sowing[OPPONENT]) {
+    const h = sowing[OPPONENT]
+    them = { point: pitPoint(h.pit), visible: true, pose: 'curl', seeds: h.count, tick: h.tick }
+  } else if ((turn === OPPONENT || ready) && !finished) {
     them = { point: edge(OPPONENT, 0.35), visible: true, pose: 'flat' }
   }
 
@@ -173,22 +177,26 @@ export function Hands({ boardRef, sowing, turn, animating, finished, hoverPit, s
   }
 
   const youColors = { ...STYLE[PLAYER], sleeve: playerSleeve ?? STYLE[PLAYER].sleeve }
-  const sowingCount = sowing && sowing.count > 0 ? sowing : null
-  const countPoint = sowingCount ? pitPoint(sowingCount.pit) : null
+  // how many guli each sowing hand still holds
+  const counts = sowing.filter((h) => h && h.count > 0)
 
   return (
     <div className={`cg-hands ${size.w > 0 ? '' : 'is-measuring'}`} style={{ '--arm-w': `${size.s * 1.15}px` }} aria-hidden="true">
       <Arm {...you} angle={youAngle} colors={youColors} moveMs={slapPhase ? 200 : moveMs} />
       <Arm {...them} angle={themAngle} colors={STYLE[OPPONENT]} moveMs={moveMs} />
       <Arm {...slapper} angle={themAngle + (flat ? 25 : -25)} pose="flat" colors={STYLE[OPPONENT]} moveMs={110} />
-      {countPoint && (
-        <span
-          className="cg-hand-count"
-          style={{ transform: `translate(${countPoint.x}px, ${countPoint.y}px) translate(-50%, ${sowingCount.side === PLAYER ? '-190%' : '90%'})` }}
-        >
-          {sowingCount.count}
-        </span>
-      )}
+      {counts.map((h) => {
+        const p = pitPoint(h.pit)
+        return (
+          <span
+            key={h.side}
+            className="cg-hand-count"
+            style={{ transform: `translate(${p.x}px, ${p.y}px) translate(-50%, ${h.side === PLAYER ? '-190%' : '90%'})` }}
+          >
+            {h.count}
+          </span>
+        )
+      })}
     </div>
   )
 }

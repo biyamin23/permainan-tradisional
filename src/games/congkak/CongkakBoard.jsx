@@ -7,7 +7,8 @@ import { isStore } from './engine'
  * left → right along the other side.
  *
  * The board always lies across the screen: Aisyah's row on top, yours at the
- * bottom, your rumah on the left.
+ * bottom, your rumah on the left. A kampung that is terbakar (couldn't be
+ * filled for a later pusingan) is charred and out of play.
  */
 
 // grid cell for each position ([column, row])
@@ -45,18 +46,25 @@ function Marbles({ count, store }) {
   return marbles
 }
 
-function Pit({ index, count, playable, flashing, onPlay, onHover }) {
+function Pit({ index, count, burnt, playable, flashing, onPlay, onHover }) {
   const place = placement(index)
   const store = isStore(index)
   const mine = index <= 7
-  const className = ['cg-pit', store ? 'cg-pit--store' : '', mine ? 'is-mine' : 'is-theirs', playable ? 'is-playable' : '', flashing ? 'is-flashing' : '']
+  const className = [
+    'cg-pit',
+    store ? 'cg-pit--store' : '',
+    mine ? 'is-mine' : 'is-theirs',
+    playable ? 'is-playable' : '',
+    flashing ? 'is-flashing' : '',
+    burnt ? 'is-burnt' : '',
+  ]
     .filter(Boolean)
     .join(' ')
   const style = { gridColumn: place[0], gridRow: place[1] }
   const Tag = store ? 'div' : 'button'
   const label = store
     ? `Rumah ${mine ? 'kamu' : 'Aisyah'}, ${count} biji`
-    : `${mine ? 'Lubang kamu' : 'Lubang Aisyah'} ${mine ? index + 1 : index - 7}, ${count} biji`
+    : `${mine ? 'Lubang kamu' : 'Lubang Aisyah'} ${mine ? index + 1 : index - 7}, ${burnt ? 'terbakar' : `${count} biji`}`
 
   return (
     <Tag
@@ -78,13 +86,13 @@ function Pit({ index, count, playable, flashing, onPlay, onHover }) {
         <Marbles count={count} store={store} />
       </span>
       <span className="cg-pit__count" aria-hidden="true">
-        {count}
+        {burnt ? '🔥' : count}
       </span>
     </Tag>
   )
 }
 
-export const CongkakBoard = memo(function CongkakBoard({ pits, canPlay = false, flash = null, onPlay, onHover, boardRef, children }) {
+export const CongkakBoard = memo(function CongkakBoard({ pits, burnt = null, canPlay = false, flash = null, onPlay, onHover, boardRef, children }) {
   return (
     <div className="cg-board" ref={boardRef} role="group" aria-label="Papan congkak">
       {pits.map((count, index) => (
@@ -92,7 +100,8 @@ export const CongkakBoard = memo(function CongkakBoard({ pits, canPlay = false, 
           key={`${index}-${flash && flash.pits.includes(index) ? flash.key : 0}`}
           index={index}
           count={count}
-          playable={canPlay && index < 7 && count > 0}
+          burnt={Boolean(burnt?.[index])}
+          playable={canPlay && index < 7 && count > 0 && !burnt?.[index]}
           flashing={Boolean(flash && flash.pits.includes(index))}
           onPlay={onPlay}
           onHover={onHover}

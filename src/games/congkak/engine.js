@@ -1,33 +1,39 @@
 /**
- * Congkak rules engine — pure functions, no React.
+ * Congkak rules engine — pure functions, no React. The rules are the usual
+ * kampung ones (ms.wikipedia.org/wiki/Congkak, "Peraturan permainan").
  *
  * Board: 16 positions in sowing order.
  *   0–6   player's kampung (small houses)    7  player's rumah (store)
  *   8–14  opponent's kampung                 15 opponent's rumah
- * Seeds travel 0 → 1 → … → 7 → 8 → … → 15 → 0. Each side skips the
- * other side's rumah. Every small house starts with 7 seeds (98 in total).
+ * Seeds travel 0 → 1 → … → 7 → 8 → … → 15 → 0 (right to left along your own
+ * row, into your rumah, then along the other row). Each side skips the other
+ * side's rumah, and everyone skips a kampung that has been terbakar.
  *
- * A turn:
- *  1. Pick a house on your side that has seeds; sow them one by one.
- *  2. Last seed in your own rumah → you get another turn.
- *  3. Last seed in a house that already had seeds → pick them all up and
- *     keep sowing ("main terus").
- *  4. Last seed in an empty house on your side → "tembak": take it and the
- *     seeds in the opposite house into your rumah. Turn ends. As in the
- *     official rules ("tikam hanya boleh dibuat selepas melalui kampung
- *     lawan" / only after one full pusingan), you may only tembak when, in
- *     this same turn, your seeds have gone round through the opponent's
- *     kampung and come back to your side. Otherwise the turn simply ends
- *     (mati) and the seed stays where it fell.
- *  5. Last seed in an empty house on the other side → turn ends.
- * The game ends when the player to move has no seeds in their kampung; the
- * other player then collects everything left on their side. Most seeds wins.
+ * A pusingan (round):
+ *  1. Both players start TOGETHER: each takes the seeds of one of their own
+ *     kampung and sows at the same time (playOpening).
+ *  2. Last seed in your own rumah → you carry on with any kampung of yours.
+ *     Last seed in a kampung that already had seeds → take them all and keep
+ *     sowing. Last seed in an empty kampung → mati: your go ends there. If it
+ *     is one of your own and your seeds have already been round through the
+ *     other side this go, you tembak: it and everything in the kampung across
+ *     go into your rumah.
+ *  3. After the start, turns alternate, each lasting until the seeds die.
+ *  4. No seeds in your kampung on your turn: the turn passes to the other side.
+ *  The pusingan ends when no kampung has any seeds left.
+ *
+ * Next pusingan: each player fills their kampung again, 7 seeds each, from
+ * the seeds in their rumah. A kampung that can't be filled is terbakar and
+ * sits out the rest of the game. A player who can't fill even one has lost.
+ * At the end, most seeds in the rumah wins; level, and whoever has more
+ * kampung terbakar loses.
  */
 
 export const SEEDS_PER_HOUSE = 7
 export const PLAYER = 0
 export const OPPONENT = 1
 export const STORE = [7, 15]
+export const MAX_ROUNDS = 3
 const SIZE = 16
 const MAX_LAPS = 400 // guards against endless relay chains
 
@@ -37,6 +43,8 @@ export const isStore = (index) => index === 7 || index === 15
 /** House directly across the board. */
 export const oppositeOf = (index) => 14 - index
 
+const NONE_BURNT = new Array(SIZE).fill(false)
+
 export function createBoard() {
   const pits = new Array(SIZE).fill(SEEDS_PER_HOUSE)
   pits[7] = 0
@@ -44,104 +52,194 @@ export function createBoard() {
   return pits
 }
 
-export const legalMoves = (pits, side) => housesOf(side).filter((i) => pits[i] > 0)
+export const createBurnt = () => new Array(SIZE).fill(false)
 
-const next = (index, side) => {
-  let n = (index + 1) % SIZE
-  if (n === STORE[1 - side]) n = (n + 1) % SIZE
+export const legalMoves = (pits, side, burnt = NONE_BURNT) => housesOf(side).filter((i) => !burnt[i] && pits[i] > 0)
+
+const next = (index, side, burnt) => {
+  let n = index
+  do {
+    n = (n + 1) % SIZE
+  } while (n === STORE[1 - side] || burnt[n])
   return n
 }
 
 /**
- * Play one move. Returns the board after the turn, the events that happened
- * (for animation) and whether the same side moves again.
- * Events: pickup {pit,count} · drop {pit} · relay {pit,count} · capture {pit,opposite,count,store}
- *         · extraTurn · end
+ * One sowing hand, stepped a seed at a time, so a single go (playMove) and the
+ * two hands of the opening (playOpening) follow exactly the same rules.
  */
-export function playMove(board, side, house) {
-  const pits = board.slice()
-  const events = []
-  if (sideOf(house) !== side || isStore(house) || pits[house] === 0) {
-    throw new Error(`Illegal move ${house} for side ${side}`)
-  }
-
-  let hand = pits[house]
+function startHand(pits, side, house) {
+  const hand = pits[house]
   pits[house] = 0
-  events.push({ type: 'pickup', pit: house, count: hand })
-  let pos = house
-  let laps = 0
-  let extraTurn = false
-  let passedStore = false
-  let wentRound = false // a seed went into the opponent's kampung this turn
+  return { side, pos: house, hand, laps: 0, wentRound: false, done: false, inStore: false }
+}
 
-  while (hand > 0) {
-    pos = next(pos, side)
-    pits[pos] += 1
-    hand -= 1
-    if (pos === STORE[side]) passedStore = true
-    if (!isStore(pos) && sideOf(pos) !== side) wentRound = true
-    events.push({ type: 'drop', pit: pos, hand })
-    if (hand > 0) continue
+/** Drop one seed; when the hand runs out, decide what happens. Pushes events. */
+function stepHand(pits, h, burnt, events, t) {
+  h.pos = next(h.pos, h.side, burnt)
+  pits[h.pos] += 1
+  h.hand -= 1
+  if (!isStore(h.pos) && sideOf(h.pos) !== h.side) h.wentRound = true
+  events.push({ type: 'drop', pit: h.pos, hand: h.hand, side: h.side, t })
+  if (h.hand > 0) return
 
-    // last seed of this handful
-    if (pos === STORE[side]) {
-      extraTurn = true
-      events.push({ type: 'extraTurn' })
-      break
-    }
-    if (pits[pos] > 1) {
-      laps += 1
-      if (laps > MAX_LAPS) {
-        events.push({ type: 'end' })
-        break
-      }
-      hand = pits[pos]
-      pits[pos] = 0
-      events.push({ type: 'relay', pit: pos, count: hand })
-      continue
-    }
-    // landed in an empty house
-    if (sideOf(pos) === side) {
-      const opposite = oppositeOf(pos)
-      if (pits[opposite] > 0 && !wentRound) {
-        events.push({ type: 'noTembak', pit: pos, opposite })
-      } else if (pits[opposite] > 0) {
-        const count = pits[opposite] + 1
-        pits[STORE[side]] += count
-        events.push({ type: 'capture', pit: pos, opposite, count, store: STORE[side] })
-        pits[opposite] = 0
-        pits[pos] = 0
-      }
-    }
-    events.push({ type: 'end' })
+  // the last seed of this handful
+  if (h.pos === STORE[h.side]) {
+    h.done = true
+    h.inStore = true
+    events.push({ type: 'extraTurn', side: h.side, t })
+    return
   }
-
-  return { pits, events, extraTurn, passedStore }
+  if (pits[h.pos] > 1) {
+    h.laps += 1
+    if (h.laps > MAX_LAPS) {
+      h.done = true
+      events.push({ type: 'end', side: h.side, t })
+      return
+    }
+    h.hand = pits[h.pos]
+    pits[h.pos] = 0
+    events.push({ type: 'relay', pit: h.pos, count: h.hand, side: h.side, t })
+    return
+  }
+  // landed in an empty kampung: mati
+  if (sideOf(h.pos) === h.side) {
+    const opposite = oppositeOf(h.pos)
+    if (pits[opposite] > 0 && !h.wentRound) {
+      events.push({ type: 'noTembak', pit: h.pos, opposite, side: h.side, t })
+    } else if (pits[opposite] > 0) {
+      const count = pits[opposite] + 1
+      pits[STORE[h.side]] += count
+      events.push({ type: 'capture', pit: h.pos, opposite, count, store: STORE[h.side], side: h.side, t })
+      pits[opposite] = 0
+      pits[h.pos] = 0
+    }
+  }
+  h.done = true
+  events.push({ type: 'end', side: h.side, t })
 }
 
 /**
- * If the side about to move has nothing to play, the game is over: the other
- * side sweeps its remaining seeds into its rumah.
+ * Play one go. Returns the board after it, the events that happened (for
+ * animation) and whether the same side carries on (last seed in its rumah).
+ * Events: pickup {pit,count} · drop {pit} · relay {pit,count} · capture {pit,opposite,count,store}
+ *         · noTembak · extraTurn · end. Each has `side` and a tick `t`.
  */
-export function checkGameOver(pits, sideToMove) {
-  if (legalMoves(pits, sideToMove).length > 0) return null
-  const final = pits.slice()
-  const other = 1 - sideToMove
-  let swept = 0
-  for (const i of housesOf(other)) {
-    swept += final[i]
-    final[i] = 0
+export function playMove(board, side, house, burnt = NONE_BURNT) {
+  const pits = board.slice()
+  if (sideOf(house) !== side || isStore(house) || burnt[house] || pits[house] === 0) {
+    throw new Error(`Illegal move ${house} for side ${side}`)
   }
-  final[STORE[other]] += swept
-  const player = final[STORE[PLAYER]]
-  const opponent = final[STORE[OPPONENT]]
-  return {
-    pits: final,
-    swept,
-    sweptBy: other,
-    scores: [player, opponent],
-    winner: player === opponent ? null : player > opponent ? PLAYER : OPPONENT,
+  const events = []
+  const h = startHand(pits, side, house)
+  let t = 0
+  events.push({ type: 'pickup', pit: house, count: h.hand, side, t })
+  while (!h.done) stepHand(pits, h, burnt, events, ++t)
+  return { pits, events, extraTurn: h.inStore }
+}
+
+/**
+ * The start of every pusingan: both players sow at once, a seed each per
+ * tick, each hand following the rules on its own until its seeds die (or
+ * reach its rumah). Whoever is still going when the other stops carries on
+ * alone. Then the next go is for whoever reached their rumah (they carry
+ * on); otherwise for whoever's seeds died first, as the other has just had
+ * the longer go.
+ */
+export function playOpening(board, burnt, housePlayer, houseOpponent) {
+  const pits = board.slice()
+  const events = []
+  const hands = [startHand(pits, PLAYER, housePlayer), startHand(pits, OPPONENT, houseOpponent)]
+  events.push({ type: 'pickup', pit: housePlayer, count: hands[0].hand, side: PLAYER, t: 0 })
+  events.push({ type: 'pickup', pit: houseOpponent, count: hands[1].hand, side: OPPONENT, t: 0 })
+  const doneAt = [Infinity, Infinity]
+  let t = 0
+  while (hands.some((h) => !h.done)) {
+    t += 1
+    for (const h of hands) {
+      if (h.done) continue
+      stepHand(pits, h, burnt, events, t)
+      if (h.done) doneAt[h.side] = t
+    }
   }
+  const [p, o] = hands
+  let nextSide
+  if (p.inStore !== o.inStore) nextSide = p.inStore ? PLAYER : OPPONENT
+  else nextSide = doneAt[PLAYER] <= doneAt[OPPONENT] ? PLAYER : OPPONENT
+  return { pits, events, nextSide, carriesOn: p.inStore || o.inStore }
+}
+
+/** Seeds left in any kampung? */
+export const seedsInPlay = (pits) => [...housesOf(PLAYER), ...housesOf(OPPONENT)].reduce((a, i) => a + pits[i], 0)
+
+/**
+ * Who moves after `side`'s go: the same side if it carries on, else the
+ * other; a side with no seeds in its kampung passes. Null: the pusingan is
+ * over (no seeds left in any kampung).
+ */
+export function nextToMove(pits, burnt, side, carriesOn) {
+  if (seedsInPlay(pits) === 0) return null
+  const first = carriesOn ? side : 1 - side
+  if (legalMoves(pits, first, burnt).length) return first
+  if (legalMoves(pits, 1 - first, burnt).length) return 1 - first
+  return null
+}
+
+/**
+ * End a pusingan: anything still in a kampung goes to its owner's rumah
+ * (only used if a pusingan is cut short), then each side refills its
+ * kampung from its rumah, 7 to each, starting from the one furthest from
+ * its rumah. Kampung left empty are terbakar (and stay so). A side that
+ * can't fill a single kampung has lost (`conceded`).
+ */
+export function nextRound(board, burnt) {
+  const pits = board.slice()
+  for (const side of [PLAYER, OPPONENT]) {
+    for (const i of housesOf(side)) {
+      pits[STORE[side]] += pits[i]
+      pits[i] = 0
+    }
+  }
+  const scores = [pits[STORE[PLAYER]], pits[STORE[OPPONENT]]]
+  const conceded = [PLAYER, OPPONENT].filter((s) => scores[s] < SEEDS_PER_HOUSE)
+  if (conceded.length) return { pits, burnt, conceded, scores }
+  const nextBurnt = burnt.slice()
+  for (const side of [PLAYER, OPPONENT]) {
+    let left = pits[STORE[side]]
+    for (const i of housesOf(side)) {
+      if (!nextBurnt[i] && left >= SEEDS_PER_HOUSE) {
+        pits[i] = SEEDS_PER_HOUSE
+        left -= SEEDS_PER_HOUSE
+      } else nextBurnt[i] = true
+    }
+    pits[STORE[side]] = left
+  }
+  return { pits, burnt: nextBurnt, conceded: [], scores }
+}
+
+export const burntCount = (burnt, side) => housesOf(side).filter((i) => burnt[i]).length
+
+/**
+ * The final count: seeds in each rumah (anything left in a kampung goes to
+ * its owner). Level, and the side with more kampung terbakar loses.
+ */
+export function finalResult(board, burnt, rounds) {
+  const pits = board.slice()
+  for (const side of [PLAYER, OPPONENT]) {
+    for (const i of housesOf(side)) {
+      pits[STORE[side]] += pits[i]
+      pits[i] = 0
+    }
+  }
+  const scores = [pits[STORE[PLAYER]], pits[STORE[OPPONENT]]]
+  const burntBy = [burntCount(burnt, PLAYER), burntCount(burnt, OPPONENT)]
+  let winner = scores[0] === scores[1] ? null : scores[0] > scores[1] ? PLAYER : OPPONENT
+  let tieBreak = false
+  if (winner === null && burntBy[0] !== burntBy[1]) {
+    winner = burntBy[0] < burntBy[1] ? PLAYER : OPPONENT
+    tieBreak = true
+  }
+  return { pits, scores, burnt: burntBy, rounds, winner, tieBreak }
 }
 
 // ------------------------------------------------------------------ AI
@@ -161,25 +259,23 @@ function evaluate(pits, side, guard) {
 }
 
 /**
- * Look `plies` turns ahead (her turn, your reply, …), following extra turns
+ * Look `plies` turns ahead (her turn, your reply, …), following carry-ons
  * within the same ply. Same rules and the same board you see: no peeking,
  * no special moves. Stops when the time budget runs out.
  */
-function search(pits, side, plies, guard, clock, chain = 0) {
+function search(pits, side, burnt, plies, guard, clock, chain = 0) {
   if (++clock.nodes % 256 === 0 && performance.now() > clock.deadline) clock.timeout = true
   if (clock.timeout) return evaluate(pits, side, guard)
-  const moves = legalMoves(pits, side)
-  if (moves.length === 0) {
-    const over = checkGameOver(pits, side)
-    return (over.scores[side] - over.scores[1 - side]) * 10 // a finished game is decisive
-  }
+  const moves = legalMoves(pits, side, burnt)
+  // nothing to play: the turn passes (or the pusingan is over)
+  if (moves.length === 0) return evaluate(pits, side, guard)
   let best = -Infinity
   for (const move of moves) {
-    const r = playMove(pits, side, move)
+    const r = playMove(pits, side, move, burnt)
     let v
-    if (r.extraTurn && chain < 2) v = search(r.pits, side, plies, guard, clock, chain + 1) + 1
+    if (r.extraTurn && chain < 2) v = search(r.pits, side, burnt, plies, guard, clock, chain + 1) + 1
     else if (plies <= 1) v = evaluate(r.pits, side, guard)
-    else v = -search(r.pits, 1 - side, plies - 1, guard, clock, 0)
+    else v = -search(r.pits, 1 - side, burnt, plies - 1, guard, clock, 0)
     if (v > best) best = v
   }
   return best
@@ -194,10 +290,12 @@ const THINK_BUDGET_MS = 250
  *  plies    turns she looks ahead: 1 = best for this turn, 2+ = considers your replies
  *  guard    0..1 how much she cares about the guli she leaves on each side
  * Deeper looks are tried one at a time and kept only if they finish in time.
+ * (For the opening she picks the same way, as if sowing alone: she can't see
+ * which kampung you'll take either.)
  */
-export function chooseMove(pits, side, level = 'biasa', random = Math.random) {
+export function chooseMove(pits, side, level = 'biasa', random = Math.random, burnt = NONE_BURNT) {
   const cfg = typeof level === 'string' ? LEGACY[level] ?? LEGACY.biasa : level
-  const moves = legalMoves(pits, side)
+  const moves = legalMoves(pits, side, burnt)
   if (moves.length === 0) return null
   if (moves.length === 1) return moves[0]
   if (random() < (cfg.mistake ?? 0)) return moves[Math.floor(random() * moves.length)]
@@ -208,11 +306,11 @@ export function chooseMove(pits, side, level = 'biasa', random = Math.random) {
     let best = -Infinity
     let bestMoves = []
     for (const move of moves) {
-      const r = playMove(pits, side, move)
+      const r = playMove(pits, side, move, burnt)
       let v
-      if (r.extraTurn) v = search(r.pits, side, plies, guard, clock, 1) + 1
+      if (r.extraTurn) v = search(r.pits, side, burnt, plies, guard, clock, 1) + 1
       else if (plies <= 1) v = evaluate(r.pits, side, guard)
-      else v = -search(r.pits, 1 - side, plies - 1, guard, clock)
+      else v = -search(r.pits, 1 - side, burnt, plies - 1, guard, clock)
       if (v > best + 0.25) {
         best = v
         bestMoves = [move]

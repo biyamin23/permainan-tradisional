@@ -11,12 +11,12 @@ export const TUTORIALS = {
       art: Art.CongkakGoal,
       title: 'Kumpul guli dalam rumah kamu',
       body: 'Kamu lawan Aisyah. Rumah kamu ialah lubang besar di sebelah kiri. Guli paling banyak dalam rumah di akhir permainan menang.',
-      tip: 'Mula-mula osom (batu, air, burung) untuk tentukan siapa main dulu.',
+      tip: 'Tak perlu osom: setiap pusingan, kamu dan Aisyah mula serentak.',
     },
     {
       art: Art.CongkakPick,
-      title: 'Tekan satu lubang di barisan kamu',
-      body: 'Bila giliran kamu, lubang di barisan bawah akan bercahaya. Tekan satu lubang untuk ambil semua gulinya.',
+      title: 'Tekan satu kampung di barisan kamu',
+      body: 'Kampung (lubang kecil) di barisan bawah akan bercahaya. Tekan satu untuk ambil semua gulinya. Di permulaan setiap pusingan, Aisyah pun mula pada masa yang sama.',
     },
     {
       art: Art.CongkakSow,
@@ -27,13 +27,19 @@ export const TUTORIALS = {
     {
       art: Art.CongkakLast,
       title: 'Guli terakhir paling penting',
-      body: 'Jatuh dalam rumah kamu: main lagi. Jatuh dalam lubang yang ada guli: kaut semua dan terus agih. Jatuh dalam lubang kosong: giliran tamat.',
+      body: 'Jatuh dalam rumah kamu: teruskan dengan kampung lain. Jatuh dalam kampung yang ada guli: kaut semua dan terus agih. Jatuh dalam kampung kosong: mati, giliran tamat.',
     },
     {
       art: Art.CongkakShoot,
       title: 'Tembak!',
-      body: 'Guli terakhir jatuh dalam lubang kosong di barisan kamu (selepas melalui barisan Aisyah)? Guli itu dan semua guli di lubang bertentangan masuk rumah kamu.',
+      body: 'Guli terakhir jatuh dalam kampung kosong di barisan kamu (selepas melalui barisan Aisyah)? Kaut semua guli di kampung Aisyah yang setentang masuk rumah kamu.',
       tip: 'Masa giliran Aisyah, tekan papan untuk langkau.',
+    },
+    {
+      art: Art.CongkakGoal,
+      title: 'Pusingan dan kampung terbakar',
+      body: 'Bila semua kampung kosong, pusingan tamat. Isi semula kampung, 7 guli setiap satu, dari guli dalam rumah. Kampung yang tak cukup guli terbakar 🔥 dan tak boleh dimain lagi.',
+      tip: 'Kalau guli sama banyak di akhir permainan, yang lebih banyak kampung terbakar kalah.',
     },
   ],
 
