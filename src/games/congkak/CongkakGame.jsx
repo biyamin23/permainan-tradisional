@@ -35,7 +35,7 @@ const RULES = [
   'Setiap kampung (lubang kecil) ada 7 guli. Rumah (lubang besar) bermula kosong. Rumah kamu di sebelah kiri kamu.',
   'Mula serentak: kamu dan Aisyah sama-sama ambil guli dari satu kampung sendiri dan agih pada masa yang sama, satu demi satu dari kanan ke kiri: sepanjang barisan sendiri, masuk rumah sendiri, kemudian ke kampung lawan. Rumah lawan dilangkau.',
   'Guli terakhir jatuh dalam kampung yang berisi: kaut semua dan terus agih.',
-  'Guli terakhir masuk rumah sendiri: teruskan dengan mana-mana kampung sendiri.',
+  'Guli terakhir masuk rumah sendiri: teruskan dengan mana-mana kampung sendiri. Masa mula serentak, terus ambil dan sambung, tak perlu tunggu lawan.',
   'Guli terakhir jatuh dalam kampung kosong: mati, giliran tamat. Kalau kampung kosong itu milik sendiri dan guli kamu sudah melalui kampung lawan (satu pusingan), kamu tembak: kaut semua guli di kampung lawan yang setentang.',
   'Selepas permulaan, giliran bersilih ganti, setiap giliran sampai gulinya mati. Siapa mati dulu masa mula serentak, dia main dulu.',
   'Tiada guli di kampung sendiri bila tiba giliran? Giliran berpindah kepada lawan. Pusingan tamat bila semua kampung kosong.',
@@ -109,7 +109,7 @@ function Match({ player, onExit, onRecords }) {
   const [match, setMatch] = useState(0)
   const session = useProgressSession('congkak', match)
   const [reward, setReward] = useState(null)
-  const { pits, burnt, round, phase, turn, movers, animating, hands, flash, banner, speech, result, fast, setFast, playHouse, skip, restart, scores, say } =
+  const { pits, burnt, round, phase, youPick, canSkip, turn, movers, animating, hands, flash, banner, speech, result, fast, setFast, playHouse, skip, restart, scores, say } =
     useCongkakMatch({ level: session.tuning })
   const [saved, setSaved] = useState(null)
   const [hoverPit, setHoverPit] = useState(null)
@@ -126,6 +126,8 @@ function Match({ player, onExit, onRecords }) {
   const onPitTap = useCallback(
     (index, event) => {
       const outcome = playHouse(index)
+      // picking again mid-start: don't let the same tap skip ahead
+      if (outcome === 'played') event?.stopPropagation()
       if (outcome === 'wait') {
         event?.stopPropagation()
         if (Date.now() - lastSlap.current > 900) {
@@ -156,8 +158,10 @@ function Match({ player, onExit, onRecords }) {
   }, [result, onRecords, session])
 
   const opening = phase === 'opening' && !result
-  const yourTurn = (opening || (phase === 'play' && turn === PLAYER)) && !result
-  const together = animating && movers.length === 2
+  const together = phase === 'together' && !result
+  const yourTurn = (opening || together || (phase === 'play' && turn === PLAYER)) && !result
+  // you can pick a kampung right now
+  const canTap = (opening || (together && youPick) || (phase === 'play' && turn === PLAYER && !animating)) && !result
   // what to do next, always at the bottom of the screen
   const next = result
     ? null
@@ -166,7 +170,13 @@ function Match({ player, onExit, onRecords }) {
       : phase === 'between'
         ? { icon: '🔄', text: 'Isi semula kampung…' }
         : together
-          ? { icon: '👐', text: 'Mula serentak! Tekan papan untuk langkau' }
+          ? youPick
+            ? { icon: '👆', text: 'Masuk rumah! Terus pilih kampung dan sambung, jangan tunggu Aisyah' }
+            : !canSkip
+              ? { icon: '👐', text: 'Serentak! Masuk rumah, terus pilih kampung lagi' }
+              : movers.includes(PLAYER)
+                ? { icon: '👐', text: 'Aisyah dah mati. Tekan papan untuk langkau' }
+                : { icon: '⏳', text: 'Guli kamu mati. Tekan papan untuk langkau' }
           : yourTurn
             ? animating
               ? { icon: '👆', text: 'Tekan papan untuk langkau' }
@@ -184,7 +194,7 @@ function Match({ player, onExit, onRecords }) {
     restart()
   }
 
-  const theirTurn = (opening || (phase === 'play' && turn === OPPONENT)) && !result
+  const theirTurn = (opening || together || (phase === 'play' && turn === OPPONENT)) && !result
 
   return (
     <Scene
@@ -192,7 +202,7 @@ function Match({ player, onExit, onRecords }) {
       top={
         <>
           <ExitButton onExit={onExit} />
-          {!result && <HoldFast fast={fast} setFast={setFast} active={animating} />}
+          {!result && <HoldFast fast={fast} setFast={setFast} active={canSkip} />}
           {!result && (
             <span className="cg-round" aria-live="polite">
               Pusingan {round}/{MAX_ROUNDS}
@@ -216,11 +226,11 @@ function Match({ player, onExit, onRecords }) {
       you={<PlayerCard side="you" name={player.name} color={player.color} img={player.img} score={scores[0]} unit="guli" active={yourTurn} />}
       toast={toast}
       board={
-        <div className={`gs-board-hit ${animating ? 'is-skippable' : ''}`} onClick={animating ? skip : undefined}>
+        <div className={`gs-board-hit ${canSkip ? 'is-skippable' : ''}`} onClick={canSkip ? skip : undefined}>
           <CongkakBoard
             pits={pits}
             burnt={burnt}
-            canPlay={yourTurn && !animating}
+            canPlay={canTap}
             flash={flash}
             onPlay={onPitTap}
             onHover={(i) => setHoverPit(i !== null && i < 7 && pits[i] > 0 && !burnt[i] ? i : null)}
@@ -230,18 +240,18 @@ function Match({ player, onExit, onRecords }) {
               boardRef={boardRef}
               sowing={hands}
               turn={phase === 'play' ? turn : null}
-              ready={opening}
+              ready={opening || (together && youPick)}
               animating={animating}
               finished={Boolean(result)}
-              hoverPit={yourTurn && !animating ? hoverPit : null}
+              hoverPit={canTap ? hoverPit : null}
               slap={slap}
               playerSleeve={player.color}
-              moveMs={fast ? 135 : 265}
+              moveMs={fast && canSkip ? 135 : 265}
             />
           </CongkakBoard>
         </div>
       }
-      bottom={<NextHint next={next} yours={yourTurn && !animating} />}
+      bottom={<NextHint next={next} yours={canTap} />}
     >
       {result && <Result result={result} saved={saved} reward={reward} playerName={player.name} onAgain={again} onExit={onExit} />}
     </Scene>

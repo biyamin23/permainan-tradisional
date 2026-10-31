@@ -11,7 +11,9 @@
  *
  * A pusingan (round):
  *  1. Both players start TOGETHER: each takes the seeds of one of their own
- *     kampung and sows at the same time (playOpening).
+ *     kampung and sows at the same time (startTogether / tickTogether).
+ *     Each hand goes on its own; reach your rumah and you pick up another
+ *     kampung straight away, without waiting for the other hand.
  *  2. Last seed in your own rumah → you carry on with any kampung of yours.
  *     Last seed in a kampung that already had seeds → take them all and keep
  *     sowing. Last seed in an empty kampung → mati: your go ends there. If it
@@ -66,7 +68,7 @@ const next = (index, side, burnt) => {
 
 /**
  * One sowing hand, stepped a seed at a time, so a single go (playMove) and the
- * two hands of the opening (playOpening) follow exactly the same rules.
+ * two hands of the live start (tickTogether) follow exactly the same rules.
  */
 function startHand(pits, side, house) {
   const hand = pits[house]
@@ -139,35 +141,59 @@ export function playMove(board, side, house, burnt = NONE_BURNT) {
 }
 
 /**
- * The start of every pusingan: both players sow at once, a seed each per
- * tick, each hand following the rules on its own until its seeds die (or
- * reach its rumah). Whoever is still going when the other stops carries on
- * alone. Then the next go is for whoever reached their rumah (they carry
- * on); otherwise for whoever's seeds died first, as the other has just had
- * the longer go.
+ * The start of every pusingan, played live: both players sow at once, one
+ * seed each per tick (tickTogether), each hand following the rules on its
+ * own. A hand that reaches its rumah leaves its side free to pick another
+ * kampung (pickTogether) at once, while the other hand keeps going. A side
+ * is out when its seeds die (or it reaches its rumah with nothing left to
+ * pick). When both are out, whoever died first has the next go
+ * (firstAfterTogether), as the other has just had the longer go.
+ *
+ * live: { pits, burnt, hands: [hand|null, hand|null], state: ['sow'|'pick'|'dead', …], diedAt, t }
+ * Mutated in place; each call returns the events it caused.
  */
-export function playOpening(board, burnt, housePlayer, houseOpponent) {
-  const pits = board.slice()
+export function startTogether(board, burnt, housePlayer, houseOpponent) {
+  const live = { pits: board.slice(), burnt, hands: [null, null], state: ['pick', 'pick'], diedAt: [Infinity, Infinity], t: 0 }
+  const events = [...pickTogether(live, PLAYER, housePlayer), ...pickTogether(live, OPPONENT, houseOpponent)]
+  return { live, events }
+}
+
+/** A side that is free to pick (start, or back in its rumah) takes up another kampung. */
+export function pickTogether(live, side, house) {
+  const { pits, burnt } = live
+  if (live.state[side] !== 'pick' || sideOf(house) !== side || isStore(house) || burnt[house] || pits[house] === 0) {
+    throw new Error(`Illegal pick ${house} for side ${side}`)
+  }
+  live.hands[side] = startHand(pits, side, house)
+  live.state[side] = 'sow'
+  return [{ type: 'pickup', pit: house, count: live.hands[side].hand, side, t: live.t }]
+}
+
+/** One tick: every hand still sowing drops a seed. */
+export function tickTogether(live) {
+  live.t += 1
   const events = []
-  const hands = [startHand(pits, PLAYER, housePlayer), startHand(pits, OPPONENT, houseOpponent)]
-  events.push({ type: 'pickup', pit: housePlayer, count: hands[0].hand, side: PLAYER, t: 0 })
-  events.push({ type: 'pickup', pit: houseOpponent, count: hands[1].hand, side: OPPONENT, t: 0 })
-  const doneAt = [Infinity, Infinity]
-  let t = 0
-  while (hands.some((h) => !h.done)) {
-    t += 1
-    for (const h of hands) {
-      if (h.done) continue
-      stepHand(pits, h, burnt, events, t)
-      if (h.done) doneAt[h.side] = t
+  for (const side of [PLAYER, OPPONENT]) {
+    const h = live.hands[side]
+    if (!h) continue
+    stepHand(live.pits, h, live.burnt, events, live.t)
+    if (!h.done) continue
+    live.hands[side] = null
+    live.state[side] = h.inStore ? 'pick' : 'dead'
+    if (!h.inStore) live.diedAt[side] = live.t
+  }
+  // back in the rumah with nothing left to pick up: out as well
+  for (const side of [PLAYER, OPPONENT]) {
+    if (live.state[side] === 'pick' && legalMoves(live.pits, side, live.burnt).length === 0) {
+      live.state[side] = 'dead'
+      live.diedAt[side] = live.t
     }
   }
-  const [p, o] = hands
-  let nextSide
-  if (p.inStore !== o.inStore) nextSide = p.inStore ? PLAYER : OPPONENT
-  else nextSide = doneAt[PLAYER] <= doneAt[OPPONENT] ? PLAYER : OPPONENT
-  return { pits, events, nextSide, carriesOn: p.inStore || o.inStore }
+  return events
 }
+
+export const togetherOver = (live) => live.state.every((s) => s === 'dead')
+export const firstAfterTogether = (live) => (live.diedAt[PLAYER] <= live.diedAt[OPPONENT] ? PLAYER : OPPONENT)
 
 /** Seeds left in any kampung? */
 export const seedsInPlay = (pits) => [...housesOf(PLAYER), ...housesOf(OPPONENT)].reduce((a, i) => a + pits[i], 0)

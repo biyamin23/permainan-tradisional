@@ -12,9 +12,13 @@ import {
   finalResult,
   legalMoves,
   nextRound,
+  firstAfterTogether,
   nextToMove,
+  pickTogether,
   playMove,
-  playOpening,
+  startTogether,
+  tickTogether,
+  togetherOver,
 } from './engine'
 
 // One steady pace for every move, however long the relay chain.
@@ -22,6 +26,7 @@ import {
 export const STEP_MS = 380
 const AI_THINK = 1100
 const AI_THINK_QUICK = 550 // only one or two kampung to choose from
+const AI_PICK_TICKS = 2 // in the live start, Aisyah picks again this many seeds after reaching her rumah
 const MAX_TURNS = 300 // a pusingan that somehow never ends is called after this
 
 /**
@@ -31,7 +36,9 @@ const MAX_TURNS = 300 // a pusingan that somehow never ends is called after this
  * next pusingan, up to MAX_ROUNDS or until someone can't fill a kampung.
  *
  * phase: 'opening' (waiting for you to pick your first kampung; Aisyah has
- *        already picked hers) · 'play' (turns) · 'between' (refilling) ·
+ *        already picked hers) · 'together' (both sowing live; `youPick`
+ *        when you're back in your rumah and can pick again) · 'play'
+ *        (turns) · 'between' (refilling) ·
  *        'over'
  */
 export function useCongkakMatch({ level }) {
@@ -72,6 +79,21 @@ export function useCongkakMatch({ level }) {
   // things Aisyah says out loud, shown as a speech bubble on her side
   const [speech, setSpeech] = useState(null)
   const rivalSays = useCallback((text) => setSpeech({ text, key: Math.random() }), [])
+
+  const announceCapture = useCallback(
+    (e, quiet = false) => {
+      setFlash({ pits: [e.pit, e.opposite, e.store], key: Math.random() })
+      if (e.side === PLAYER) {
+        say(`Tembak! +${e.count} guli untuk kamu`, 'good')
+        rivalSays('Alamak, habis biji aku!')
+      } else {
+        say(`Aisyah tembak! ${e.count} guli masuk rumah dia`, 'bad')
+        rivalSays(`Tembak! ${e.count} biji kamu aku ambil.`)
+      }
+      if (!quiet) sfx.capture()
+    },
+    [say, rivalSays],
+  )
 
   const finishMatch = useCallback((board, burntNow, rounds) => {
     const over = finalResult(board, burntNow, rounds)
@@ -199,15 +221,7 @@ export function useCongkakMatch({ level }) {
               display[e.pit] = 0
               display[e.opposite] = 0
               display[e.store] += e.count
-              setFlash({ pits: [e.pit, e.opposite, e.store], key: Math.random() })
-              if (side === PLAYER) {
-                say(`Tembak! +${e.count} guli untuk kamu`, 'good')
-                rivalSays('Alamak, habis biji aku!')
-              } else {
-                say(`Aisyah tembak! ${e.count} guli masuk rumah dia`, 'bad')
-                rivalSays(`Tembak! ${e.count} biji kamu aku ambil.`)
-              }
-              sfx.capture()
+              announceCapture(e)
               wait = Math.max(wait, 900)
               break
             case 'noTembak':
@@ -232,7 +246,7 @@ export function useCongkakMatch({ level }) {
       }
       step()
     },
-    [say, rivalSays],
+    [say, rivalSays, announceCapture],
   )
 
   /** One go by one side. */
@@ -249,24 +263,119 @@ export function useCongkakMatch({ level }) {
     [pits, burnt, round, animate, advance],
   )
 
-  /** The start of a pusingan: your kampung and Aisyah's, sown together. */
-  const runOpening = useCallback(
-    (house) => {
-      const theirs = theirOpening.current ?? chooseMove(pits, OPPONENT, level, Math.random, burnt)
-      const outcome = playOpening(pits, burnt, house, theirs)
-      const roundNow = round
-      const burntNow = burnt
-      setPhase('play')
-      rivalSays('Satu, dua, tiga… mula!')
-      animate(pits, outcome.events, () => {
-        setPits(outcome.pits)
-        // whoever is named goes next; one with nothing to play passes
-        const first = outcome.nextSide
-        advance(outcome.pits, burntNow, roundNow, outcome.carriesOn ? first : 1 - first, outcome.carriesOn)
-      })
+  // ---- the start of a pusingan, played live: both hands sow at once, and a
+  // side back in its rumah picks up another kampung straight away
+  const live = useRef(null) // engine live state + { round, aiAt }
+  const [youPick, setYouPick] = useState(false) // you're back in your rumah mid-start: pick again now
+  // while both hands are still alive the race is on: no skipping, no Laju
+  const [bothAlive, setBothAlive] = useState(false)
+  const liveRacing = (L) => !L.state.includes('dead')
+  const levelRef = useRef(level)
+  levelRef.current = level
+  const advanceRef = useRef(advance)
+  advanceRef.current = advance
+
+  /** Put the live board on screen: seeds, both hands, whether you can pick. */
+  const showLive = useCallback((L) => {
+    setPits(L.pits.slice())
+    setHands(L.hands.map((h, side) => (h ? { pit: h.pos, count: h.hand, side, tick: `${L.t}-${side}` } : null)))
+    setMovers([PLAYER, OPPONENT].filter((s) => L.hands[s]))
+    setYouPick(L.state[PLAYER] === 'pick')
+    setBothAlive(liveRacing(L))
+  }, [])
+
+  /** Sounds and messages for one live tick; returns how long to linger on it. */
+  const cueLive = useCallback(
+    (L, events, quiet) => {
+      let wait = STEP_MS
+      let drops = 0
+      for (const e of events) {
+        if (e.type === 'capture') {
+          announceCapture(e, quiet)
+          wait = 900
+        } else if (quiet) {
+          // skipping: no sounds
+        } else if (e.type === 'drop') sfx.seedDrop(drops++)
+        else if (e.type === 'pickup' || e.type === 'relay') {
+          sfx.seedPickup()
+          if (e.type === 'pickup') wait = STEP_MS * 1.6
+        } else if (e.type === 'noTembak' && e.side === PLAYER) say('Mati! Belum satu pusingan, tak boleh tembak.', 'bad')
+        else if (e.type === 'extraTurn') {
+          sfx.extraTurn()
+          if (L.state[e.side] !== 'pick') continue
+          if (e.side === PLAYER) say('Masuk rumah! Terus pilih kampung dan sambung.', 'good')
+          else rivalSays('Masuk rumah! Sambung!')
+        }
+      }
+      return wait
     },
-    [pits, burnt, round, level, animate, advance, rivalSays],
+    [say, rivalSays, announceCapture],
   )
+
+  /** One tick; Aisyah picks up another kampung a moment after reaching her rumah. */
+  const liveStep = (L, quiet) => {
+    const events = tickTogether(L)
+    if (L.state[OPPONENT] === 'pick') {
+      if (L.aiAt === null) L.aiAt = L.t + (quiet ? 0 : AI_PICK_TICKS)
+      if (L.t >= L.aiAt) {
+        events.push(...pickTogether(L, OPPONENT, chooseMove(L.pits, OPPONENT, levelRef.current, Math.random, L.burnt)))
+        L.aiAt = null
+      }
+    }
+    return events
+  }
+
+  /** Both sides are out: whoever died first has the next go. */
+  const finishLive = () => {
+    const L = live.current
+    live.current = null
+    clearTimers()
+    setHands([null, null])
+    setMovers([])
+    setYouPick(false)
+    setBothAlive(false)
+    setAnimating(false)
+    setPits(L.pits)
+    setPhase('play')
+    advanceRef.current(L.pits, L.burnt, L.round, 1 - firstAfterTogether(L), false)
+  }
+
+  const liveLoop = () => {
+    const L = live.current
+    if (!L) return
+    if (togetherOver(L)) {
+      finishLive()
+      return
+    }
+    const wait = cueLive(L, liveStep(L, false), false)
+    showLive(L)
+    later(liveLoop, wait / (fastRef.current && !liveRacing(L) ? 2 : 1))
+  }
+
+  /** The start of a pusingan: your kampung and Aisyah's, sown together. */
+  const startLive = (house) => {
+    const theirs = theirOpening.current ?? chooseMove(pits, OPPONENT, level, Math.random, burnt)
+    const { live: L, events } = startTogether(pits, burnt, house, theirs)
+    live.current = Object.assign(L, { round, aiAt: null })
+    setPhase('together')
+    setAnimating(true)
+    // keep a message the player has only just been shown
+    setBanner((b) => (b && Date.now() - b.at < 1800 ? b : null))
+    rivalSays('Satu, dua, tiga… mula!')
+    const wait = cueLive(L, events, false)
+    showLive(L)
+    later(liveLoop, wait)
+  }
+
+  /** Back in your rumah during the start: take up another kampung at once. */
+  const pickLive = (house) => {
+    const L = live.current
+    if (L.pits[house] === 0) return 'empty'
+    sfx.tap()
+    cueLive(L, pickTogether(L, PLAYER, house), false)
+    showLive(L)
+    return 'played'
+  }
 
   // Aisyah picks her opening kampung as soon as a pusingan is ready
   useEffect(() => {
@@ -278,32 +387,51 @@ export function useCongkakMatch({ level }) {
    * 'played' · 'wait' (Aisyah's turn) · 'busy' (seeds still moving)
    * · 'theirs' (Aisyah's row) · 'empty' · 'burnt' · 'over'
    */
-  const playHouse = useCallback(
-    (house) => {
-      if (result || phase === 'over') return 'over'
-      if (phase === 'between') return 'busy'
-      if (house > 6) return 'theirs'
-      if (burnt[house]) return 'burnt'
-      if (phase === 'opening') {
-        if (pits[house] === 0) return 'empty'
-        sfx.tap()
-        runOpening(house)
-        return 'played'
-      }
-      if (turn !== PLAYER || (animating && !movers.includes(PLAYER))) return 'wait'
-      if (animating) return 'busy'
+  const playHouse = (house) => {
+    if (result || phase === 'over') return 'over'
+    if (phase === 'between') return 'busy'
+    if (house > 6) return 'theirs'
+    if (burnt[house]) return 'burnt'
+    if (phase === 'opening') {
       if (pits[house] === 0) return 'empty'
       sfx.tap()
-      runMove(PLAYER, house)
+      startLive(house)
       return 'played'
-    },
-    [result, phase, burnt, pits, turn, animating, movers, runOpening, runMove],
-  )
+    }
+    if (phase === 'together') {
+      const state = live.current?.state[PLAYER]
+      if (state === 'pick') return pickLive(house)
+      return state === 'dead' ? 'wait' : 'busy'
+    }
+    if (turn !== PLAYER || (animating && !movers.includes(PLAYER))) return 'wait'
+    if (animating) return 'busy'
+    if (pits[house] === 0) return 'empty'
+    sfx.tap()
+    runMove(PLAYER, house)
+    return 'played'
+  }
 
-  /** Tap during an animation to jump to the end of the move. */
-  const skip = useCallback(() => {
+  /**
+   * Tap during an animation to jump to the end of the move. In the live
+   * start, only once one side's seeds have died: then jump ahead until you
+   * have to pick again (or the start is over).
+   */
+  const skip = () => {
+    const L = live.current
+    if (L) {
+      if (L.state[PLAYER] === 'pick' || liveRacing(L)) return
+      clearTimers()
+      for (let i = 0; i < 20000 && !togetherOver(L) && L.state[PLAYER] !== 'pick'; i++) cueLive(L, liveStep(L, true), true)
+      if (togetherOver(L)) {
+        finishLive()
+        return
+      }
+      showLive(L)
+      later(liveLoop, 250)
+      return
+    }
     if (pending.current) pending.current.finish()
-  }, [])
+  }
 
   // AI turn
   useEffect(() => {
@@ -326,6 +454,9 @@ export function useCongkakMatch({ level }) {
     turnsThisRound.current = 0
     setPits(createBoard())
     setBurnt(createBurnt())
+    live.current = null
+    setYouPick(false)
+    setBothAlive(false)
     setRound(1)
     setPhase('opening')
     setTurn(PLAYER)
@@ -343,6 +474,9 @@ export function useCongkakMatch({ level }) {
     burnt,
     round,
     phase,
+    youPick,
+    // seeds moving and you may skip them / hold Laju (not while both hands race)
+    canSkip: animating && !bothAlive,
     turn,
     movers,
     say,

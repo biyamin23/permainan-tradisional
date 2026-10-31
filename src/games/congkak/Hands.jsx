@@ -156,7 +156,7 @@ export function Hands({ boardRef, sowing, turn, animating, finished, ready, hove
   } else if (sowing[PLAYER]) {
     const h = sowing[PLAYER]
     you = { point: pitPoint(h.pit), visible: true, pose: 'curl', seeds: h.count, tick: h.tick }
-  } else if ((turn === PLAYER || ready) && !animating && !finished) {
+  } else if (((turn === PLAYER && !animating) || ready) && !finished) {
     you = hoverPit != null ? { point: pitPoint(hoverPit), visible: true, pose: 'flat' } : { point: edge(PLAYER, 0.35), visible: true, pose: 'flat' }
   }
 
