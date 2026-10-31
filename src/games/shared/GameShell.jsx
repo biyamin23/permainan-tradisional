@@ -20,8 +20,13 @@ const PLAYER_COLOR = { [GENDERS.LELAKI]: '#2f4fb5', [GENDERS.PEREMPUAN]: '#e98fa
 export function usePlayerLook() {
   const name = usePlayerState((s) => s.playerName) || 'Kamu'
   const gender = usePlayerState((s) => s.playerGender)
+  return lookOf({ name, gender })
+}
+
+/** Avatar and colour for any player's profile ({ name, gender }), e.g. a friend online. */
+export function lookOf({ name, gender } = {}) {
   return {
-    name,
+    name: name || 'Kawan',
     img: PLAYER_IMG[gender] ?? PLAYER_IMG[GENDERS.LELAKI],
     color: PLAYER_COLOR[gender] ?? PLAYER_COLOR[GENDERS.LELAKI],
   }

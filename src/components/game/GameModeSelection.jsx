@@ -6,6 +6,7 @@ import { Modal } from '../ui/Modal'
 import { GameIcon } from './GameIcon'
 import { MasteryStatus } from '../progress/Progress'
 import { GAME_IDS } from '../../progression/config'
+import { ONLINE_GAMES } from '../../cloud/match'
 
 /** Opened from a game spot: Solo or Multiplayer, then straight into that game. */
 export function GameModeSelection() {
@@ -21,6 +22,7 @@ export function GameModeSelection() {
   if (!game) return null
 
   const soloAvailable = game.modes.includes(GAME_MODES.SOLO)
+  const onlineAvailable = ONLINE_GAMES.includes(game.id)
 
   const chooseSolo = () => {
     if (!soloAvailable) {
@@ -32,8 +34,13 @@ export function GameModeSelection() {
   }
 
   const chooseMultiplayer = () => {
-    sfx.locked()
-    setComingSoonPulse((n) => n + 1)
+    if (!onlineAvailable) {
+      sfx.locked()
+      setComingSoonPulse((n) => n + 1)
+      return
+    }
+    sfx.select()
+    playerActions.startGame(GAME_MODES.MULTIPLAYER)
   }
 
   return (
@@ -68,16 +75,23 @@ export function GameModeSelection() {
           <span className="mode-card__cta">Jom main →</span>
         </button>
 
-        <button type="button" className="mode-card mode-card--multi" onClick={chooseMultiplayer} aria-disabled="true">
-          <span className="mode-card__soon" key={comingSoonPulse} data-pulse={comingSoonPulse > 0 ? 'true' : undefined}>
-            Coming Soon
-          </span>
+        <button
+          type="button"
+          className={`mode-card mode-card--multi ${onlineAvailable ? 'is-open' : ''}`}
+          onClick={chooseMultiplayer}
+          aria-disabled={onlineAvailable ? undefined : 'true'}
+        >
+          {!onlineAvailable && (
+            <span className="mode-card__soon" key={comingSoonPulse} data-pulse={comingSoonPulse > 0 ? 'true' : undefined}>
+              Coming Soon
+            </span>
+          )}
           <span className="mode-card__emoji" aria-hidden="true">
             👥
           </span>
           <span className="mode-card__name">MULTIPLAYER</span>
           <span className="mode-card__desc">Jemput kawan dan bermain bersama.</span>
-          <span className="mode-card__cta">Tak lama lagi</span>
+          <span className="mode-card__cta">{onlineAvailable ? 'Jemput kawan →' : 'Tak lama lagi'}</span>
         </button>
       </div>
     </Modal>

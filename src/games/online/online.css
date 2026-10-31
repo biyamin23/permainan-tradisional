@@ -1,0 +1,117 @@
+/* Main dengan kawan: the lobby panels (on top of a game's own background) */
+
+.ol-panel .gs-btn[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.ol-or {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.ol-join {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.ol-input {
+  min-width: 0;
+  min-height: 56px;
+  padding: 0 0.8rem;
+  border: 3px solid var(--cream-2);
+  border-radius: 16px;
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: 0.25em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.ol-input:focus {
+  outline: none;
+  border-color: var(--go);
+}
+
+.ol-join__go {
+  width: auto;
+  padding: 0 1.2rem;
+}
+
+.ol-error {
+  margin: 0.7rem 0 0;
+  font-weight: 800;
+  color: #b23a2a;
+}
+
+.ol-code {
+  margin: 0 0 0.9rem;
+  padding: 0.5rem 0;
+  border-radius: 16px;
+  background: var(--cream-2);
+  font-size: clamp(2rem, 10vw, 2.8rem);
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  user-select: all;
+}
+
+.ol-share {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 8px;
+}
+
+.ol-share .gs-btn--go {
+  grid-column: 1 / -1;
+}
+
+.ol-wa {
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+}
+
+.ol-wait {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 1rem 0 0.4rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.ol-dots {
+  width: 1.6em;
+  height: 0.5em;
+  background:
+    radial-gradient(circle, currentColor 45%, transparent 50%) 0 50% / 0.5em 0.5em no-repeat,
+    radial-gradient(circle, currentColor 45%, transparent 50%) 50% 50% / 0.5em 0.5em no-repeat,
+    radial-gradient(circle, currentColor 45%, transparent 50%) 100% 50% / 0.5em 0.5em no-repeat;
+  animation: ol-blink 1.2s ease-in-out infinite;
+}
+
+@keyframes ol-blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* the other player's connection dropped */
+.ol-away {
+  margin: 0.5rem 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ol-dots {
+    animation: none;
+  }
+}

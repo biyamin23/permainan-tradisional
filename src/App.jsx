@@ -1,7 +1,11 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { LandingPage } from './components/landing/LandingPage'
 import { SoundToggle } from './components/ui/SoundToggle'
-import { authStore, initAuth, screenAfterLogin, takeReturnFlag } from './cloud/auth'
+import { authStore, initAuth, screenAfterLogin, takeReturnFlag, useAuth } from './cloud/auth'
+import { hasPendingInvite, openPendingInvite, readInviteFromUrl } from './games/online/invite'
+
+// an invite link (/?main=CODE&game=dam) waits here until the player is in the kampung
+readInviteFromUrl()
 import { SCREENS, isWorldScreen, playerActions, playerStore, usePlayerState } from './state/playerState'
 
 // The landing page loads on its own. Three.js, physics and the kampung come in
@@ -35,6 +39,12 @@ function Loading() {
  */
 export default function App() {
   const screen = usePlayerState((s) => s.currentScreen)
+  const signedIn = useAuth((s) => s.status === 'in' && Boolean(s.profile))
+
+  // in the kampung with an invite link: open that game and join
+  useEffect(() => {
+    if (screen === SCREENS.KAMPUNG && signedIn) openPendingInvite()
+  }, [screen, signedIn])
 
   // who is logged in; coming back from Google (or a password email) carries straight on
   useEffect(() => {
@@ -43,7 +53,8 @@ export default function App() {
       const { status, recovery } = authStore.getState()
       if (playerStore.getState().currentScreen !== SCREENS.LANDING) return
       if (recovery) playerActions.goTo(SCREENS.LOGIN)
-      else if (back && status === 'in') playerActions.goTo(screenAfterLogin())
+      // back from Google, or opening an invite / rejoin link while logged in: carry straight on
+      else if ((back || hasPendingInvite()) && status === 'in') playerActions.goTo(screenAfterLogin())
     })
   }, [])
 

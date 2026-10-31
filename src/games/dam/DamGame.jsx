@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { sfx } from '../../audio/engine'
 import {
   ExitButton,
@@ -11,10 +11,15 @@ import {
   RulesSheet,
   Scene,
   Speech,
+  lookOf,
   recordsSummary,
   usePlayerLook,
   useTurnToast,
 } from '../shared/GameShell'
+import { streamFor } from '../shared/rng'
+import { OnlineLobby } from '../online/OnlineLobby'
+import { createMatch, explainMatchError, joinMatch } from '../../cloud/match'
+import { GAME_MODES } from '../../state/playerState'
 import { useProgressSession } from '../../components/progress/Progress'
 import { completeGame } from '../../progression/engine'
 import { DamBoard } from './DamBoard'
@@ -214,12 +219,227 @@ function Match({ player, firstStarter, onExit, onRecords }) {
   )
 }
 
-export function DamGame({ onExit }) {
+
+// ---------------------------------------------------------------- online
+
+const AWAY_CLAIM_S = 60 // your friend's connection has been gone this long: you may claim the win
+
+/** Dam against a friend: same table, their moves come over the internet. */
+function OnlineMatch({ net, player, onLeave, onNewMatch, onRecords }) {
+  const them = lookOf(net.opponent)
+  // who starts comes from the match's seed, so both screens agree
+  const starter = useMemo(
+    () => ((streamFor(net.match.seed, 'starter')() < 0.5 ? 0 : 1) === net.seat ? PLAYER : OPPONENT),
+    [net.match.seed, net.seat],
+  )
+  const session = useProgressSession('dam', 0)
+  const [reward, setReward] = useState(null)
+  const [forfeit, setForfeit] = useState(null) // the other player left: you win
+  const [showRules, setShowRules] = useState(false)
+  const [exitArmed, setExitArmed] = useState(false)
+  const [awaySince, setAwaySince] = useState(null)
+  const [now, setNow] = useState(Date.now())
+  // a match that was already over when you opened it gives no XP again
+  const overBefore = useRef(net.match.status !== 'playing')
+  const m = useDamMatch({ level: session.tuning, starter, net, them: them.name })
+  const result = m.result ?? forfeit
+  const yourTurn = m.turn === PLAYER && !result
+  const toast = useTurnToast({ yourTurn, finished: Boolean(result), banner: m.banner, theirName: them.name })
+
+  // the other player walked away
+  useEffect(() => {
+    if (net.opponentLeft && !result) setForfeit({ winner: PLAYER, reason: 'tinggal', pieces: m.pieces })
+  }, [net.opponentLeft, result, m.pieces])
+
+  // their connection dropped: count how long
+  useEffect(() => {
+    if (net.opponentOnline || result) {
+      setAwaySince(null)
+      return undefined
+    }
+    setAwaySince((t) => t ?? Date.now())
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [net.opponentOnline, result])
+  const awayFor = awaySince ? Math.floor((now - awaySince) / 1000) : 0
+
+  // the end: report it, keep the record, give XP (once)
+  const { finish } = net
+  useEffect(() => {
+    if (!result || overBefore.current) return
+    overBefore.current = true
+    const winnerSeat = result.winner === null ? null : result.winner === PLAYER ? net.seat : 1 - net.seat
+    finish(winnerSeat, { pieces: result.pieces, reason: result.reason })
+    onRecords(saveResult(result))
+    const [mine, theirs] = result.pieces
+    setReward(completeGame(session, { won: result.winner === PLAYER, draw: result.winner === null, score: mine, theirs, lost: 12 - mine }))
+  }, [result, finish, net.seat, onRecords, session])
+
+  const { tapSquare, say } = m
+  const onSquare = useCallback(
+    (sq) => {
+      const outcome = tapSquare(sq)
+      if (outcome === 'wait') return say(`Sabar, giliran ${them.name}.`, 'them')
+      if (outcome === 'theirs') return say(`Itu buah ${them.name}. Buah kamu yang biru.`, 'bad')
+      const why = WHY[outcome]
+      if (why) say(why[0], why[1])
+      return undefined
+    },
+    [tapSquare, say, them.name],
+  )
+
+  // leaving mid-game gives the win away: tap twice
+  const exit = () => {
+    if (result) return onLeave()
+    if (exitArmed) return onLeave()
+    setExitArmed(true)
+    say('Keluar sekarang dikira kalah. Tekan Keluar sekali lagi.', 'bad')
+    setTimeout(() => setExitArmed(false), 3000)
+    return undefined
+  }
+
+  const claim = () => {
+    sfx.select()
+    setForfeit({ winner: PLAYER, reason: 'terputus', pieces: m.pieces })
+  }
+
+  // Main lagi: accept their invite, or send one
+  const [againBusy, setAgainBusy] = useState(false)
+  const again = async () => {
+    if (againBusy) return
+    sfx.select()
+    setAgainBusy(true)
+    try {
+      if (net.rematch) onNewMatch(await joinMatch(net.rematch))
+      else {
+        const fresh = await createMatch('dam')
+        net.offerRematch(fresh.code)
+        onNewMatch(fresh)
+      }
+    } catch (e) {
+      say(explainMatchError(e), 'bad')
+      setAgainBusy(false)
+    }
+  }
+
+  const next = result
+    ? null
+    : !net.opponentOnline
+      ? { icon: '📶', text: `${them.name} terputus. Menunggu dia kembali… (${awayFor}s)` }
+      : yourTurn
+        ? m.busy
+          ? { icon: '✋', text: 'Buah sedang bergerak…' }
+          : m.path.length
+            ? { icon: '👆', text: 'Teruskan makan! Tekan bulatan kuning.' }
+            : m.selected !== null
+              ? { icon: '👆', text: 'Tekan bulatan kuning untuk gerak. Tekan buah lain untuk tukar.' }
+              : m.mustCapture
+                ? { icon: '⚠️', text: 'Wajib makan! Pilih buah yang bercahaya.' }
+                : { icon: '👆', text: 'Pilih buah biru yang bercahaya.' }
+        : m.busy
+          ? { icon: '⏳', text: `${them.name} sedang bergerak…` }
+          : { icon: '🤔', text: `${them.name} sedang berfikir…` }
+
+  const win = result?.winner === PLAYER
+  const title = win ? 'Kamu menang!' : result?.winner === OPPONENT ? `${them.name} menang!` : 'Seri!'
+  const line = net.rematch
+    ? `${them.name} ajak main lagi! Tekan Main lagi untuk terima.`
+    : result?.reason === 'tinggal'
+      ? `${them.name} dah keluar. Kamu menang.`
+      : result?.reason === 'terputus'
+        ? `${them.name} terputus terlalu lama. Kamu menang.`
+        : win
+          ? 'Hebat! Ajak dia lawan sekali lagi.'
+          : result?.winner === OPPONENT
+            ? 'Kalah menang adat bermain. Cuba lagi!'
+            : 'Lama sangat tak ada siapa makan. Seri.'
+
+  return (
+    <Scene
+      className="dm"
+      top={
+        <>
+          <ExitButton onExit={exit} />
+          <RulesButton onOpen={() => setShowRules(true)} />
+        </>
+      }
+      them={
+        <PlayerCard side="them" name={them.name} color={them.color} img={them.img} score={m.pieces[1]} unit="buah" active={m.turn === OPPONENT && !result} />
+      }
+      you={<PlayerCard side="you" name={player.name} color={player.color} img={player.img} score={m.pieces[0]} unit="buah" active={yourTurn} />}
+      toast={toast}
+      board={
+        <DamBoard
+          board={m.board}
+          ids={m.ids}
+          selected={m.path.length ? m.path[m.path.length - 1] : m.selected}
+          targets={yourTurn && !m.busy ? m.targets : []}
+          movable={result ? [] : m.movable}
+          moving={m.moving}
+          fading={m.fading}
+          lastMove={m.lastMove}
+          onSquare={onSquare}
+        />
+      }
+      bottom={
+        <>
+          <NextHint next={next} yours={yourTurn && !m.busy && net.opponentOnline} />
+          {!result && !net.opponentOnline && awayFor >= AWAY_CLAIM_S && (
+            <button type="button" className="gs-btn gs-btn--go ol-away" onClick={claim}>
+              Tuntut kemenangan
+            </button>
+          )}
+        </>
+      }
+    >
+      {result && (
+        <ResultPanel
+          title={title}
+          win={win}
+          mine={result.pieces[0]}
+          theirs={result.pieces[1]}
+          myName={player.name}
+          theirName={them.name}
+          line={line}
+          extra="Nombor di atas ialah buah yang masih tinggal di papan."
+          reward={reward}
+          onAgain={again}
+          onExit={onLeave}
+        />
+      )}
+      {showRules && <RulesSheet game="dam" rules={RULES} onClose={() => setShowRules(false)} />}
+    </Scene>
+  )
+}
+
+/** Main dengan kawan: the lobby, then the match. */
+function OnlineDam({ player, onExit, onRecords }) {
+  const frame = (panel) => (
+    <Scene
+      className="dm dm--intro"
+      top={<ExitButton onExit={onExit} />}
+      them={<PlayerCard side="them" name="Kawan" color={PAK_TAM_COLOR} img={lookOf().img} score={12} unit="buah" />}
+      you={<PlayerCard side="you" name={player.name} color={player.color} img={player.img} score={12} unit="buah" />}
+      board={null}
+    >
+      {panel}
+    </Scene>
+  )
+  return (
+    <OnlineLobby gameId="dam" frame={frame} onExit={onExit}>
+      {({ net, leave, onNewMatch }) => <OnlineMatch net={net} player={player} onLeave={leave} onNewMatch={onNewMatch} onRecords={onRecords} />}
+    </OnlineLobby>
+  )
+}
+
+export function DamGame({ mode, onExit }) {
   const player = usePlayerLook()
   const [phase, setPhase] = useState('intro') // intro → osom → play
   const [starter, setStarter] = useState(PLAYER)
   const [records, setRecords] = useState(loadRecords)
   const onRecords = useMemo(() => (next) => setRecords(next), [])
+
+  if (mode === GAME_MODES.MULTIPLAYER) return <OnlineDam player={player} onExit={onExit} onRecords={onRecords} />
 
   if (phase !== 'play') {
     return (

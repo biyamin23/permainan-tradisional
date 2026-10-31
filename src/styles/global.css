@@ -1671,10 +1671,24 @@ kbd {
   cursor: not-allowed;
 }
 
-.mode-card--multi .mode-card__emoji,
-.mode-card--multi .mode-card__name,
-.mode-card--multi .mode-card__desc {
+.mode-card--multi:not(.is-open) .mode-card__emoji,
+.mode-card--multi:not(.is-open) .mode-card__name,
+.mode-card--multi:not(.is-open) .mode-card__desc {
   opacity: 0.6;
+}
+
+/* a game that can be played online */
+.mode-card--multi.is-open {
+  color: var(--cream-50);
+  background: linear-gradient(160deg, #3fb7a8 0%, var(--teal) 50%, #1d6f68 100%);
+  box-shadow:
+    0 6px 0 #17564f,
+    0 22px 40px -18px rgba(29, 111, 104, 0.8);
+  cursor: pointer;
+}
+
+.mode-card--multi.is-open:hover {
+  transform: translateY(-6px) rotate(0.6deg);
 }
 
 .mode-card__emoji {
